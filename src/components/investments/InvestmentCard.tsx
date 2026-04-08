@@ -1,6 +1,7 @@
 import { Pencil, Trash2 } from 'lucide-react'
+import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import Badge from '../ui/Badge'
-import { formatCurrency, INVESTMENT_TYPE_LABELS, INVESTMENT_TYPE_COLORS } from '../../lib/formatters'
+import { formatCurrency, formatCompact, INVESTMENT_TYPE_LABELS, INVESTMENT_TYPE_COLORS } from '../../lib/formatters'
 import type { Investment } from '../../store/useFinanceStore'
 
 interface Props {
@@ -9,11 +10,22 @@ interface Props {
   onDelete: () => void
 }
 
+function shortMonth(yyyyMM: string): string {
+  const [year, month] = yyyyMM.split('-')
+  const date = new Date(Number(year), Number(month) - 1, 1)
+  return date.toLocaleString('en-US', { month: 'short', year: '2-digit' })
+}
+
 export default function InvestmentCard({ investment: inv, onEdit, onDelete }: Props) {
   const color = INVESTMENT_TYPE_COLORS[inv.type]
   const annualFee =
     (inv.currentValue * inv.managementFeeAccumulationPct) / 100 +
     (inv.monthlyContribution * 12 * inv.managementFeeContributionPct) / 100
+
+  const showChart = inv.valueHistory && inv.valueHistory.length >= 2
+  const chartData = showChart
+    ? inv.valueHistory.map((h) => ({ month: shortMonth(h.month), value: h.value }))
+    : []
 
   return (
     <div className="card p-4 animate-fade-in">
@@ -48,6 +60,33 @@ export default function InvestmentCard({ investment: inv, onEdit, onDelete }: Pr
           {formatCurrency(inv.currentValue)}
         </p>
       </div>
+
+      {showChart && (
+        <div className="mt-3" style={{ height: 80 }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={chartData} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
+              <XAxis
+                dataKey="month"
+                tick={{ fontSize: 10, fill: 'var(--color-text-secondary)' }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <Tooltip
+                formatter={(v) => [formatCompact(Number(v)), 'Value']}
+                contentStyle={{
+                  background: 'var(--color-card)',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: 8,
+                  fontSize: 12,
+                  color: 'var(--color-text-primary)',
+                }}
+                cursor={{ fill: 'var(--color-border)', opacity: 0.4 }}
+              />
+              <Bar dataKey="value" fill="#4361EE" radius={[3, 3, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
 
       <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
         {inv.monthlyContribution > 0 && (

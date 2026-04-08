@@ -83,6 +83,11 @@ export interface Asset {
   createdAt: string
 }
 
+export interface ValueHistoryEntry {
+  month: string  // 'YYYY-MM'
+  value: number
+}
+
 export interface Investment {
   id: string
   name: string
@@ -94,6 +99,7 @@ export interface Investment {
   managingInstitution: string
   description: string
   openingDate: string
+  valueHistory: ValueHistoryEntry[]
   createdAt: string
 }
 
@@ -166,6 +172,35 @@ function uid(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
 }
 
+function currentMonth(): string {
+  return new Date().toISOString().slice(0, 7) // 'YYYY-MM'
+}
+
+function upsertValueHistory(
+  history: ValueHistoryEntry[],
+  month: string,
+  value: number
+): ValueHistoryEntry[] {
+  const filtered = history.filter((h) => h.month !== month)
+  return [...filtered, { month, value }].sort((a, b) => a.month.localeCompare(b.month))
+}
+
+// ── Per-user store key ────────────────────────────────────────────────────────
+// Read activeUser synchronously before store initialises so the key is user-scoped.
+// login()/logout() call window.location.reload() after writing to nriseup-auth,
+// causing this IIFE to re-run with the correct user on every session change.
+
+const _activeUser = (() => {
+  try {
+    const raw = localStorage.getItem('nriseup-auth')
+    return raw ? (JSON.parse(raw).state?.activeUser ?? 'guest') : 'guest'
+  } catch {
+    return 'guest'
+  }
+})()
+
+const STORE_KEY = `nriseup-state-v1-${_activeUser}`
+
 // ── Sample data ───────────────────────────────────────────────────────────────
 
 function buildSampleData(): Pick<
@@ -205,6 +240,20 @@ function buildSampleData(): Pick<
     createdAt: new Date().toISOString(),
   }))
 
+  // 3 months of synthetic value history for sample investments
+  const inv1Base = 320000
+  const inv2Base = 95000
+  const inv1History: ValueHistoryEntry[] = [
+    { month: months[2], value: inv1Base - 14000 },
+    { month: months[1], value: inv1Base - 6000 },
+    { month: months[0], value: inv1Base },
+  ].sort((a, b) => a.month.localeCompare(b.month))
+  const inv2History: ValueHistoryEntry[] = [
+    { month: months[2], value: inv2Base - 4500 },
+    { month: months[1], value: inv2Base - 2000 },
+    { month: months[0], value: inv2Base },
+  ].sort((a, b) => a.month.localeCompare(b.month))
+
   return {
     accounts: [
       { id: accountId, name: 'Bank Hapoalim', lastFourDigits: '4521', balance: 42500, createdAt: new Date().toISOString() },
@@ -216,8 +265,8 @@ function buildSampleData(): Pick<
       { id: uid(), name: 'Toyota Corolla 2021', type: 'vehicle', estimatedValue: 85000, purchaseDate: '2021-03-01', originalPurchaseCost: 105000, notes: '', createdAt: new Date().toISOString() },
     ],
     investments: [
-      { id: uid(), name: 'Menora Pension Fund', type: 'pension_fund', currentValue: 320000, monthlyContribution: 2500, managementFeeContributionPct: 1.5, managementFeeAccumulationPct: 0.5, managingInstitution: 'מנורה מבטחים', description: 'Employee pension', openingDate: '2016-01-01', createdAt: new Date().toISOString() },
-      { id: uid(), name: 'Harel Keren Hishtalmut', type: 'education_fund', currentValue: 95000, monthlyContribution: 1800, managementFeeContributionPct: 0.5, managementFeeAccumulationPct: 0.3, managingInstitution: 'הראל', description: '', openingDate: '2019-04-01', createdAt: new Date().toISOString() },
+      { id: uid(), name: 'Menora Pension Fund', type: 'pension_fund', currentValue: inv1Base, monthlyContribution: 2500, managementFeeContributionPct: 1.5, managementFeeAccumulationPct: 0.5, managingInstitution: 'מנורה מבטחים', description: 'Employee pension', openingDate: '2016-01-01', valueHistory: inv1History, createdAt: new Date().toISOString() },
+      { id: uid(), name: 'Harel Keren Hishtalmut', type: 'education_fund', currentValue: inv2Base, monthlyContribution: 1800, managementFeeContributionPct: 0.5, managementFeeAccumulationPct: 0.3, managingInstitution: 'הראל', description: '', openingDate: '2019-04-01', valueHistory: inv2History, createdAt: new Date().toISOString() },
     ],
     chartWidgets: [
       { id: uid(), chartType: 'pie', dataSource: 'expenses_by_category', timeRange: '1m', filterCategory: 'all', filterAccountId: null, title: 'Expenses This Month', order: 0 },
@@ -322,13 +371,25 @@ export const useFinanceStore = create<FinanceState>()(
 
       // ── Investment actions ─────────────────────────────────────────────────
       addInvestment: (data) =>
-        set((s) => ({
-          investments: [...s.investments, { ...data, id: uid(), createdAt: new Date().toISOString() }],
-        })),
+        set((s) => {
+          const month = currentMonth()
+          const history = upsertValueHistory(data.valueHistory ?? [], month, data.currentValue)
+          return {
+            investments: [
+              ...s.investments,
+              { ...data, valueHistory: history, id: uid(), createdAt: new Date().toISOString() },
+            ],
+          }
+        }),
 
       updateInvestment: (id, data) =>
         set((s) => ({
-          investments: s.investments.map((i) => (i.id === id ? { ...i, ...data } : i)),
+          investments: s.investments.map((inv) => {
+            if (inv.id !== id) return inv
+            const newValue = data.currentValue ?? inv.currentValue
+            const updatedHistory = upsertValueHistory(inv.valueHistory ?? [], currentMonth(), newValue)
+            return { ...inv, ...data, valueHistory: updatedHistory }
+          }),
         })),
 
       deleteInvestment: (id) =>
@@ -357,7 +418,7 @@ export const useFinanceStore = create<FinanceState>()(
       dismissSampleBanner: () => set({ sampleDataDismissed: true }),
     }),
     {
-      name: 'nriseup-state-v1',
+      name: STORE_KEY,
       onRehydrateStorage: () => (state) => {
         if (!state) return
 
@@ -376,6 +437,16 @@ export const useFinanceStore = create<FinanceState>()(
         // Migration guards — ensure new fields exist
         if (state.theme === undefined) state.theme = 'light'
         if (!state.categoryRules) state.categoryRules = {}
+
+        // Migrate investments missing valueHistory
+        if (state.investments) {
+          const month = currentMonth()
+          state.investments = state.investments.map((inv) =>
+            inv.valueHistory
+              ? inv
+              : { ...inv, valueHistory: [{ month, value: inv.currentValue }] }
+          )
+        }
       },
     }
   )

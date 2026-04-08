@@ -1,20 +1,33 @@
-import { useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { useFinanceStore } from './store/useFinanceStore'
+import { useAuthStore } from './store/useAuthStore'
 import BottomNav from './components/layout/BottomNav'
 import TopBar from './components/layout/TopBar'
 import Home from './pages/Home'
 import Accounts from './pages/Accounts'
 import Assets from './pages/Assets'
 import Investments from './pages/Investments'
+import SplashScreen from './pages/SplashScreen'
+import LoginScreen from './pages/LoginScreen'
 
 export default function App() {
+  const [showSplash, setShowSplash] = useState(true)
   const theme = useFinanceStore((s) => s.theme)
+  const activeUser = useAuthStore((s) => s.activeUser)
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
   }, [theme])
+
+  if (showSplash) {
+    return <SplashScreen onDone={() => setShowSplash(false)} />
+  }
+
+  if (!activeUser) {
+    return <LoginScreen />
+  }
 
   return (
     <BrowserRouter>
