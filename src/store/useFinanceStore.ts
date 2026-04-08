@@ -193,7 +193,11 @@ function upsertValueHistory(
 const _activeUser = (() => {
   try {
     const raw = localStorage.getItem('nriseup-auth')
-    return raw ? (JSON.parse(raw).state?.activeUser ?? 'guest') : 'guest'
+    if (!raw) return 'guest'
+    const parsed = JSON.parse(raw)
+    // Support direct format ({ activeUser }) and legacy Zustand persist format ({ state: { activeUser } })
+    const user: unknown = parsed.activeUser ?? parsed.state?.activeUser
+    return typeof user === 'string' && user ? user : 'guest'
   } catch {
     return 'guest'
   }
