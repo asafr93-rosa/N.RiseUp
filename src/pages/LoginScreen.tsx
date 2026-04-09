@@ -23,20 +23,15 @@ export default function LoginScreen() {
       return
     }
     setLoading(true)
-    if (tab === 'signin') {
-      const ok = await login(u, password)
-      if (!ok) {
-        setError('Invalid username or password.')
-        setLoading(false)
-      }
-      // on success: login() calls reload() — no need to reset state
-    } else {
-      const ok = await register(u, password)
-      if (!ok) {
-        setError('Username already taken. Choose another.')
-        setLoading(false)
-      }
+    const result = tab === 'signin'
+      ? await login(u, password)
+      : await register(u, password)
+
+    if (result.error) {
+      setError(result.error)
+      setLoading(false)
     }
+    // On success: App.tsx's onAuthStateChange fires and session is set — no reload needed
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {

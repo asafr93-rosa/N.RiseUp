@@ -164,6 +164,11 @@ interface FinanceState {
   updateTheme: (theme: AppTheme) => void
 
   dismissSampleBanner: () => void
+
+  // Sync helpers (called by syncService)
+  seedSampleData: () => void
+  hydrateFromBlob: (blob: Record<string, unknown>) => void
+  clearStore: () => void
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -185,25 +190,9 @@ function upsertValueHistory(
   return [...filtered, { month, value }].sort((a, b) => a.month.localeCompare(b.month))
 }
 
-// ── Per-user store key ────────────────────────────────────────────────────────
-// Read activeUser synchronously before store initialises so the key is user-scoped.
-// login()/logout() call window.location.reload() after writing to nriseup-auth,
-// causing this IIFE to re-run with the correct user on every session change.
-
-const _activeUser = (() => {
-  try {
-    const raw = localStorage.getItem('nriseup-auth')
-    if (!raw) return 'guest'
-    const parsed = JSON.parse(raw)
-    // Support direct format ({ activeUser }) and legacy Zustand persist format ({ state: { activeUser } })
-    const user: unknown = parsed.activeUser ?? parsed.state?.activeUser
-    return typeof user === 'string' && user ? user : 'guest'
-  } catch {
-    return 'guest'
-  }
-})()
-
-const STORE_KEY = `nriseup-state-v1-${_activeUser}`
+// Fixed localStorage key — user isolation is handled by Supabase (cloud) not by per-user keys.
+// localStorage serves as an offline cache only.
+const STORE_KEY = 'nriseup-finance'
 
 // ── Sample data ───────────────────────────────────────────────────────────────
 
@@ -420,6 +409,46 @@ export const useFinanceStore = create<FinanceState>()(
       },
 
       dismissSampleBanner: () => set({ sampleDataDismissed: true }),
+
+      // ── Sync helpers ───────────────────────────────────────────────────────
+      seedSampleData: () =>
+        set(() => ({ ...buildSampleData(), sampleDataLoaded: true })),
+
+      hydrateFromBlob: (blob) => {
+        const b = blob as Partial<FinanceState>
+        const month = currentMonth()
+        const investments = (b.investments ?? []).map((inv) =>
+          inv.valueHistory ? inv : { ...inv, valueHistory: [{ month, value: inv.currentValue }] }
+        )
+        set({
+          accounts: b.accounts ?? [],
+          transactions: b.transactions ?? [],
+          importBatches: b.importBatches ?? [],
+          assets: b.assets ?? [],
+          investments,
+          chartWidgets: b.chartWidgets ?? [],
+          categoryRules: b.categoryRules ?? {},
+          theme: b.theme ?? 'light',
+          sampleDataLoaded: b.sampleDataLoaded ?? false,
+          sampleDataDismissed: b.sampleDataDismissed ?? false,
+        })
+      },
+
+      clearStore: () => {
+        localStorage.removeItem(STORE_KEY)
+        set({
+          accounts: [],
+          transactions: [],
+          importBatches: [],
+          assets: [],
+          investments: [],
+          chartWidgets: [],
+          categoryRules: {},
+          theme: 'light',
+          sampleDataLoaded: false,
+          sampleDataDismissed: false,
+        })
+      },
     }),
     {
       name: STORE_KEY,
