@@ -10,10 +10,9 @@ import BankAccountModal from '../components/accounts/BankAccountModal'
 import TransactionModal from '../components/accounts/TransactionModal'
 import TransactionFilters from '../components/accounts/TransactionFilters'
 import TransactionTable from '../components/accounts/TransactionTable'
-import ImportCSVFlow from '../components/accounts/ImportCSVFlow'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
 import Button from '../components/ui/Button'
-import { formatCurrency, getMonthLabel } from '../lib/formatters'
+import { formatCurrency, getMonthLabel, CATEGORY_LABELS } from '../lib/formatters'
 import CreditCardCard from '../components/accounts/CreditCardCard'
 import CreditCardModal from '../components/accounts/CreditCardModal'
 import CreditCardCSVFlow from '../components/accounts/CreditCardCSVFlow'
@@ -23,7 +22,6 @@ import IncomeModal from '../components/accounts/IncomeModal'
 import IncomeSection from '../components/accounts/IncomeSection'
 import RecurringExpenseModal from '../components/accounts/RecurringExpenseModal'
 import RecurringExpensesSection from '../components/accounts/RecurringExpensesSection'
-import { CATEGORY_LABELS } from '../lib/formatters'
 
 export default function Accounts() {
   // ── Store selectors ──────────────────────────────────────────────────────────
@@ -65,9 +63,7 @@ export default function Accounts() {
   const [editingAccount, setEditingAccount] = useState<BankAccount | null>(null)
   const [deletingAccount, setDeletingAccount] = useState<BankAccount | null>(null)
   const [addTxOpen, setAddTxOpen] = useState(false)
-  const [showBankImport, setShowBankImport] = useState(false)
   const [filterCategory, setFilterCategory] = useState<ExpenseCategory | 'all'>('all')
-  const [filterAccountId, setFilterAccountId] = useState<string | 'all'>('all')
 
   // ── Credit card section state ────────────────────────────────────────────────
   const [addCardOpen, setAddCardOpen] = useState(false)
@@ -97,10 +93,9 @@ export default function Accounts() {
         if (!isWithinInterval(parseISO(t.date), { start: from, end: to })) return false
       } catch { return false }
       if (filterCategory !== 'all' && t.category !== filterCategory) return false
-      if (filterAccountId !== 'all' && t.bankAccountId !== filterAccountId) return false
       return true
     })
-  }, [transactions, filterMonth, filterCategory, filterAccountId])
+  }, [transactions, filterMonth, filterCategory])
 
   const ccTransactions = useMemo(() => {
     const from = startOfMonth(filterMonth)
@@ -174,35 +169,15 @@ export default function Accounts() {
               ))}
             </div>
 
-            <div className="flex gap-2 mb-3">
-              <Button variant="secondary" size="sm" className="flex-1" onClick={() => setAddTxOpen(true)}>
+            <div className="mb-3">
+              <Button variant="secondary" size="sm" onClick={() => setAddTxOpen(true)}>
                 <Plus size={14} /> Add Transaction
               </Button>
-              <Button variant="secondary" size="sm" className="flex-1" onClick={() => setShowBankImport((v) => !v)}>
-                <Upload size={14} /> Import CSV
-                {showBankImport ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-              </Button>
             </div>
-
-            {showBankImport && (
-              <div className="mb-3">
-                <ImportCSVFlow
-                  accounts={accounts}
-                  categoryRules={categoryRules}
-                  onImport={(txns, meta) => {
-                    addTransactionsBatch(txns, meta)
-                    setShowBankImport(false)
-                  }}
-                />
-              </div>
-            )}
 
             <TransactionFilters
               category={filterCategory}
               onCategoryChange={setFilterCategory}
-              accountId={filterAccountId}
-              onAccountChange={setFilterAccountId}
-              accounts={accounts}
             />
             <TransactionTable
               transactions={bankTransactions}

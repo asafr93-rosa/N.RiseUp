@@ -39,7 +39,7 @@ const DEBIT_HEADERS = ['חובה', 'debit', 'הוצאה', 'expense', 'חיוב']
 
 // ── Date parsing ──────────────────────────────────────────────────────────────
 
-function parseDate(raw: string): string {
+export function parseDate(raw: string): string {
   if (!raw) return new Date().toISOString().slice(0, 10)
   const s = raw.trim()
 
