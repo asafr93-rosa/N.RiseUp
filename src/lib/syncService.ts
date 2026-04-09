@@ -5,35 +5,32 @@ let pushTimer: ReturnType<typeof setTimeout> | null = null
 
 // ── Pull ──────────────────────────────────────────────────────────────────────
 
-export async function pullUserData(userId: string): Promise<void> {
+export async function pullUserData(username: string): Promise<void> {
   const { data, error } = await supabase
     .from('user_data')
     .select('data')
-    .eq('user_id', userId)
-    .single()
+    .eq('username', username)
+    .maybeSingle()
 
   if (error) {
-    // PGRST116 = "no rows returned" — first-ever login for this user
-    if (error.code === 'PGRST116') {
-      useFinanceStore.getState().seedSampleData()
-      await pushUserData(userId)
-    } else {
-      console.error('[sync] pull failed', error)
-      // Fall through — localStorage cache (if any) will be used as-is
-    }
+    console.error('[sync] pull failed', error)
     return
   }
 
   if (data?.data) {
     useFinanceStore.getState().hydrateFromBlob(data.data as Record<string, unknown>)
+  } else {
+    // First login on any device — seed sample data then push it
+    useFinanceStore.getState().seedSampleData()
+    await pushUserData(username)
   }
 }
 
 // ── Push (debounced) ──────────────────────────────────────────────────────────
 
-export function schedulePush(userId: string): void {
+export function schedulePush(username: string): void {
   if (pushTimer) clearTimeout(pushTimer)
-  pushTimer = setTimeout(() => void pushUserData(userId), 2000)
+  pushTimer = setTimeout(() => void pushUserData(username), 2000)
 }
 
 export function cancelPush(): void {
@@ -43,7 +40,7 @@ export function cancelPush(): void {
   }
 }
 
-async function pushUserData(userId: string): Promise<void> {
+async function pushUserData(username: string): Promise<void> {
   const s = useFinanceStore.getState()
   const blob = {
     accounts: s.accounts,
@@ -60,10 +57,9 @@ async function pushUserData(userId: string): Promise<void> {
 
   const { error } = await supabase
     .from('user_data')
-    .upsert({ user_id: userId, data: blob, updated_at: new Date().toISOString() })
+    .upsert({ username, data: blob, updated_at: new Date().toISOString() })
 
   if (error) {
     console.error('[sync] push failed', error)
-    // Silent failure — localStorage persist middleware keeps data locally
   }
 }
