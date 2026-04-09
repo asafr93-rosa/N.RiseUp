@@ -234,6 +234,11 @@ export default function Accounts() {
                   onImport={(txns, meta) => {
                     addTransactionsBatch(txns, meta)
                     setShowCCImport(false)
+                    // Jump to the most recent month in the imported batch so all expenses are visible
+                    if (txns.length > 0) {
+                      const latestDate = txns.reduce((a, b) => a.date > b.date ? a : b).date
+                      setFilterMonth(parseISO(latestDate))
+                    }
                   }}
                 />
               </div>
