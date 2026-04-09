@@ -19,11 +19,13 @@ export const useAuthStore = create<AuthState>()((set) => ({
       email,
       password,
       options: { data: { username: trimmed } },
-    })
+    }).catch(() => ({ data: null, error: { message: 'Cannot connect to server. Check your internet connection.' } }))
     if (error) {
-      // "User already registered" → friendly message
       if (error.message.toLowerCase().includes('already')) {
         return { error: 'Username already taken. Choose another.' }
+      }
+      if (error.message.toLowerCase().includes('fetch') || error.message.toLowerCase().includes('connect')) {
+        return { error: 'Cannot connect to server. Check your internet connection.' }
       }
       return { error: error.message }
     }
@@ -36,7 +38,13 @@ export const useAuthStore = create<AuthState>()((set) => ({
     if (!trimmed || !password) return { error: 'Username and password are required.' }
     const email = `${trimmed}@nriseup.local`
     const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) return { error: 'Invalid username or password.' }
+      .catch(() => ({ data: null, error: { message: 'fetch' } }))
+    if (error) {
+      if (error.message.toLowerCase().includes('fetch') || error.message.toLowerCase().includes('connect')) {
+        return { error: 'Cannot connect to server. Check your internet connection.' }
+      }
+      return { error: 'Invalid username or password.' }
+    }
     set({ activeUser: trimmed })
     return { error: null }
   },
