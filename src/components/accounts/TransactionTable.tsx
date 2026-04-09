@@ -13,11 +13,12 @@ interface Props {
   creditCards?: CreditCard[]
   onDelete: (id: string) => void
   onCategoryChange: (id: string, category: ExpenseCategory) => void
+  showEmptyState?: boolean
 }
 
 const CATEGORIES = Object.entries(CATEGORY_LABELS) as [ExpenseCategory, string][]
 
-export default function TransactionTable({ transactions, accounts, creditCards = [], onDelete, onCategoryChange }: Props) {
+export default function TransactionTable({ transactions, accounts, creditCards = [], onDelete, onCategoryChange, showEmptyState = true }: Props) {
   const [sort, setSort] = useState<{ key: SortKey; dir: SortDir }>({ key: 'date', dir: 'desc' })
 
   const accountMap: Record<string, string> = {
@@ -46,6 +47,7 @@ export default function TransactionTable({ transactions, accounts, creditCards =
   }
 
   if (transactions.length === 0) {
+    if (!showEmptyState) return null
     return (
       <div className="text-center py-8 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
         No transactions found for this period.

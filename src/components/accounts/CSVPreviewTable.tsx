@@ -8,9 +8,10 @@ const CATEGORIES = Object.entries(CATEGORY_LABELS) as [ExpenseCategory, string][
 interface Props {
   rows: ParsedRow[]
   onCategoryChange: (index: number, category: ExpenseCategory) => void
+  onDescriptionChange?: (index: number, value: string) => void
 }
 
-export default function CSVPreviewTable({ rows, onCategoryChange }: Props) {
+export default function CSVPreviewTable({ rows, onCategoryChange, onDescriptionChange }: Props) {
   return (
     <div className="overflow-x-auto rounded-xl border" style={{ borderColor: 'var(--color-border)' }}>
       <table className="w-full text-xs min-w-[480px]">
@@ -25,8 +26,20 @@ export default function CSVPreviewTable({ rows, onCategoryChange }: Props) {
         <tbody>
           {rows.map((row, i) => (
             <tr key={i} className="border-b" style={{ borderColor: 'var(--color-border)' }}>
-              <td className="px-3 py-2" style={{ color: 'var(--color-text-secondary)' }}>{formatDate(row.date)}</td>
-              <td className="px-3 py-2 max-w-[140px] truncate" style={{ color: 'var(--color-text-primary)' }}>{row.description}</td>
+              <td className="px-3 py-2 whitespace-nowrap" style={{ color: 'var(--color-text-secondary)' }}>{formatDate(row.date)}</td>
+              <td className="px-3 py-2 max-w-[160px]">
+                {onDescriptionChange ? (
+                  <input
+                    type="text"
+                    value={row.description}
+                    onChange={(e) => onDescriptionChange(i, e.target.value)}
+                    className="w-full bg-transparent outline-none text-xs"
+                    style={{ color: 'var(--color-text-primary)' }}
+                  />
+                ) : (
+                  <span className="truncate block" style={{ color: 'var(--color-text-primary)' }}>{row.description}</span>
+                )}
+              </td>
               <td className="px-3 py-2">
                 {row.type === 'expense' ? (
                   <select
@@ -41,7 +54,7 @@ export default function CSVPreviewTable({ rows, onCategoryChange }: Props) {
                   <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ background: '#22C55E20', color: '#22C55E' }}>Income</span>
                 )}
               </td>
-              <td className="px-3 py-2 text-right font-medium" style={{ color: row.type === 'income' ? '#22C55E' : '#EF4444' }}>
+              <td className="px-3 py-2 text-right font-medium whitespace-nowrap" style={{ color: row.type === 'income' ? '#22C55E' : '#EF4444' }}>
                 {row.type === 'income' ? '+' : '-'}{formatCurrency(row.amount)}
               </td>
             </tr>
