@@ -1,7 +1,7 @@
 import { Pencil, Trash2 } from 'lucide-react'
 import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import Badge from '../ui/Badge'
-import { formatCurrency, formatCompact, INVESTMENT_TYPE_LABELS, INVESTMENT_TYPE_COLORS } from '../../lib/formatters'
+import { formatCurrency, formatCompact, formatPercent, INVESTMENT_TYPE_LABELS, INVESTMENT_TYPE_COLORS } from '../../lib/formatters'
 import type { Investment } from '../../store/useFinanceStore'
 
 interface Props {
@@ -26,6 +26,13 @@ export default function InvestmentCard({ investment: inv, onEdit, onDelete }: Pr
   const chartData = showChart
     ? inv.valueHistory.map((h) => ({ month: shortMonth(h.month), value: h.value }))
     : []
+
+  const sortedHistory = [...(inv.valueHistory ?? [])].sort((a, b) => a.month.localeCompare(b.month))
+  const prevEntry = sortedHistory.length >= 2 ? sortedHistory[sortedHistory.length - 2] : null
+  const monthlyDiff = prevEntry !== null ? inv.currentValue - prevEntry.value : null
+  const monthlyPct = prevEntry !== null && prevEntry.value !== 0
+    ? ((inv.currentValue - prevEntry.value) / Math.abs(prevEntry.value)) * 100
+    : null
 
   return (
     <div className="card p-4 animate-fade-in">
@@ -59,6 +66,17 @@ export default function InvestmentCard({ investment: inv, onEdit, onDelete }: Pr
         <p className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
           {formatCurrency(inv.currentValue)}
         </p>
+        {monthlyDiff !== null && monthlyPct !== null && (
+          <div className="flex items-center gap-2 mt-0.5">
+            <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>vs last month</span>
+            <span className="text-xs font-semibold" style={{ color: monthlyDiff >= 0 ? '#22C55E' : '#EF4444' }}>
+              {monthlyDiff >= 0 ? '+' : ''}{formatCurrency(monthlyDiff)}
+            </span>
+            <span className="text-xs" style={{ color: monthlyDiff >= 0 ? '#22C55E' : '#EF4444' }}>
+              ({formatPercent(monthlyPct)})
+            </span>
+          </div>
+        )}
       </div>
 
       {showChart && (

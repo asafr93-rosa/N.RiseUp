@@ -28,6 +28,8 @@ export type InvestmentType =
   | 'mutual_fund'
   | 'other'
 
+export type IncomeSource = 'salary' | 'freelance' | 'rental' | 'dividends' | 'other'
+
 export type ChartType = 'bar' | 'pie' | 'line'
 
 export type ChartDataSource =
@@ -50,26 +52,55 @@ export interface BankAccount {
   createdAt: string
 }
 
+export interface CreditCard {
+  id: string
+  name: string
+  lastFourDigits: string
+  paymentCycleDay: number  // 1–28
+  createdAt: string
+}
+
 export interface Transaction {
   id: string
-  date: string // ISO YYYY-MM-DD
-  amount: number // always positive
+  date: string              // ISO YYYY-MM-DD
+  amount: number            // always positive
   type: 'expense' | 'income'
   category: ExpenseCategory
   categorySource: 'keyword' | 'user' | 'manual'
   description: string
-  bankAccountId: string
+  bankAccountId: string | null   // null for credit-card-linked transactions
+  creditCardId: string | null    // null for bank-account-linked transactions
   importBatchId: string | null
   createdAt: string
 }
 
 export interface ImportBatch {
   id: string
-  bankAccountId: string
+  bankAccountId: string | null
+  creditCardId: string | null
   fileName: string
   transactionCount: number
   totalAmount: number
   importedAt: string
+}
+
+export interface IncomeEntry {
+  id: string
+  date: string              // ISO YYYY-MM-DD
+  amount: number            // always positive
+  description: string
+  source: IncomeSource
+  createdAt: string
+}
+
+export interface RecurringExpense {
+  id: string
+  description: string
+  amount: number
+  category: ExpenseCategory
+  dayOfMonth: number | null
+  isActive: boolean
+  createdAt: string
 }
 
 export interface Asset {
@@ -120,8 +151,11 @@ export type CategoryRules = Record<string, ExpenseCategory>
 
 interface FinanceState {
   accounts: BankAccount[]
+  creditCards: CreditCard[]
   transactions: Transaction[]
   importBatches: ImportBatch[]
+  incomeEntries: IncomeEntry[]
+  recurringExpenses: RecurringExpense[]
   assets: Asset[]
   investments: Investment[]
   chartWidgets: ChartWidget[]
@@ -135,6 +169,11 @@ interface FinanceState {
   updateAccount: (id: string, data: Partial<Omit<BankAccount, 'id' | 'createdAt'>>) => void
   deleteAccount: (id: string) => void
 
+  // Credit card actions
+  addCreditCard: (data: Omit<CreditCard, 'id' | 'createdAt'>) => void
+  updateCreditCard: (id: string, data: Partial<Omit<CreditCard, 'id' | 'createdAt'>>) => void
+  deleteCreditCard: (id: string) => void
+
   // Transaction actions
   addTransaction: (data: Omit<Transaction, 'id' | 'createdAt'>) => void
   updateTransactionCategory: (id: string, category: ExpenseCategory, description: string) => void
@@ -144,6 +183,15 @@ interface FinanceState {
     batch: Omit<ImportBatch, 'id'>
   ) => void
   deleteImportBatch: (batchId: string) => void
+
+  // Income actions
+  addIncomeEntry: (data: Omit<IncomeEntry, 'id' | 'createdAt'>) => void
+  deleteIncomeEntry: (id: string) => void
+
+  // Recurring expense actions
+  addRecurringExpense: (data: Omit<RecurringExpense, 'id' | 'createdAt'>) => void
+  updateRecurringExpense: (id: string, data: Partial<Omit<RecurringExpense, 'id' | 'createdAt'>>) => void
+  deleteRecurringExpense: (id: string) => void
 
   // Asset actions
   addAsset: (data: Omit<Asset, 'id' | 'createdAt'>) => void
@@ -190,15 +238,14 @@ function upsertValueHistory(
   return [...filtered, { month, value }].sort((a, b) => a.month.localeCompare(b.month))
 }
 
-// Fixed localStorage key — user isolation is handled by Supabase (cloud) not by per-user keys.
-// localStorage serves as an offline cache only.
+// Fixed localStorage key
 const STORE_KEY = 'nriseup-finance'
 
 // ── Sample data ───────────────────────────────────────────────────────────────
 
 function buildSampleData(): Pick<
   FinanceState,
-  'accounts' | 'transactions' | 'importBatches' | 'assets' | 'investments' | 'chartWidgets'
+  'accounts' | 'creditCards' | 'transactions' | 'importBatches' | 'incomeEntries' | 'recurringExpenses' | 'assets' | 'investments' | 'chartWidgets'
 > {
   const accountId = uid()
   const now = new Date()
@@ -206,34 +253,30 @@ function buildSampleData(): Pick<
   const months = Array.from({ length: 3 }, (_, i) => {
     const d = new Date(now)
     d.setMonth(d.getMonth() - i)
-    return d.toISOString().slice(0, 7) // YYYY-MM
+    return d.toISOString().slice(0, 7)
   })
 
   const sampleTxns: Omit<Transaction, 'id' | 'createdAt'>[] = [
-    // Current month
-    { date: `${months[0]}-05`, amount: 850, type: 'expense', category: 'food_restaurants', categorySource: 'keyword', description: 'סופרסל', bankAccountId: accountId, importBatchId: null },
-    { date: `${months[0]}-08`, amount: 320, type: 'expense', category: 'fuel_transportation', categorySource: 'keyword', description: 'סונול', bankAccountId: accountId, importBatchId: null },
-    { date: `${months[0]}-10`, amount: 1200, type: 'expense', category: 'insurance', categorySource: 'keyword', description: 'הראל ביטוח', bankAccountId: accountId, importBatchId: null },
-    { date: `${months[0]}-12`, amount: 650, type: 'expense', category: 'shopping_fashion', categorySource: 'keyword', description: 'זארה', bankAccountId: accountId, importBatchId: null },
-    { date: `${months[0]}-15`, amount: 18000, type: 'income', category: 'other', categorySource: 'manual', description: 'משכורת', bankAccountId: accountId, importBatchId: null },
-    // Previous month
-    { date: `${months[1]}-04`, amount: 920, type: 'expense', category: 'food_restaurants', categorySource: 'keyword', description: 'רמי לוי', bankAccountId: accountId, importBatchId: null },
-    { date: `${months[1]}-09`, amount: 280, type: 'expense', category: 'fuel_transportation', categorySource: 'keyword', description: 'פז', bankAccountId: accountId, importBatchId: null },
-    { date: `${months[1]}-11`, amount: 1200, type: 'expense', category: 'insurance', categorySource: 'keyword', description: 'מגדל ביטוח', bankAccountId: accountId, importBatchId: null },
-    { date: `${months[1]}-15`, amount: 18000, type: 'income', category: 'other', categorySource: 'manual', description: 'משכורת', bankAccountId: accountId, importBatchId: null },
-    // Two months ago
-    { date: `${months[2]}-03`, amount: 750, type: 'expense', category: 'food_restaurants', categorySource: 'keyword', description: 'יוחננוף', bankAccountId: accountId, importBatchId: null },
-    { date: `${months[2]}-07`, amount: 410, type: 'expense', category: 'fuel_transportation', categorySource: 'keyword', description: 'דלק', bankAccountId: accountId, importBatchId: null },
-    { date: `${months[2]}-15`, amount: 18000, type: 'income', category: 'other', categorySource: 'manual', description: 'משכורת', bankAccountId: accountId, importBatchId: null },
+    { date: `${months[0]}-05`, amount: 850, type: 'expense', category: 'food_restaurants', categorySource: 'keyword', description: 'סופרסל', bankAccountId: accountId, creditCardId: null, importBatchId: null },
+    { date: `${months[0]}-08`, amount: 320, type: 'expense', category: 'fuel_transportation', categorySource: 'keyword', description: 'סונול', bankAccountId: accountId, creditCardId: null, importBatchId: null },
+    { date: `${months[0]}-10`, amount: 1200, type: 'expense', category: 'insurance', categorySource: 'keyword', description: 'הראל ביטוח', bankAccountId: accountId, creditCardId: null, importBatchId: null },
+    { date: `${months[0]}-12`, amount: 650, type: 'expense', category: 'shopping_fashion', categorySource: 'keyword', description: 'זארה', bankAccountId: accountId, creditCardId: null, importBatchId: null },
+    { date: `${months[0]}-15`, amount: 18000, type: 'income', category: 'other', categorySource: 'manual', description: 'משכורת', bankAccountId: accountId, creditCardId: null, importBatchId: null },
+    { date: `${months[1]}-04`, amount: 920, type: 'expense', category: 'food_restaurants', categorySource: 'keyword', description: 'רמי לוי', bankAccountId: accountId, creditCardId: null, importBatchId: null },
+    { date: `${months[1]}-09`, amount: 280, type: 'expense', category: 'fuel_transportation', categorySource: 'keyword', description: 'פז', bankAccountId: accountId, creditCardId: null, importBatchId: null },
+    { date: `${months[1]}-11`, amount: 1200, type: 'expense', category: 'insurance', categorySource: 'keyword', description: 'מגדל ביטוח', bankAccountId: accountId, creditCardId: null, importBatchId: null },
+    { date: `${months[1]}-15`, amount: 18000, type: 'income', category: 'other', categorySource: 'manual', description: 'משכורת', bankAccountId: accountId, creditCardId: null, importBatchId: null },
+    { date: `${months[2]}-03`, amount: 750, type: 'expense', category: 'food_restaurants', categorySource: 'keyword', description: 'יוחננוף', bankAccountId: accountId, creditCardId: null, importBatchId: null },
+    { date: `${months[2]}-07`, amount: 410, type: 'expense', category: 'fuel_transportation', categorySource: 'keyword', description: 'דלק', bankAccountId: accountId, creditCardId: null, importBatchId: null },
+    { date: `${months[2]}-15`, amount: 18000, type: 'income', category: 'other', categorySource: 'manual', description: 'משכורת', bankAccountId: accountId, creditCardId: null, importBatchId: null },
   ]
 
-  const transactions: Transaction[] = sampleTxns.map(t => ({
+  const transactions: Transaction[] = sampleTxns.map((t) => ({
     ...t,
     id: uid(),
     createdAt: new Date().toISOString(),
   }))
 
-  // 3 months of synthetic value history for sample investments
   const inv1Base = 320000
   const inv2Base = 95000
   const inv1History: ValueHistoryEntry[] = [
@@ -251,8 +294,11 @@ function buildSampleData(): Pick<
     accounts: [
       { id: accountId, name: 'Bank Hapoalim', lastFourDigits: '4521', balance: 42500, createdAt: new Date().toISOString() },
     ],
+    creditCards: [],
     transactions,
     importBatches: [],
+    incomeEntries: [],
+    recurringExpenses: [],
     assets: [
       { id: uid(), name: 'Apartment – Tel Aviv', type: 'apartment', estimatedValue: 2200000, purchaseDate: '2018-06-15', originalPurchaseCost: 1650000, notes: '3 bedroom, Ramat Gan area', createdAt: new Date().toISOString() },
       { id: uid(), name: 'Toyota Corolla 2021', type: 'vehicle', estimatedValue: 85000, purchaseDate: '2021-03-01', originalPurchaseCost: 105000, notes: '', createdAt: new Date().toISOString() },
@@ -274,8 +320,11 @@ export const useFinanceStore = create<FinanceState>()(
   persist(
     (set) => ({
       accounts: [],
+      creditCards: [],
       transactions: [],
       importBatches: [],
+      incomeEntries: [],
+      recurringExpenses: [],
       assets: [],
       investments: [],
       chartWidgets: [],
@@ -302,6 +351,27 @@ export const useFinanceStore = create<FinanceState>()(
             accounts: s.accounts.filter((a) => a.id !== id),
             transactions: s.transactions.filter((t) => t.bankAccountId !== id),
             importBatches: s.importBatches.filter((b) => b.bankAccountId !== id && !batchIds.includes(b.id)),
+          }
+        }),
+
+      // ── Credit card actions ────────────────────────────────────────────────
+      addCreditCard: (data) =>
+        set((s) => ({
+          creditCards: [...s.creditCards, { ...data, id: uid(), createdAt: new Date().toISOString() }],
+        })),
+
+      updateCreditCard: (id, data) =>
+        set((s) => ({
+          creditCards: s.creditCards.map((c) => (c.id === id ? { ...c, ...data } : c)),
+        })),
+
+      deleteCreditCard: (id) =>
+        set((s) => {
+          const batchIds = s.importBatches.filter((b) => b.creditCardId === id).map((b) => b.id)
+          return {
+            creditCards: s.creditCards.filter((c) => c.id !== id),
+            transactions: s.transactions.filter((t) => t.creditCardId !== id),
+            importBatches: s.importBatches.filter((b) => b.creditCardId !== id && !batchIds.includes(b.id)),
           }
         }),
 
@@ -346,6 +416,39 @@ export const useFinanceStore = create<FinanceState>()(
         set((s) => ({
           transactions: s.transactions.filter((t) => t.importBatchId !== batchId),
           importBatches: s.importBatches.filter((b) => b.id !== batchId),
+        })),
+
+      // ── Income actions ─────────────────────────────────────────────────────
+      addIncomeEntry: (data) =>
+        set((s) => ({
+          incomeEntries: [
+            { ...data, id: uid(), createdAt: new Date().toISOString() },
+            ...s.incomeEntries,
+          ],
+        })),
+
+      deleteIncomeEntry: (id) =>
+        set((s) => ({
+          incomeEntries: s.incomeEntries.filter((e) => e.id !== id),
+        })),
+
+      // ── Recurring expense actions ──────────────────────────────────────────
+      addRecurringExpense: (data) =>
+        set((s) => ({
+          recurringExpenses: [
+            ...s.recurringExpenses,
+            { ...data, id: uid(), createdAt: new Date().toISOString() },
+          ],
+        })),
+
+      updateRecurringExpense: (id, data) =>
+        set((s) => ({
+          recurringExpenses: s.recurringExpenses.map((r) => (r.id === id ? { ...r, ...data } : r)),
+        })),
+
+      deleteRecurringExpense: (id) =>
+        set((s) => ({
+          recurringExpenses: s.recurringExpenses.filter((r) => r.id !== id),
         })),
 
       // ── Asset actions ──────────────────────────────────────────────────────
@@ -420,10 +523,23 @@ export const useFinanceStore = create<FinanceState>()(
         const investments = (b.investments ?? []).map((inv) =>
           inv.valueHistory ? inv : { ...inv, valueHistory: [{ month, value: inv.currentValue }] }
         )
+        const transactions = (b.transactions ?? []).map((t) => ({
+          ...t,
+          creditCardId: (t as { creditCardId?: string | null }).creditCardId ?? null,
+          bankAccountId: (t as { bankAccountId?: string | null }).bankAccountId ?? null,
+        }))
+        const importBatches = (b.importBatches ?? []).map((batch) => ({
+          ...batch,
+          creditCardId: (batch as { creditCardId?: string | null }).creditCardId ?? null,
+          bankAccountId: (batch as { bankAccountId?: string | null }).bankAccountId ?? null,
+        }))
         set({
           accounts: b.accounts ?? [],
-          transactions: b.transactions ?? [],
-          importBatches: b.importBatches ?? [],
+          creditCards: b.creditCards ?? [],
+          transactions,
+          importBatches,
+          incomeEntries: b.incomeEntries ?? [],
+          recurringExpenses: b.recurringExpenses ?? [],
           assets: b.assets ?? [],
           investments,
           chartWidgets: b.chartWidgets ?? [],
@@ -438,8 +554,11 @@ export const useFinanceStore = create<FinanceState>()(
         localStorage.removeItem(STORE_KEY)
         set({
           accounts: [],
+          creditCards: [],
           transactions: [],
           importBatches: [],
+          incomeEntries: [],
+          recurringExpenses: [],
           assets: [],
           investments: [],
           chartWidgets: [],
@@ -455,32 +574,43 @@ export const useFinanceStore = create<FinanceState>()(
       onRehydrateStorage: () => (state) => {
         if (!state) return
 
-        // Apply persisted theme to DOM
         document.documentElement.dataset.theme = state.theme ?? 'light'
 
-        // Seed sample data on first load
         if (!state.sampleDataLoaded) {
           const sample = buildSampleData()
-          Object.assign(state, {
-            ...sample,
-            sampleDataLoaded: true,
-          })
+          Object.assign(state, { ...sample, sampleDataLoaded: true })
         }
 
-        // Migration guards — ensure new fields exist
         if (state.theme === undefined) state.theme = 'light'
         if (!state.categoryRules) state.categoryRules = {}
+        if (!state.creditCards) state.creditCards = []
+        if (!state.incomeEntries) state.incomeEntries = []
+        if (!state.recurringExpenses) state.recurringExpenses = []
 
-        // Migrate investments missing valueHistory
         if (state.investments) {
           const month = currentMonth()
           state.investments = state.investments.map((inv) =>
-            inv.valueHistory
-              ? inv
-              : { ...inv, valueHistory: [{ month, value: inv.currentValue }] }
+            inv.valueHistory ? inv : { ...inv, valueHistory: [{ month, value: inv.currentValue }] }
           )
+        }
+
+        if (state.transactions) {
+          state.transactions = state.transactions.map((t) => ({
+            ...t,
+            creditCardId: (t as { creditCardId?: string | null }).creditCardId ?? null,
+            bankAccountId: (t as { bankAccountId?: string | null }).bankAccountId ?? null,
+          }))
+        }
+
+        if (state.importBatches) {
+          state.importBatches = state.importBatches.map((b) => ({
+            ...b,
+            creditCardId: (b as { creditCardId?: string | null }).creditCardId ?? null,
+            bankAccountId: (b as { bankAccountId?: string | null }).bankAccountId ?? null,
+          }))
         }
       },
     }
   )
 )
+

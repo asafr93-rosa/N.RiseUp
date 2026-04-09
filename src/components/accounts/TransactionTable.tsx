@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Trash2, ChevronUp, ChevronDown } from 'lucide-react'
 import Badge from '../ui/Badge'
 import { formatCurrency, formatDate, CATEGORY_LABELS, CATEGORY_COLORS } from '../../lib/formatters'
-import type { Transaction, BankAccount, ExpenseCategory } from '../../store/useFinanceStore'
+import type { Transaction, BankAccount, CreditCard, ExpenseCategory } from '../../store/useFinanceStore'
 
 type SortKey = 'date' | 'amount' | 'description'
 type SortDir = 'asc' | 'desc'
@@ -10,16 +10,20 @@ type SortDir = 'asc' | 'desc'
 interface Props {
   transactions: Transaction[]
   accounts: BankAccount[]
+  creditCards?: CreditCard[]
   onDelete: (id: string) => void
   onCategoryChange: (id: string, category: ExpenseCategory) => void
 }
 
 const CATEGORIES = Object.entries(CATEGORY_LABELS) as [ExpenseCategory, string][]
 
-export default function TransactionTable({ transactions, accounts, onDelete, onCategoryChange }: Props) {
+export default function TransactionTable({ transactions, accounts, creditCards = [], onDelete, onCategoryChange }: Props) {
   const [sort, setSort] = useState<{ key: SortKey; dir: SortDir }>({ key: 'date', dir: 'desc' })
 
-  const accountMap = Object.fromEntries(accounts.map((a) => [a.id, a.name]))
+  const accountMap: Record<string, string> = {
+    ...Object.fromEntries(accounts.map((a) => [a.id, a.name])),
+    ...Object.fromEntries(creditCards.map((c) => [c.id, `${c.name}${c.lastFourDigits ? ` ···· ${c.lastFourDigits}` : ''}`])),
+  }
 
   const sorted = [...transactions].sort((a, b) => {
     let cmp = 0
@@ -82,7 +86,7 @@ export default function TransactionTable({ transactions, accounts, onDelete, onC
               <span className="col-span-2" style={{ color: 'var(--color-text-secondary)' }}>{formatDate(t.date)}</span>
               <div className="col-span-4 truncate pr-1">
                 <span style={{ color: 'var(--color-text-primary)' }}>{t.description}</span>
-                <span className="block text-xs" style={{ color: 'var(--color-text-secondary)' }}>{accountMap[t.bankAccountId] ?? ''}</span>
+                <span className="block text-xs" style={{ color: 'var(--color-text-secondary)' }}>{accountMap[t.creditCardId ?? t.bankAccountId ?? ''] ?? ''}</span>
               </div>
               <div className="col-span-3">
                 {t.type === 'expense' ? (

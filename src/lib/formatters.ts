@@ -1,5 +1,5 @@
 import { format, parseISO } from 'date-fns'
-import type { ExpenseCategory, InvestmentType, AssetType } from '../store/useFinanceStore'
+import type { ExpenseCategory, InvestmentType, AssetType, IncomeSource } from '../store/useFinanceStore'
 
 // ── Currency ──────────────────────────────────────────────────────────────────
 
@@ -125,5 +125,21 @@ export const ASSET_TYPE_COLORS: Record<AssetType, string> = {
   apartment: '#4361ee',
   land: '#10b981',
   vehicle: '#f59e0b',
+  other: '#9ca3af',
+}
+
+export const INCOME_SOURCE_LABELS: Record<IncomeSource, string> = {
+  salary: 'Salary',
+  freelance: 'Freelance',
+  rental: 'Rental Income',
+  dividends: 'Dividends',
+  other: 'Other',
+}
+
+export const INCOME_SOURCE_COLORS: Record<IncomeSource, string> = {
+  salary: '#4361EE',
+  freelance: '#10b981',
+  rental: '#f59e0b',
+  dividends: '#8b5cf6',
   other: '#9ca3af',
 }

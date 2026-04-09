@@ -21,7 +21,8 @@ const EMPTY = (accountId: string): FormData => ({
   type: 'expense',
   category: 'other',
   description: '',
-  bankAccountId: accountId,
+  bankAccountId: accountId || null,
+  creditCardId: null,
 })
 
 const CATEGORIES = Object.entries(CATEGORY_LABELS) as [ExpenseCategory, string][]
@@ -40,14 +41,14 @@ export default function TransactionModal({ open, onClose, onSave, accounts, defa
     const e: typeof errors = {}
     if (!form.description.trim()) e.description = 'Description is required'
     if (form.amount <= 0) e.amount = 'Amount must be greater than 0'
-    if (!form.bankAccountId) e.bankAccountId = 'Select an account'
+    if (!form.bankAccountId && !form.creditCardId) e.bankAccountId = 'Select an account'
     setErrors(e)
     return Object.keys(e).length === 0
   }
 
   function handleSubmit() {
     if (!validate()) return
-    onSave({ ...form, categorySource: 'manual', importBatchId: null })
+    onSave({ ...form, bankAccountId: form.bankAccountId ?? null, creditCardId: null, categorySource: 'manual', importBatchId: null })
     onClose()
   }
 
@@ -93,7 +94,7 @@ export default function TransactionModal({ open, onClose, onSave, accounts, defa
         {accounts.length > 1 && (
           <div className="flex flex-col gap-1">
             <label className="text-xs font-medium" style={{ color: 'var(--color-text-secondary)' }}>Account</label>
-            <select value={form.bankAccountId} onChange={(e) => set('bankAccountId', e.target.value)} className="w-full px-3 py-2 text-sm rounded-xl outline-none" style={{ background: 'var(--color-card)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)' }}>
+            <select value={form.bankAccountId ?? ''} onChange={(e) => set('bankAccountId', e.target.value)} className="w-full px-3 py-2 text-sm rounded-xl outline-none" style={{ background: 'var(--color-card)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)' }}>
               {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}{a.lastFourDigits ? ` ···· ${a.lastFourDigits}` : ''}</option>)}
             </select>
           </div>

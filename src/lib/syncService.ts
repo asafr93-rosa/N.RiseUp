@@ -44,8 +44,11 @@ async function pushUserData(username: string): Promise<void> {
   const s = useFinanceStore.getState()
   const blob = {
     accounts: s.accounts,
+    creditCards: s.creditCards,
     transactions: s.transactions,
     importBatches: s.importBatches,
+    incomeEntries: s.incomeEntries,
+    recurringExpenses: s.recurringExpenses,
     assets: s.assets,
     investments: s.investments,
     chartWidgets: s.chartWidgets,
