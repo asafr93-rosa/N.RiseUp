@@ -12,6 +12,7 @@ import Assets from './pages/Assets'
 import Investments from './pages/Investments'
 import SplashScreen from './pages/SplashScreen'
 import LoginScreen from './pages/LoginScreen'
+import Settings from './pages/Settings'
 
 export default function App() {
   const [showSplash, setShowSplash] = useState(true)
@@ -66,6 +67,7 @@ export default function App() {
             <Route path="/accounts" element={<Accounts />} />
             <Route path="/assets" element={<Assets />} />
             <Route path="/investments" element={<Investments />} />
+            <Route path="/settings" element={<Settings />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>

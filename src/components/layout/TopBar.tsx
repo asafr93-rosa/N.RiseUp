@@ -1,7 +1,8 @@
-import { useLocation } from 'react-router-dom'
-import { LogOut } from 'lucide-react'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { LogOut, Settings } from 'lucide-react'
 import ThemeToggle from './ThemeToggle'
 import { useAuthStore } from '../../store/useAuthStore'
+import { useFinanceStore } from '../../store/useFinanceStore'
 
 const ROUTE_TITLES: Record<string, string> = {
   '/': 'N.RiseUp',
@@ -12,9 +13,11 @@ const ROUTE_TITLES: Record<string, string> = {
 
 export default function TopBar() {
   const { pathname } = useLocation()
+  const navigate = useNavigate()
   const title = ROUTE_TITLES[pathname] ?? 'N.RiseUp'
   const activeUser = useAuthStore((s) => s.activeUser)
   const logout = useAuthStore((s) => s.logout)
+  const userProfile = useFinanceStore((s) => s.userProfile)
 
   return (
     <header
@@ -26,9 +29,15 @@ export default function TopBar() {
       </h1>
       <div className="flex items-center gap-2">
         {activeUser && (
-          <span className="text-xs font-medium px-2 py-1 rounded-lg" style={{ color: 'var(--color-text-secondary)', background: 'var(--color-card)' }}>
-            {activeUser}
-          </span>
+          <button
+            onClick={() => navigate('/settings')}
+            className="flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-lg"
+            style={{ color: 'var(--color-text-secondary)', background: 'var(--color-card)' }}
+          >
+            <span>{userProfile.avatar}</span>
+            <span>{userProfile.displayName}</span>
+            <Settings size={12} />
+          </button>
         )}
         <ThemeToggle />
         <button

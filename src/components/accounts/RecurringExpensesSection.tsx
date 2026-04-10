@@ -2,16 +2,17 @@ import { useState } from 'react'
 import { ChevronDown, ChevronUp, Pencil, Trash2 } from 'lucide-react'
 import Badge from '../ui/Badge'
 import { formatCurrency, CATEGORY_LABELS, CATEGORY_COLORS } from '../../lib/formatters'
-import type { RecurringExpense } from '../../store/useFinanceStore'
+import type { RecurringExpense, BankAccount } from '../../store/useFinanceStore'
 
 interface Props {
   recurringExpenses: RecurringExpense[]
+  accounts: BankAccount[]
   onAdd: () => void
   onEdit: (expense: RecurringExpense) => void
   onDelete: (id: string) => void
 }
 
-export default function RecurringExpensesSection({ recurringExpenses, onAdd, onEdit, onDelete }: Props) {
+export default function RecurringExpensesSection({ recurringExpenses, accounts, onAdd, onEdit, onDelete }: Props) {
   const [expanded, setExpanded] = useState(true)
 
   const activeTotal = recurringExpenses
@@ -68,6 +69,9 @@ export default function RecurringExpensesSection({ recurringExpenses, onAdd, onE
                       <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
                         {expense.dayOfMonth ? `Day ${expense.dayOfMonth} · ` : ''}
                         {expense.isActive ? 'Active' : 'Inactive'}
+                        {expense.bankAccountId && accounts.find((a) => a.id === expense.bankAccountId)
+                          ? ` · ${accounts.find((a) => a.id === expense.bankAccountId)!.name}`
+                          : ''}
                       </p>
                     </div>
                   </div>

@@ -19,6 +19,7 @@ import IncomeModal from '../components/accounts/IncomeModal'
 import IncomeSection from '../components/accounts/IncomeSection'
 import RecurringExpenseModal from '../components/accounts/RecurringExpenseModal'
 import RecurringExpensesSection from '../components/accounts/RecurringExpensesSection'
+import RecommendationSection from '../components/accounts/RecommendationSection'
 
 export default function Accounts() {
   // ── Store selectors ──────────────────────────────────────────────────────────
@@ -50,6 +51,7 @@ export default function Accounts() {
   const addRecurringExpense = useFinanceStore((s) => s.addRecurringExpense)
   const updateRecurringExpense = useFinanceStore((s) => s.updateRecurringExpense)
   const deleteRecurringExpense = useFinanceStore((s) => s.deleteRecurringExpense)
+  const userProfile = useFinanceStore((s) => s.userProfile)
 
   // ── Auto-animate refs ────────────────────────────────────────────────────────
   const [accountsRef] = useAutoAnimate<HTMLDivElement>()
@@ -80,23 +82,32 @@ export default function Accounts() {
   const [editingRecurring, setEditingRecurring] = useState<RecurringExpense | null>(null)
   const [deletingRecurringId, setDeletingRecurringId] = useState<string | null>(null)
 
-  // ── Reactive effective balance per account ────────────────────────────────────
+  // ── Reactive effective balance per account (month-scoped) ────────────────────
   const accountEffectiveBalances = useMemo(() => {
     const map: Record<string, number> = {}
+    const from = startOfMonth(filterMonth)
+    const to = endOfMonth(filterMonth)
+    const inMonth = (dateStr: string) => {
+      try { return isWithinInterval(parseISO(dateStr), { start: from, end: to }) }
+      catch { return false }
+    }
     for (const a of accounts) {
       const linkedCardIds = creditCards
         .filter((c) => c.bankAccountId === a.id)
         .map((c) => c.id)
       const expenses = transactions
-        .filter((t) => t.type === 'expense' && t.creditCardId && linkedCardIds.includes(t.creditCardId))
+        .filter((t) => t.type === 'expense' && t.creditCardId && linkedCardIds.includes(t.creditCardId) && inMonth(t.date))
         .reduce((s, t) => s + t.amount, 0)
       const income = incomeEntries
-        .filter((e) => e.bankAccountId === a.id)
+        .filter((e) => e.bankAccountId === a.id && inMonth(e.date))
         .reduce((s, e) => s + e.amount, 0)
-      map[a.id] = (a.balance ?? 0) + (a.deposit ?? 0) - expenses + income
+      const recurringLinked = recurringExpenses
+        .filter((r) => r.isActive && r.bankAccountId === a.id)
+        .reduce((s, r) => s + r.amount, 0)
+      map[a.id] = (a.balance ?? 0) + (a.deposit ?? 0) - expenses - recurringLinked + income
     }
     return map
-  }, [accounts, creditCards, transactions, incomeEntries])
+  }, [accounts, creditCards, transactions, incomeEntries, recurringExpenses, filterMonth])
 
   const totalBalance = Object.values(accountEffectiveBalances).reduce((s, v) => s + v, 0)
 
@@ -273,6 +284,13 @@ export default function Accounts() {
         )}
       </section>
 
+      {/* ── Recommendations ── */}
+      <RecommendationSection
+        accounts={accounts}
+        effectiveBalances={accountEffectiveBalances}
+        priorities={userProfile.recommendationPriorities}
+      />
+
       {/* ── CC transactions area ── */}
       {creditCards.length > 0 && (
         <>
@@ -378,6 +396,7 @@ export default function Accounts() {
         />
         <RecurringExpensesSection
           recurringExpenses={recurringExpenses}
+          accounts={accounts}
           onAdd={() => setAddRecurringOpen(true)}
           onEdit={(e) => setEditingRecurring(e)}
           onDelete={(id) => setDeletingRecurringId(id)}
@@ -467,12 +486,14 @@ export default function Accounts() {
         open={addRecurringOpen}
         onClose={() => setAddRecurringOpen(false)}
         onSave={(d) => { addRecurringExpense(d); toast.success('Recurring expense added') }}
+        accounts={accounts}
       />
       <RecurringExpenseModal
         open={!!editingRecurring}
         onClose={() => setEditingRecurring(null)}
         onSave={(d) => { if (editingRecurring) { updateRecurringExpense(editingRecurring.id, d); toast.success('Updated') } }}
         initial={editingRecurring ?? undefined}
+        accounts={accounts}
       />
       <ConfirmDialog
         open={!!deletingRecurringId}

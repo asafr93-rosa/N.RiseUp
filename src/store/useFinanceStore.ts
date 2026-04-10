@@ -103,7 +103,17 @@ export interface RecurringExpense {
   category: ExpenseCategory
   dayOfMonth: number | null
   isActive: boolean
+  bankAccountId: string | null
   createdAt: string
+}
+
+export type RecommendationPriority = 'deposit' | 'transfer' | 'reduce_recurring' | 'reduce_spending'
+
+export interface UserProfile {
+  displayName: string
+  avatar: string
+  age: number | null
+  recommendationPriorities: RecommendationPriority[]
 }
 
 export interface Asset {
@@ -166,6 +176,7 @@ interface FinanceState {
   theme: AppTheme
   sampleDataLoaded: boolean
   sampleDataDismissed: boolean
+  userProfile: UserProfile
 
   // Account actions
   addAccount: (data: Omit<BankAccount, 'id' | 'createdAt'>) => void
@@ -218,6 +229,9 @@ interface FinanceState {
   updateTheme: (theme: AppTheme) => void
 
   dismissSampleBanner: () => void
+
+  // User profile
+  updateUserProfile: (data: Partial<UserProfile>) => void
 
   // Sync helpers (called by syncService)
   seedSampleData: () => void
@@ -338,6 +352,12 @@ export const useFinanceStore = create<FinanceState>()(
       theme: 'light',
       sampleDataLoaded: false,
       sampleDataDismissed: false,
+      userProfile: {
+        displayName: 'User',
+        avatar: '👤',
+        age: null,
+        recommendationPriorities: ['deposit', 'transfer', 'reduce_recurring', 'reduce_spending'],
+      },
 
       // ── Account actions ────────────────────────────────────────────────────
       addAccount: (data) =>
@@ -534,6 +554,9 @@ export const useFinanceStore = create<FinanceState>()(
 
       dismissSampleBanner: () => set({ sampleDataDismissed: true }),
 
+      updateUserProfile: (data) =>
+        set((s) => ({ userProfile: { ...s.userProfile, ...data } })),
+
       // ── Sync helpers ───────────────────────────────────────────────────────
       seedSampleData: () =>
         set(() => ({ ...buildSampleData(), sampleDataLoaded: true })),
@@ -587,6 +610,12 @@ export const useFinanceStore = create<FinanceState>()(
           theme: 'light',
           sampleDataLoaded: false,
           sampleDataDismissed: false,
+          userProfile: {
+            displayName: 'User',
+            avatar: '👤',
+            age: null,
+            recommendationPriorities: ['deposit', 'transfer', 'reduce_recurring', 'reduce_spending'],
+          },
         })
       },
     }),
@@ -650,6 +679,22 @@ export const useFinanceStore = create<FinanceState>()(
             ...e,
             bankAccountId: (e as { bankAccountId?: string | null }).bankAccountId ?? null,
           }))
+        }
+
+        if (state.recurringExpenses) {
+          state.recurringExpenses = state.recurringExpenses.map((r) => ({
+            ...r,
+            bankAccountId: (r as { bankAccountId?: string | null }).bankAccountId ?? null,
+          }))
+        }
+
+        if (!state.userProfile) {
+          state.userProfile = {
+            displayName: 'User',
+            avatar: '👤',
+            age: null,
+            recommendationPriorities: ['deposit', 'transfer', 'reduce_recurring', 'reduce_spending'],
+          }
         }
       },
     }
