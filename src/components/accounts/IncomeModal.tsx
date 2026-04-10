@@ -12,6 +12,7 @@ interface Props {
   onClose: () => void
   onSave: (data: FormData) => void
   accounts: BankAccount[]
+  initial?: IncomeEntry
 }
 
 const SOURCES = Object.entries(INCOME_SOURCE_LABELS) as [IncomeSource, string][]
@@ -24,13 +25,20 @@ const EMPTY: FormData = {
   bankAccountId: null,
 }
 
-export default function IncomeModal({ open, onClose, onSave, accounts }: Props) {
+export default function IncomeModal({ open, onClose, onSave, accounts, initial }: Props) {
   const [form, setForm] = useState<FormData>(EMPTY)
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({})
 
   useEffect(() => {
-    if (open) { setForm(EMPTY); setErrors({}) }
-  }, [open])
+    if (!open) return
+    if (initial) {
+      const { id: _id, createdAt: _c, ...rest } = initial
+      setForm(rest)
+    } else {
+      setForm(EMPTY)
+    }
+    setErrors({})
+  }, [open, initial])
 
   function validate(): boolean {
     const e: typeof errors = {}
@@ -50,7 +58,7 @@ export default function IncomeModal({ open, onClose, onSave, accounts }: Props) 
     setForm((f) => ({ ...f, [key]: value }))
 
   return (
-    <Modal open={open} onClose={onClose} title="Add Income">
+    <Modal open={open} onClose={onClose} title={initial ? 'Edit Income' : 'Add Income'}>
       <div className="flex flex-col gap-4">
         <div className="grid grid-cols-2 gap-3">
           <Input
@@ -113,7 +121,9 @@ export default function IncomeModal({ open, onClose, onSave, accounts }: Props) 
 
         <div className="flex gap-2 pt-1">
           <Button variant="secondary" className="flex-1" onClick={onClose}>Cancel</Button>
-          <Button variant="primary" className="flex-1" onClick={handleSubmit}>Add Income</Button>
+          <Button variant="primary" className="flex-1" onClick={handleSubmit}>
+            {initial ? 'Save Changes' : 'Add Income'}
+          </Button>
         </div>
       </div>
     </Modal>

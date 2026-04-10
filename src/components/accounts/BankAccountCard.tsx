@@ -1,17 +1,32 @@
 import { useState } from 'react'
 import { Pencil, Trash2, CreditCard } from 'lucide-react'
-import { formatCurrency } from '../../lib/formatters'
 import type { BankAccount } from '../../store/useFinanceStore'
 
 interface Props {
   account: BankAccount
   onEdit: () => void
   onDelete: () => void
+  onBalanceChange: (newBalance: number) => void
   onDeposit: (amount: number) => void
 }
 
-export default function BankAccountCard({ account, onEdit, onDelete, onDeposit }: Props) {
+const inputStyle = {
+  background: 'var(--color-surface)',
+  color: 'var(--color-text-primary)',
+  border: '1px solid var(--color-border)',
+}
+
+export default function BankAccountCard({ account, onEdit, onDelete, onBalanceChange, onDeposit }: Props) {
+  const [balanceVal, setBalanceVal] = useState(String(account.balance))
   const [depositVal, setDepositVal] = useState('')
+  const [editingBalance, setEditingBalance] = useState(false)
+
+  function commitBalance() {
+    const v = parseFloat(balanceVal)
+    if (!isNaN(v)) onBalanceChange(v)
+    else setBalanceVal(String(account.balance))
+    setEditingBalance(false)
+  }
 
   function handleDeposit() {
     const amt = parseFloat(depositVal)
@@ -21,49 +36,61 @@ export default function BankAccountCard({ account, onEdit, onDelete, onDeposit }
     }
   }
 
+  // Keep local balance in sync if external update arrives (e.g. balance adjusted by expense)
+  if (!editingBalance && String(account.balance) !== balanceVal && depositVal === '') {
+    setBalanceVal(String(account.balance))
+  }
+
   return (
-    <div className="card p-4 flex flex-col gap-3 min-h-[160px] animate-fade-in">
+    <div className="card p-3 flex flex-col gap-3 min-h-[180px] animate-fade-in">
       {/* Top: icon + name + actions */}
       <div className="flex items-start justify-between gap-1">
         <div className="flex items-center gap-2 min-w-0">
           <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+            className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
             style={{ background: 'var(--color-accent-light)', color: '#4361EE' }}
           >
-            <CreditCard size={16} />
+            <CreditCard size={14} />
           </div>
-          <div className="min-w-0">
-            <p className="text-xs font-semibold truncate" style={{ color: 'var(--color-text-primary)' }}>
-              {account.name}
-            </p>
+          <p className="text-xs font-semibold truncate" style={{ color: 'var(--color-text-primary)' }}>
+            {account.name}
             {account.lastFourDigits && (
-              <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
-                ···· {account.lastFourDigits}
-              </p>
+              <span className="font-normal ml-1" style={{ color: 'var(--color-text-secondary)' }}>···· {account.lastFourDigits}</span>
             )}
-          </div>
+          </p>
         </div>
-        <div className="flex gap-1 shrink-0">
-          <button onClick={onEdit} className="p-1 rounded-lg" style={{ color: 'var(--color-text-secondary)' }}>
-            <Pencil size={12} />
+        <div className="flex gap-0.5 shrink-0">
+          <button onClick={onEdit} className="p-1 rounded" style={{ color: 'var(--color-text-secondary)' }}>
+            <Pencil size={11} />
           </button>
-          <button onClick={onDelete} className="p-1 rounded-lg" style={{ color: '#EF4444' }}>
-            <Trash2 size={12} />
+          <button onClick={onDelete} className="p-1 rounded" style={{ color: '#EF4444' }}>
+            <Trash2 size={11} />
           </button>
         </div>
       </div>
 
-      {/* Balance */}
-      <div className="flex-1">
-        <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>Balance</p>
-        <p className="text-lg font-bold" style={{ color: 'var(--color-text-primary)' }}>
-          {formatCurrency(account.balance)}
-        </p>
+      {/* Current Balance */}
+      <div className="flex flex-col gap-1">
+        <label className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>Current Balance</label>
+        <input
+          type="number"
+          inputMode="decimal"
+          value={editingBalance ? balanceVal : account.balance}
+          onFocus={() => { setEditingBalance(true); setBalanceVal(String(account.balance)) }}
+          onChange={(e) => setBalanceVal(e.target.value)}
+          onBlur={commitBalance}
+          onKeyDown={(e) => e.key === 'Enter' && commitBalance()}
+          className="w-full text-sm font-bold px-2 py-1.5 rounded-lg outline-none"
+          style={inputStyle}
+        />
       </div>
 
-      {/* Deposit input — always visible */}
-      <div className="border-t pt-2" style={{ borderColor: 'var(--color-border)' }}>
-        <p className="text-xs mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>Add Deposit</p>
+      {/* Divider */}
+      <div className="border-t" style={{ borderColor: 'var(--color-border)' }} />
+
+      {/* Add Deposit */}
+      <div className="flex flex-col gap-1">
+        <label className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>Add Deposit</label>
         <div className="flex gap-1.5">
           <input
             type="number"
@@ -72,16 +99,12 @@ export default function BankAccountCard({ account, onEdit, onDelete, onDeposit }
             value={depositVal}
             onChange={(e) => setDepositVal(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleDeposit()}
-            className="flex-1 text-xs px-2 py-1.5 rounded-lg outline-none min-w-0"
-            style={{
-              background: 'var(--color-surface)',
-              color: 'var(--color-text-primary)',
-              border: '1px solid var(--color-border)',
-            }}
+            className="flex-1 text-sm px-2 py-1.5 rounded-lg outline-none min-w-0"
+            style={inputStyle}
           />
           <button
             onClick={handleDeposit}
-            className="text-xs px-2.5 py-1.5 rounded-lg font-medium shrink-0"
+            className="text-xs px-2 py-1.5 rounded-lg font-medium shrink-0"
             style={{ background: '#4361EE20', color: '#4361EE' }}
           >
             Add

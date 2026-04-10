@@ -20,26 +20,41 @@ interface Props {
   onSave: (data: Omit<Transaction, 'id' | 'createdAt'>) => void
   creditCards: CreditCard[]
   categoryRules: Record<string, ExpenseCategory>
+  initial?: Transaction
 }
 
 const CATEGORIES = Object.entries(CATEGORY_LABELS) as [ExpenseCategory, string][]
 
-const EMPTY = (cardId: string): FormData => ({
-  date: new Date().toISOString().slice(0, 10),
-  amount: 0,
-  description: '',
-  creditCardId: cardId,
-  category: 'other',
-})
+function emptyForm(cardId: string): FormData {
+  return {
+    date: new Date().toISOString().slice(0, 10),
+    amount: 0,
+    description: '',
+    creditCardId: cardId,
+    category: 'other',
+  }
+}
 
-export default function AddExpenseModal({ open, onClose, onSave, creditCards, categoryRules }: Props) {
+export default function AddExpenseModal({ open, onClose, onSave, creditCards, categoryRules, initial }: Props) {
   const firstCardId = creditCards[0]?.id ?? ''
-  const [form, setForm] = useState<FormData>(EMPTY(firstCardId))
+  const [form, setForm] = useState<FormData>(emptyForm(firstCardId))
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({})
 
   useEffect(() => {
-    if (open) { setForm(EMPTY(firstCardId)); setErrors({}) }
-  }, [open, firstCardId])
+    if (!open) return
+    if (initial) {
+      setForm({
+        date: initial.date,
+        amount: initial.amount,
+        description: initial.description,
+        creditCardId: initial.creditCardId ?? firstCardId,
+        category: initial.category,
+      })
+    } else {
+      setForm(emptyForm(firstCardId))
+    }
+    setErrors({})
+  }, [open, initial, firstCardId])
 
   function validate(): boolean {
     const e: typeof errors = {}
@@ -61,7 +76,7 @@ export default function AddExpenseModal({ open, onClose, onSave, creditCards, ca
       description: form.description,
       bankAccountId: null,
       creditCardId: form.creditCardId,
-      importBatchId: null,
+      importBatchId: initial?.importBatchId ?? null,
     })
     onClose()
   }
@@ -77,7 +92,7 @@ export default function AddExpenseModal({ open, onClose, onSave, creditCards, ca
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Add Expense">
+    <Modal open={open} onClose={onClose} title={initial ? 'Edit Expense' : 'Add Expense'}>
       <div className="flex flex-col gap-4">
         <div className="grid grid-cols-2 gap-3">
           <Input
@@ -137,7 +152,9 @@ export default function AddExpenseModal({ open, onClose, onSave, creditCards, ca
 
         <div className="flex gap-2 pt-1">
           <Button variant="secondary" className="flex-1" onClick={onClose}>Cancel</Button>
-          <Button variant="primary" className="flex-1" onClick={handleSubmit}>Add Expense</Button>
+          <Button variant="primary" className="flex-1" onClick={handleSubmit}>
+            {initial ? 'Save Changes' : 'Add Expense'}
+          </Button>
         </div>
       </div>
     </Modal>

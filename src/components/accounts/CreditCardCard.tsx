@@ -1,13 +1,14 @@
-import { Pencil, Trash2, CreditCard as CreditCardIcon } from 'lucide-react'
+import { Pencil, Trash2, CreditCard as CreditCardIcon, Link } from 'lucide-react'
 import type { CreditCard } from '../../store/useFinanceStore'
 
 interface Props {
   card: CreditCard
+  linkedAccountName?: string
   onEdit: () => void
   onDelete: () => void
 }
 
-export default function CreditCardCard({ card, onEdit, onDelete }: Props) {
+export default function CreditCardCard({ card, linkedAccountName, onEdit, onDelete }: Props) {
   return (
     <div className="card p-4 flex flex-col min-h-[140px] animate-fade-in">
       {/* Top: icon + actions */}
@@ -19,42 +20,40 @@ export default function CreditCardCard({ card, onEdit, onDelete }: Props) {
           <CreditCardIcon size={16} style={{ color: '#7c3aed' }} />
         </div>
         <div className="flex gap-1">
-          <button
-            onClick={onEdit}
-            className="p-1.5 rounded-lg"
-            style={{ color: 'var(--color-text-secondary)', background: 'var(--color-surface)' }}
-          >
+          <button onClick={onEdit} className="p-1.5 rounded-lg" style={{ color: 'var(--color-text-secondary)', background: 'var(--color-surface)' }}>
             <Pencil size={13} />
           </button>
-          <button
-            onClick={onDelete}
-            className="p-1.5 rounded-lg"
-            style={{ color: '#EF4444', background: 'var(--color-surface)' }}
-          >
+          <button onClick={onDelete} className="p-1.5 rounded-lg" style={{ color: '#EF4444', background: 'var(--color-surface)' }}>
             <Trash2 size={13} />
           </button>
         </div>
       </div>
 
-      {/* Spacer */}
       <div className="flex-1" />
 
-      {/* Bottom: name + details */}
+      {/* Bottom: name + details + linked account */}
       <div>
         <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>
           {card.name}
         </p>
-        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-          {card.lastFourDigits && (
+        <div className="flex flex-col gap-0.5 mt-0.5">
+          {(card.lastFourDigits || card.paymentCycleDay) && (
             <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
-              ···· {card.lastFourDigits}
+              {card.lastFourDigits ? `···· ${card.lastFourDigits}` : ''}
+              {card.lastFourDigits && card.paymentCycleDay ? '  ·  ' : ''}
+              {card.paymentCycleDay ? `Day ${card.paymentCycleDay}` : ''}
             </p>
           )}
-          {card.paymentCycleDay ? (
-            <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
-              · Day {card.paymentCycleDay}
-            </p>
-          ) : null}
+          {linkedAccountName ? (
+            <div className="flex items-center gap-1">
+              <Link size={10} style={{ color: '#4361EE' }} />
+              <p className="text-xs font-medium truncate" style={{ color: '#4361EE' }}>
+                {linkedAccountName}
+              </p>
+            </div>
+          ) : (
+            <p className="text-xs" style={{ color: 'var(--color-text-secondary)', opacity: 0.6 }}>No linked account</p>
+          )}
         </div>
       </div>
     </div>

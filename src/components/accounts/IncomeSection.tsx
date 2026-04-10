@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronDown, ChevronUp, Trash2 } from 'lucide-react'
+import { ChevronDown, ChevronUp, Trash2, Pencil } from 'lucide-react'
 import Badge from '../ui/Badge'
 import { formatCurrency, formatDate, INCOME_SOURCE_LABELS, INCOME_SOURCE_COLORS } from '../../lib/formatters'
 import type { IncomeEntry } from '../../store/useFinanceStore'
@@ -7,10 +7,11 @@ import type { IncomeEntry } from '../../store/useFinanceStore'
 interface Props {
   incomeEntries: IncomeEntry[]
   onAdd: () => void
+  onEdit: (entry: IncomeEntry) => void
   onDelete: (id: string) => void
 }
 
-export default function IncomeSection({ incomeEntries, onAdd, onDelete }: Props) {
+export default function IncomeSection({ incomeEntries, onAdd, onEdit, onDelete }: Props) {
   const [expanded, setExpanded] = useState(true)
 
   const total = incomeEntries.reduce((s, e) => s + e.amount, 0)
@@ -23,11 +24,9 @@ export default function IncomeSection({ incomeEntries, onAdd, onDelete }: Props)
         className="w-full flex items-center justify-between p-4"
         onClick={() => setExpanded((v) => !v)}
       >
-        <div className="flex items-center gap-3">
-          <div>
-            <p className="text-sm font-semibold text-left" style={{ color: 'var(--color-text-primary)' }}>Income</p>
-            <p className="text-xs text-left" style={{ color: '#22C55E' }}>{formatCurrency(total)} total</p>
-          </div>
+        <div>
+          <p className="text-sm font-semibold text-left" style={{ color: 'var(--color-text-primary)' }}>Income</p>
+          <p className="text-xs text-left" style={{ color: '#22C55E' }}>{formatCurrency(total)} total</p>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -64,6 +63,9 @@ export default function IncomeSection({ incomeEntries, onAdd, onDelete }: Props)
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <p className="text-sm font-bold" style={{ color: '#22C55E' }}>+{formatCurrency(entry.amount)}</p>
+                    <button onClick={() => onEdit(entry)} className="p-1 rounded" style={{ color: 'var(--color-text-secondary)' }}>
+                      <Pencil size={13} />
+                    </button>
                     <button onClick={() => onDelete(entry.id)} className="p-1 rounded" style={{ color: 'var(--color-text-secondary)' }}>
                       <Trash2 size={14} />
                     </button>

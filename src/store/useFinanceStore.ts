@@ -170,6 +170,7 @@ interface FinanceState {
   addAccount: (data: Omit<BankAccount, 'id' | 'createdAt'>) => void
   updateAccount: (id: string, data: Partial<Omit<BankAccount, 'id' | 'createdAt'>>) => void
   deleteAccount: (id: string) => void
+  adjustAccountBalance: (id: string, delta: number) => void
 
   // Credit card actions
   addCreditCard: (data: Omit<CreditCard, 'id' | 'createdAt'>) => void
@@ -178,6 +179,7 @@ interface FinanceState {
 
   // Transaction actions
   addTransaction: (data: Omit<Transaction, 'id' | 'createdAt'>) => void
+  updateTransaction: (id: string, data: Partial<Omit<Transaction, 'id' | 'createdAt'>>) => void
   updateTransactionCategory: (id: string, category: ExpenseCategory, description: string) => void
   deleteTransaction: (id: string) => void
   addTransactionsBatch: (
@@ -188,6 +190,7 @@ interface FinanceState {
 
   // Income actions
   addIncomeEntry: (data: Omit<IncomeEntry, 'id' | 'createdAt'>) => void
+  updateIncomeEntry: (id: string, data: Partial<Omit<IncomeEntry, 'id' | 'createdAt'>>) => void
   deleteIncomeEntry: (id: string) => void
 
   // Recurring expense actions
@@ -346,6 +349,11 @@ export const useFinanceStore = create<FinanceState>()(
           accounts: s.accounts.map((a) => (a.id === id ? { ...a, ...data } : a)),
         })),
 
+      adjustAccountBalance: (id, delta) =>
+        set((s) => ({
+          accounts: s.accounts.map((a) => (a.id === id ? { ...a, balance: a.balance + delta } : a)),
+        })),
+
       deleteAccount: (id) =>
         set((s) => {
           const batchIds = s.importBatches.filter((b) => b.bankAccountId === id).map((b) => b.id)
@@ -384,6 +392,11 @@ export const useFinanceStore = create<FinanceState>()(
             { ...data, id: uid(), createdAt: new Date().toISOString() },
             ...s.transactions,
           ],
+        })),
+
+      updateTransaction: (id, data) =>
+        set((s) => ({
+          transactions: s.transactions.map((t) => (t.id === id ? { ...t, ...data } : t)),
         })),
 
       updateTransactionCategory: (id, category, description) =>
@@ -427,6 +440,11 @@ export const useFinanceStore = create<FinanceState>()(
             { ...data, id: uid(), createdAt: new Date().toISOString() },
             ...s.incomeEntries,
           ],
+        })),
+
+      updateIncomeEntry: (id, data) =>
+        set((s) => ({
+          incomeEntries: s.incomeEntries.map((e) => (e.id === id ? { ...e, ...data } : e)),
         })),
 
       deleteIncomeEntry: (id) =>
