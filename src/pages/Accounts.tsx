@@ -4,7 +4,7 @@ import toast from 'react-hot-toast'
 import { Plus, CreditCard as CreditCardIcon, Upload, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react'
 import { startOfMonth, endOfMonth, parseISO, isWithinInterval, addMonths, subMonths } from 'date-fns'
 import { useFinanceStore } from '../store/useFinanceStore'
-import type { BankAccount, CreditCard, RecurringExpense, ExpenseCategory, Transaction, IncomeEntry } from '../store/useFinanceStore'
+import type { CreditCard, RecurringExpense, ExpenseCategory, Transaction, IncomeEntry } from '../store/useFinanceStore'
 import BankAccountCard from '../components/accounts/BankAccountCard'
 import BankAccountModal from '../components/accounts/BankAccountModal'
 import TransactionTable from '../components/accounts/TransactionTable'
@@ -33,7 +33,6 @@ export default function Accounts() {
   const addAccount = useFinanceStore((s) => s.addAccount)
   const updateAccount = useFinanceStore((s) => s.updateAccount)
   const deleteAccount = useFinanceStore((s) => s.deleteAccount)
-  const adjustAccountBalance = useFinanceStore((s) => s.adjustAccountBalance)
   const deleteTransaction = useFinanceStore((s) => s.deleteTransaction)
   const addTransaction = useFinanceStore((s) => s.addTransaction)
   const updateTransaction = useFinanceStore((s) => s.updateTransaction)
@@ -61,8 +60,7 @@ export default function Accounts() {
 
   // ── UI state ─────────────────────────────────────────────────────────────────
   const [addAccountOpen, setAddAccountOpen] = useState(false)
-  const [editingAccount, setEditingAccount] = useState<BankAccount | null>(null)
-  const [deletingAccount, setDeletingAccount] = useState<BankAccount | null>(null)
+  const [deletingAccount, setDeletingAccount] = useState<{ id: string; name: string } | null>(null)
 
   const [addCardOpen, setAddCardOpen] = useState(false)
   const [editingCard, setEditingCard] = useState<CreditCard | null>(null)
@@ -82,14 +80,27 @@ export default function Accounts() {
   const [editingRecurring, setEditingRecurring] = useState<RecurringExpense | null>(null)
   const [deletingRecurringId, setDeletingRecurringId] = useState<string | null>(null)
 
-  // ── Helpers ───────────────────────────────────────────────────────────────────
-  function linkedAccountId(creditCardId: string): string | null {
-    return creditCards.find((c) => c.id === creditCardId)?.bankAccountId ?? null
-  }
+  // ── Reactive effective balance per account ────────────────────────────────────
+  const accountEffectiveBalances = useMemo(() => {
+    const map: Record<string, number> = {}
+    for (const a of accounts) {
+      const linkedCardIds = creditCards
+        .filter((c) => c.bankAccountId === a.id)
+        .map((c) => c.id)
+      const expenses = transactions
+        .filter((t) => t.type === 'expense' && t.creditCardId && linkedCardIds.includes(t.creditCardId))
+        .reduce((s, t) => s + t.amount, 0)
+      const income = incomeEntries
+        .filter((e) => e.bankAccountId === a.id)
+        .reduce((s, e) => s + e.amount, 0)
+      map[a.id] = (a.balance ?? 0) + (a.deposit ?? 0) - expenses + income
+    }
+    return map
+  }, [accounts, creditCards, transactions, incomeEntries])
 
-  // ── Derived data ─────────────────────────────────────────────────────────────
-  const totalBalance = accounts.reduce((s, a) => s + a.balance, 0)
+  const totalBalance = Object.values(accountEffectiveBalances).reduce((s, v) => s + v, 0)
 
+  // ── CC transactions for selected month ────────────────────────────────────────
   const ccTransactions = useMemo(() => {
     const from = startOfMonth(filterMonth)
     const to = endOfMonth(filterMonth)
@@ -104,8 +115,11 @@ export default function Accounts() {
     })
   }, [transactions, filterMonth, ccFilterCategory, ccFilterCardId])
 
-  // Summary for the month (all CC expenses, all income entries)
-  const monthlyExpenses = ccTransactions.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
+  // ── Monthly summary ───────────────────────────────────────────────────────────
+  const ccExpensesTotal = ccTransactions.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
+  const activeRecurringTotal = recurringExpenses.filter((r) => r.isActive).reduce((s, r) => s + r.amount, 0)
+  const monthlyExpenses = ccExpensesTotal + activeRecurringTotal
+
   const monthlyIncome = useMemo(() => {
     const from = startOfMonth(filterMonth)
     const to = endOfMonth(filterMonth)
@@ -116,55 +130,29 @@ export default function Accounts() {
       })
       .reduce((s, e) => s + e.amount, 0)
   }, [incomeEntries, filterMonth])
+
   const netBalance = monthlyIncome - monthlyExpenses
 
-  // ── Expense handlers ──────────────────────────────────────────────────────────
+  // ── Expense handlers (no balance mutation — balance is computed reactively) ──
   function handleAddExpense(d: Parameters<typeof addTransaction>[0]) {
     addTransaction(d)
-    if (d.creditCardId) {
-      const accId = linkedAccountId(d.creditCardId)
-      if (accId) adjustAccountBalance(accId, -d.amount)
-    }
     toast.success('Expense added')
   }
 
   function handleEditExpense(d: Parameters<typeof addTransaction>[0]) {
     if (!editingExpense) return
-    const old = editingExpense
-    updateTransaction(old.id, d)
-    // Reverse old balance effect
-    if (old.creditCardId) {
-      const oldAccId = linkedAccountId(old.creditCardId)
-      if (oldAccId) adjustAccountBalance(oldAccId, old.amount)
-    }
-    // Apply new balance effect
-    if (d.creditCardId) {
-      const newAccId = linkedAccountId(d.creditCardId)
-      if (newAccId) adjustAccountBalance(newAccId, -d.amount)
-    }
+    updateTransaction(editingExpense.id, d)
     setEditingExpense(null)
     toast.success('Expense updated')
   }
 
   function handleDeleteExpense(id: string) {
-    const txn = transactions.find((x) => x.id === id)
     deleteTransaction(id)
-    if (txn?.creditCardId) {
-      const accId = linkedAccountId(txn.creditCardId)
-      if (accId) adjustAccountBalance(accId, txn.amount)
-    }
     toast.success('Transaction deleted')
   }
 
   function handleCSVImport(txns: Parameters<typeof addTransactionsBatch>[0], meta: Parameters<typeof addTransactionsBatch>[1]) {
     addTransactionsBatch(txns, meta)
-    if (meta.creditCardId) {
-      const accId = linkedAccountId(meta.creditCardId)
-      if (accId) {
-        const total = txns.reduce((s, t) => s + t.amount, 0)
-        adjustAccountBalance(accId, -total)
-      }
-    }
     setShowCCImport(false)
     if (txns.length > 0) {
       const latestDate = txns.reduce((a, b) => a.date > b.date ? a : b).date
@@ -176,26 +164,18 @@ export default function Accounts() {
   // ── Income handlers ───────────────────────────────────────────────────────────
   function handleAddIncome(d: Parameters<typeof addIncomeEntry>[0]) {
     addIncomeEntry(d)
-    if (d.bankAccountId) adjustAccountBalance(d.bankAccountId, d.amount)
     toast.success('Income added')
   }
 
   function handleEditIncome(d: Parameters<typeof addIncomeEntry>[0]) {
     if (!editingIncome) return
-    const old = editingIncome
-    updateIncomeEntry(old.id, d)
-    // Reverse old balance effect
-    if (old.bankAccountId) adjustAccountBalance(old.bankAccountId, -old.amount)
-    // Apply new balance effect
-    if (d.bankAccountId) adjustAccountBalance(d.bankAccountId, d.amount)
+    updateIncomeEntry(editingIncome.id, d)
     setEditingIncome(null)
     toast.success('Income updated')
   }
 
   function handleDeleteIncome(id: string) {
-    const entry = incomeEntries.find((e) => e.id === id)
     deleteIncomeEntry(id)
-    if (entry?.bankAccountId) adjustAccountBalance(entry.bankAccountId, -entry.amount)
     toast.success('Income deleted')
   }
 
@@ -251,10 +231,9 @@ export default function Accounts() {
               <BankAccountCard
                 key={a.id}
                 account={a}
-                onEdit={() => setEditingAccount(a)}
-                onDelete={() => setDeletingAccount(a)}
-                onBalanceChange={(newBalance) => { updateAccount(a.id, { balance: newBalance }); toast.success('Balance updated') }}
-                onDeposit={(amount) => { adjustAccountBalance(a.id, amount); toast.success('Deposit added') }}
+                effectiveBalance={accountEffectiveBalances[a.id] ?? (a.balance + (a.deposit ?? 0))}
+                onSave={(d) => { updateAccount(a.id, d); toast.success('Account updated') }}
+                onDelete={() => setDeletingAccount({ id: a.id, name: a.name })}
               />
             ))}
           </div>
@@ -410,12 +389,6 @@ export default function Accounts() {
         open={addAccountOpen}
         onClose={() => setAddAccountOpen(false)}
         onSave={(d) => { addAccount(d); toast.success('Account added') }}
-      />
-      <BankAccountModal
-        open={!!editingAccount}
-        onClose={() => setEditingAccount(null)}
-        onSave={(d) => { if (editingAccount) { updateAccount(editingAccount.id, d); toast.success('Account updated') } }}
-        initial={editingAccount ?? undefined}
       />
       <ConfirmDialog
         open={!!deletingAccount}

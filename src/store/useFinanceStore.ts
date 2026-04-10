@@ -48,7 +48,8 @@ export interface BankAccount {
   id: string
   name: string
   lastFourDigits: string
-  balance: number
+  balance: number   // user-set base balance
+  deposit: number   // separately tracked deposit amount
   createdAt: string
 }
 
@@ -297,7 +298,7 @@ function buildSampleData(): Pick<
 
   return {
     accounts: [
-      { id: accountId, name: 'Bank Hapoalim', lastFourDigits: '4521', balance: 42500, createdAt: new Date().toISOString() },
+      { id: accountId, name: 'Bank Hapoalim', lastFourDigits: '4521', balance: 42500, deposit: 0, createdAt: new Date().toISOString() },
     ],
     creditCards: [],
     transactions,
@@ -627,6 +628,13 @@ export const useFinanceStore = create<FinanceState>()(
             ...b,
             creditCardId: (b as { creditCardId?: string | null }).creditCardId ?? null,
             bankAccountId: (b as { bankAccountId?: string | null }).bankAccountId ?? null,
+          }))
+        }
+
+        if (state.accounts) {
+          state.accounts = state.accounts.map((a) => ({
+            ...a,
+            deposit: (a as { deposit?: number }).deposit ?? 0,
           }))
         }
 
