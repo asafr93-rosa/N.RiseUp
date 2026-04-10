@@ -7,8 +7,6 @@ import { useFinanceStore } from '../store/useFinanceStore'
 import type { BankAccount, CreditCard, RecurringExpense, ExpenseCategory } from '../store/useFinanceStore'
 import BankAccountCard from '../components/accounts/BankAccountCard'
 import BankAccountModal from '../components/accounts/BankAccountModal'
-import TransactionModal from '../components/accounts/TransactionModal'
-import TransactionFilters from '../components/accounts/TransactionFilters'
 import TransactionTable from '../components/accounts/TransactionTable'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
 import Button from '../components/ui/Button'
@@ -16,7 +14,6 @@ import { formatCurrency, getMonthLabel, CATEGORY_LABELS } from '../lib/formatter
 import CreditCardCard from '../components/accounts/CreditCardCard'
 import CreditCardModal from '../components/accounts/CreditCardModal'
 import CreditCardCSVFlow from '../components/accounts/CreditCardCSVFlow'
-import PaymentCycleSummary from '../components/accounts/PaymentCycleSummary'
 import AddExpenseModal from '../components/accounts/AddExpenseModal'
 import IncomeModal from '../components/accounts/IncomeModal'
 import IncomeSection from '../components/accounts/IncomeSection'
@@ -35,10 +32,10 @@ export default function Accounts() {
   const addAccount = useFinanceStore((s) => s.addAccount)
   const updateAccount = useFinanceStore((s) => s.updateAccount)
   const deleteAccount = useFinanceStore((s) => s.deleteAccount)
-  const addTransaction = useFinanceStore((s) => s.addTransaction)
   const deleteTransaction = useFinanceStore((s) => s.deleteTransaction)
   const updateTransactionCategory = useFinanceStore((s) => s.updateTransactionCategory)
   const addTransactionsBatch = useFinanceStore((s) => s.addTransactionsBatch)
+  const addTransaction = useFinanceStore((s) => s.addTransaction)
 
   const addCreditCard = useFinanceStore((s) => s.addCreditCard)
   const updateCreditCard = useFinanceStore((s) => s.updateCreditCard)
@@ -58,14 +55,11 @@ export default function Accounts() {
   // ── Shared month filter ──────────────────────────────────────────────────────
   const [filterMonth, setFilterMonth] = useState(new Date())
 
-  // ── Bank section state ───────────────────────────────────────────────────────
+  // ── UI state ─────────────────────────────────────────────────────────────────
   const [addAccountOpen, setAddAccountOpen] = useState(false)
   const [editingAccount, setEditingAccount] = useState<BankAccount | null>(null)
   const [deletingAccount, setDeletingAccount] = useState<BankAccount | null>(null)
-  const [addTxOpen, setAddTxOpen] = useState(false)
-  const [filterCategory, setFilterCategory] = useState<ExpenseCategory | 'all'>('all')
 
-  // ── Credit card section state ────────────────────────────────────────────────
   const [addCardOpen, setAddCardOpen] = useState(false)
   const [editingCard, setEditingCard] = useState<CreditCard | null>(null)
   const [deletingCard, setDeletingCard] = useState<CreditCard | null>(null)
@@ -74,7 +68,6 @@ export default function Accounts() {
   const [ccFilterCategory, setCCFilterCategory] = useState<ExpenseCategory | 'all'>('all')
   const [ccFilterCardId, setCCFilterCardId] = useState<string | 'all'>('all')
 
-  // ── Income & recurring state ─────────────────────────────────────────────────
   const [addIncomeOpen, setAddIncomeOpen] = useState(false)
   const [deletingIncomeId, setDeletingIncomeId] = useState<string | null>(null)
   const [addRecurringOpen, setAddRecurringOpen] = useState(false)
@@ -83,19 +76,6 @@ export default function Accounts() {
 
   // ── Derived data ─────────────────────────────────────────────────────────────
   const totalBalance = accounts.reduce((s, a) => s + a.balance, 0)
-
-  const bankTransactions = useMemo(() => {
-    const from = startOfMonth(filterMonth)
-    const to = endOfMonth(filterMonth)
-    return transactions.filter((t) => {
-      if (!t.bankAccountId) return false
-      try {
-        if (!isWithinInterval(parseISO(t.date), { start: from, end: to })) return false
-      } catch { return false }
-      if (filterCategory !== 'all' && t.category !== filterCategory) return false
-      return true
-    })
-  }, [transactions, filterMonth, filterCategory])
 
   const ccTransactions = useMemo(() => {
     const from = startOfMonth(filterMonth)
@@ -111,9 +91,26 @@ export default function Accounts() {
     })
   }, [transactions, filterMonth, ccFilterCategory, ccFilterCardId])
 
-  const hasNoTransactions = (accounts.length > 0 || creditCards.length > 0)
-    && bankTransactions.length === 0
-    && ccTransactions.length === 0
+  const monthlyIncome = useMemo(() => {
+    const from = startOfMonth(filterMonth)
+    const to = endOfMonth(filterMonth)
+    return incomeEntries
+      .filter((e) => {
+        try { return isWithinInterval(parseISO(e.date), { start: from, end: to }) }
+        catch { return false }
+      })
+      .reduce((s, e) => s + e.amount, 0)
+  }, [incomeEntries, filterMonth])
+
+  const totalExpenses = ccTransactions.reduce((s, t) => s + t.amount, 0)
+  const netBalance = monthlyIncome - totalExpenses
+
+  function handleDeposit(id: string, amount: number) {
+    const account = accounts.find((a) => a.id === id)
+    if (!account) return
+    updateAccount(id, { balance: account.balance + amount })
+    toast.success('Balance updated')
+  }
 
   return (
     <div className="p-4 pb-6 flex flex-col gap-6">
@@ -162,38 +159,21 @@ export default function Accounts() {
             <Button size="sm" onClick={() => setAddAccountOpen(true)}><Plus size={14} /> Add First Account</Button>
           </div>
         ) : (
-          <>
-            <div ref={accountsRef} className="flex flex-col gap-2 mb-3">
-              {accounts.map((a) => (
-                <BankAccountCard key={a.id} account={a} onEdit={() => setEditingAccount(a)} onDelete={() => setDeletingAccount(a)} />
-              ))}
-            </div>
-
-            <div className="mb-3">
-              <Button variant="secondary" size="sm" onClick={() => setAddTxOpen(true)}>
-                <Plus size={14} /> Add Transaction
-              </Button>
-            </div>
-
-            <TransactionFilters
-              category={filterCategory}
-              onCategoryChange={setFilterCategory}
-            />
-            <TransactionTable
-              transactions={bankTransactions}
-              accounts={accounts}
-              showEmptyState={false}
-              onDelete={(id) => { deleteTransaction(id); toast.success('Transaction deleted') }}
-              onCategoryChange={(id, category) => {
-                const t = transactions.find((x) => x.id === id)
-                if (t) updateTransactionCategory(id, category, t.description)
-              }}
-            />
-          </>
+          <div ref={accountsRef} className="grid grid-cols-2 gap-3">
+            {accounts.map((a) => (
+              <BankAccountCard
+                key={a.id}
+                account={a}
+                onEdit={() => setEditingAccount(a)}
+                onDelete={() => setDeletingAccount(a)}
+                onDeposit={(amount) => handleDeposit(a.id, amount)}
+              />
+            ))}
+          </div>
         )}
       </section>
 
-      {/* ── Section 2: Credit Cards + Expenses ── */}
+      {/* ── Section 2: Credit Cards ── */}
       <section>
         <div className="flex items-center justify-between mb-3">
           <p className="text-base font-semibold" style={{ color: 'var(--color-text-primary)' }}>Credit Cards</p>
@@ -209,94 +189,123 @@ export default function Accounts() {
             <Button size="sm" onClick={() => setAddCardOpen(true)}><Plus size={14} /> Add Card</Button>
           </div>
         ) : (
-          <>
-            <div ref={cardsRef} className="flex flex-col gap-2 mb-3">
-              {creditCards.map((c) => (
-                <CreditCardCard key={c.id} card={c} onEdit={() => setEditingCard(c)} onDelete={() => setDeletingCard(c)} />
-              ))}
-            </div>
-
-            <div className="flex gap-2 mb-3">
-              <Button variant="secondary" size="sm" className="flex-1" onClick={() => setAddExpenseOpen(true)}>
-                <Plus size={14} /> Add Expense
-              </Button>
-              <Button variant="secondary" size="sm" className="flex-1" onClick={() => setShowCCImport((v) => !v)}>
-                <Upload size={14} /> Import CSV
-                {showCCImport ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-              </Button>
-            </div>
-
-            {showCCImport && (
-              <div className="mb-3">
-                <CreditCardCSVFlow
-                  creditCards={creditCards}
-                  categoryRules={categoryRules}
-                  onImport={(txns, meta) => {
-                    addTransactionsBatch(txns, meta)
-                    setShowCCImport(false)
-                    // Jump to the most recent month in the imported batch so all expenses are visible
-                    if (txns.length > 0) {
-                      const latestDate = txns.reduce((a, b) => a.date > b.date ? a : b).date
-                      setFilterMonth(parseISO(latestDate))
-                    }
-                  }}
-                />
-              </div>
-            )}
-
-            <PaymentCycleSummary creditCards={creditCards} transactions={transactions} />
-
-            {/* CC transaction filters */}
-            <div className="flex gap-2 mt-3 mb-3">
-              <select
-                value={ccFilterCategory}
-                onChange={(e) => setCCFilterCategory(e.target.value as ExpenseCategory | 'all')}
-                className="flex-1 px-3 py-1.5 text-xs rounded-xl outline-none"
-                style={{ background: 'var(--color-card)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)' }}
-              >
-                <option value="all">All categories</option>
-                {(Object.entries(CATEGORY_LABELS) as [ExpenseCategory, string][]).map(([v, l]) => (
-                  <option key={v} value={v}>{l}</option>
-                ))}
-              </select>
-              {creditCards.length > 1 && (
-                <select
-                  value={ccFilterCardId}
-                  onChange={(e) => setCCFilterCardId(e.target.value)}
-                  className="flex-1 px-3 py-1.5 text-xs rounded-xl outline-none"
-                  style={{ background: 'var(--color-card)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)' }}
-                >
-                  <option value="all">All cards</option>
-                  {creditCards.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}{c.lastFourDigits ? ` ···· ${c.lastFourDigits}` : ''}</option>
-                  ))}
-                </select>
-              )}
-            </div>
-
-            <TransactionTable
-              transactions={ccTransactions}
-              accounts={accounts}
-              creditCards={creditCards}
-              showEmptyState={false}
-              onDelete={(id) => { deleteTransaction(id); toast.success('Transaction deleted') }}
-              onCategoryChange={(id, category) => {
-                const t = transactions.find((x) => x.id === id)
-                if (t) updateTransactionCategory(id, category, t.description)
-              }}
-            />
-          </>
+          <div ref={cardsRef} className="grid grid-cols-2 gap-3">
+            {creditCards.map((c) => (
+              <CreditCardCard
+                key={c.id}
+                card={c}
+                onEdit={() => setEditingCard(c)}
+                onDelete={() => setDeletingCard(c)}
+              />
+            ))}
+          </div>
         )}
       </section>
 
-      {/* Single combined empty state for both sections */}
-      {hasNoTransactions && (
-        <p className="text-sm text-center py-2" style={{ color: 'var(--color-text-secondary)' }}>
-          No transactions found for this period.
-        </p>
+      {/* ── Section 3: Financial Summary ── */}
+      {creditCards.length > 0 && (
+        <div className="grid grid-cols-3 gap-2">
+          <div className="card p-3 flex flex-col gap-1">
+            <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>Expenses</p>
+            <p className="text-sm font-bold" style={{ color: '#EF4444' }}>{formatCurrency(totalExpenses)}</p>
+          </div>
+          <div className="card p-3 flex flex-col gap-1">
+            <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>Income</p>
+            <p className="text-sm font-bold" style={{ color: '#22C55E' }}>{formatCurrency(monthlyIncome)}</p>
+          </div>
+          <div className="card p-3 flex flex-col gap-1">
+            <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>Net</p>
+            <p className="text-sm font-bold" style={{ color: netBalance >= 0 ? '#22C55E' : '#EF4444' }}>
+              {formatCurrency(Math.abs(netBalance))}
+            </p>
+          </div>
+        </div>
       )}
 
-      {/* ── Section 3: Income + Recurring ── */}
+      {/* ── Section 4 & 5: Filters + Action Buttons ── */}
+      {creditCards.length > 0 && (
+        <>
+          {/* Filters */}
+          <div className="flex gap-2">
+            <select
+              value={ccFilterCategory}
+              onChange={(e) => setCCFilterCategory(e.target.value as ExpenseCategory | 'all')}
+              className="flex-1 px-3 py-1.5 text-xs rounded-xl outline-none"
+              style={{ background: 'var(--color-card)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)' }}
+            >
+              <option value="all">All categories</option>
+              {(Object.entries(CATEGORY_LABELS) as [ExpenseCategory, string][]).map(([v, l]) => (
+                <option key={v} value={v}>{l}</option>
+              ))}
+            </select>
+            {creditCards.length > 1 && (
+              <select
+                value={ccFilterCardId}
+                onChange={(e) => setCCFilterCardId(e.target.value)}
+                className="flex-1 px-3 py-1.5 text-xs rounded-xl outline-none"
+                style={{ background: 'var(--color-card)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)' }}
+              >
+                <option value="all">All cards</option>
+                {creditCards.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}{c.lastFourDigits ? ` ···· ${c.lastFourDigits}` : ''}</option>
+                ))}
+              </select>
+            )}
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex gap-2">
+            <Button variant="secondary" size="sm" className="flex-1" onClick={() => setShowCCImport((v) => !v)}>
+              <Upload size={14} /> Import CSV
+              {showCCImport ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            </Button>
+            <Button variant="secondary" size="sm" className="flex-1" onClick={() => setAddExpenseOpen(true)}>
+              <Plus size={14} /> Add Expense
+            </Button>
+            <Button variant="secondary" size="sm" className="flex-1" onClick={() => setAddIncomeOpen(true)}>
+              <Plus size={14} /> Add Income
+            </Button>
+          </div>
+
+          {/* CSV import area */}
+          {showCCImport && (
+            <div>
+              <CreditCardCSVFlow
+                creditCards={creditCards}
+                categoryRules={categoryRules}
+                onImport={(txns, meta) => {
+                  addTransactionsBatch(txns, meta)
+                  setShowCCImport(false)
+                  if (txns.length > 0) {
+                    const latestDate = txns.reduce((a, b) => a.date > b.date ? a : b).date
+                    setFilterMonth(parseISO(latestDate))
+                  }
+                }}
+              />
+            </div>
+          )}
+
+          {/* ── Section 6: Expenses list ── */}
+          <TransactionTable
+            transactions={ccTransactions}
+            accounts={accounts}
+            creditCards={creditCards}
+            onDelete={(id) => { deleteTransaction(id); toast.success('Transaction deleted') }}
+            onCategoryChange={(id, category) => {
+              const t = transactions.find((x) => x.id === id)
+              if (t) updateTransactionCategory(id, category, t.description)
+            }}
+          />
+
+          {ccTransactions.length === 0 && (
+            <p className="text-sm text-center py-2" style={{ color: 'var(--color-text-secondary)' }}>
+              No expenses found for this period.
+            </p>
+          )}
+        </>
+      )}
+
+      {/* ── Section 7: Income + Recurring ── */}
       <section className="flex flex-col gap-3">
         <IncomeSection
           incomeEntries={incomeEntries}
@@ -328,12 +337,6 @@ export default function Accounts() {
         onClose={() => setDeletingAccount(null)}
         onConfirm={() => { if (deletingAccount) { deleteAccount(deletingAccount.id); toast.success('Account deleted'); setDeletingAccount(null) } }}
         message={`Delete "${deletingAccount?.name}" and all its transactions? This cannot be undone.`}
-      />
-      <TransactionModal
-        open={addTxOpen}
-        onClose={() => setAddTxOpen(false)}
-        onSave={(d) => { addTransaction(d); toast.success('Transaction added') }}
-        accounts={accounts}
       />
 
       {/* ── Modals: Credit Cards ── */}

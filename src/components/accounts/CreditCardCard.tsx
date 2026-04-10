@@ -9,28 +9,52 @@ interface Props {
 
 export default function CreditCardCard({ card, onEdit, onDelete }: Props) {
   return (
-    <div className="card p-4 animate-fade-in">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center rounded-xl shrink-0" style={{ width: 40, height: 40, background: '#7c3aed20' }}>
-            <CreditCardIcon size={20} style={{ color: '#7c3aed' }} />
-          </div>
-          <div>
-            <p className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>{card.name}</p>
-            <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>
-              {card.lastFourDigits ? `···· ${card.lastFourDigits}` : ''}
-              {card.lastFourDigits && card.paymentCycleDay ? '  ·  ' : ''}
-              {card.paymentCycleDay ? `Billing day ${card.paymentCycleDay}` : ''}
-            </p>
-          </div>
+    <div className="card p-4 flex flex-col min-h-[140px] animate-fade-in">
+      {/* Top: icon + actions */}
+      <div className="flex items-center justify-between gap-2">
+        <div
+          className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+          style={{ background: '#7c3aed20' }}
+        >
+          <CreditCardIcon size={16} style={{ color: '#7c3aed' }} />
         </div>
-        <div className="flex gap-1 shrink-0">
-          <button onClick={onEdit} className="p-2 rounded-lg" style={{ color: 'var(--color-text-secondary)', background: 'var(--color-surface)' }}>
-            <Pencil size={15} />
+        <div className="flex gap-1">
+          <button
+            onClick={onEdit}
+            className="p-1.5 rounded-lg"
+            style={{ color: 'var(--color-text-secondary)', background: 'var(--color-surface)' }}
+          >
+            <Pencil size={13} />
           </button>
-          <button onClick={onDelete} className="p-2 rounded-lg" style={{ color: '#EF4444', background: 'var(--color-surface)' }}>
-            <Trash2 size={15} />
+          <button
+            onClick={onDelete}
+            className="p-1.5 rounded-lg"
+            style={{ color: '#EF4444', background: 'var(--color-surface)' }}
+          >
+            <Trash2 size={13} />
           </button>
+        </div>
+      </div>
+
+      {/* Spacer */}
+      <div className="flex-1" />
+
+      {/* Bottom: name + details */}
+      <div>
+        <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>
+          {card.name}
+        </p>
+        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+          {card.lastFourDigits && (
+            <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
+              ···· {card.lastFourDigits}
+            </p>
+          )}
+          {card.paymentCycleDay ? (
+            <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
+              · Day {card.paymentCycleDay}
+            </p>
+          ) : null}
         </div>
       </div>
     </div>
