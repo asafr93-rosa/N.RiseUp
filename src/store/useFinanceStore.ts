@@ -48,8 +48,8 @@ export interface BankAccount {
   id: string
   name: string
   lastFourDigits: string
-  balance: number   // user-set base balance
-  deposit: number   // separately tracked deposit amount
+  balanceHistory: Record<string, number>   // 'YYYY-MM' → balance entered by user
+  depositHistory: Record<string, number>   // 'YYYY-MM' → deposit entered by user
   createdAt: string
 }
 
@@ -107,13 +107,16 @@ export interface RecurringExpense {
   createdAt: string
 }
 
-export type RecommendationPriority = 'deposit' | 'transfer' | 'reduce_recurring' | 'reduce_spending'
+export type RecommendationResource =
+  | { type: 'account'; accountId: string }
+  | { type: 'deposit'; accountId: string }
+  | { type: 'investment'; investmentId: string }
 
 export interface UserProfile {
   displayName: string
-  avatar: string
+  avatar: string   // base64 dataURL or empty string
   age: number | null
-  recommendationPriorities: RecommendationPriority[]
+  recommendationPriorities: RecommendationResource[]
 }
 
 export interface Asset {
@@ -183,6 +186,7 @@ interface FinanceState {
   updateAccount: (id: string, data: Partial<Omit<BankAccount, 'id' | 'createdAt'>>) => void
   deleteAccount: (id: string) => void
   adjustAccountBalance: (id: string, delta: number) => void
+  setAccountMonthBalance: (id: string, month: string, balance: number, deposit: number) => void
 
   // Credit card actions
   addCreditCard: (data: Omit<CreditCard, 'id' | 'createdAt'>) => void
@@ -312,7 +316,7 @@ function buildSampleData(): Pick<
 
   return {
     accounts: [
-      { id: accountId, name: 'Bank Hapoalim', lastFourDigits: '4521', balance: 42500, deposit: 0, createdAt: new Date().toISOString() },
+      { id: accountId, name: 'Bank Hapoalim', lastFourDigits: '4521', balanceHistory: { [months[0]]: 42500 }, depositHistory: { [months[0]]: 0 }, createdAt: new Date().toISOString() },
     ],
     creditCards: [],
     transactions,
@@ -354,9 +358,9 @@ export const useFinanceStore = create<FinanceState>()(
       sampleDataDismissed: false,
       userProfile: {
         displayName: 'User',
-        avatar: '👤',
+        avatar: '',
         age: null,
-        recommendationPriorities: ['deposit', 'transfer', 'reduce_recurring', 'reduce_spending'],
+        recommendationPriorities: [],
       },
 
       // ── Account actions ────────────────────────────────────────────────────
@@ -372,7 +376,23 @@ export const useFinanceStore = create<FinanceState>()(
 
       adjustAccountBalance: (id, delta) =>
         set((s) => ({
-          accounts: s.accounts.map((a) => (a.id === id ? { ...a, balance: a.balance + delta } : a)),
+          accounts: s.accounts.map((a) => {
+            if (a.id !== id) return a
+            const month = currentMonth()
+            const cur = a.balanceHistory?.[month] ?? 0
+            return { ...a, balanceHistory: { ...a.balanceHistory, [month]: cur + delta } }
+          }),
+        })),
+
+      setAccountMonthBalance: (id, month, balance, deposit) =>
+        set((s) => ({
+          accounts: s.accounts.map((a) =>
+            a.id === id ? {
+              ...a,
+              balanceHistory: { ...a.balanceHistory, [month]: balance },
+              depositHistory: { ...a.depositHistory, [month]: deposit },
+            } : a
+          ),
         })),
 
       deleteAccount: (id) =>
@@ -612,9 +632,9 @@ export const useFinanceStore = create<FinanceState>()(
           sampleDataDismissed: false,
           userProfile: {
             displayName: 'User',
-            avatar: '👤',
+            avatar: '',
             age: null,
-            recommendationPriorities: ['deposit', 'transfer', 'reduce_recurring', 'reduce_spending'],
+            recommendationPriorities: [],
           },
         })
       },
@@ -661,10 +681,15 @@ export const useFinanceStore = create<FinanceState>()(
         }
 
         if (state.accounts) {
-          state.accounts = state.accounts.map((a) => ({
-            ...a,
-            deposit: (a as { deposit?: number }).deposit ?? 0,
-          }))
+          const month = currentMonth()
+          state.accounts = state.accounts.map((a) => {
+            const old = a as { balance?: number; deposit?: number; balanceHistory?: Record<string, number>; depositHistory?: Record<string, number> }
+            return {
+              id: a.id, name: a.name, lastFourDigits: a.lastFourDigits, createdAt: a.createdAt,
+              balanceHistory: old.balanceHistory ?? { [month]: old.balance ?? 0 },
+              depositHistory: old.depositHistory ?? { [month]: old.deposit ?? 0 },
+            }
+          })
         }
 
         if (state.creditCards) {
@@ -689,12 +714,11 @@ export const useFinanceStore = create<FinanceState>()(
         }
 
         if (!state.userProfile) {
-          state.userProfile = {
-            displayName: 'User',
-            avatar: '👤',
-            age: null,
-            recommendationPriorities: ['deposit', 'transfer', 'reduce_recurring', 'reduce_spending'],
-          }
+          state.userProfile = { displayName: 'User', avatar: '', age: null, recommendationPriorities: [] }
+        }
+        // Reset old string-format priorities (from previous implementation)
+        if (state.userProfile.recommendationPriorities?.some((p) => typeof p === 'string')) {
+          state.userProfile.recommendationPriorities = []
         }
       },
     }

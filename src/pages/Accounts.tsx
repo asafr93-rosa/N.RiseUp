@@ -51,7 +51,9 @@ export default function Accounts() {
   const addRecurringExpense = useFinanceStore((s) => s.addRecurringExpense)
   const updateRecurringExpense = useFinanceStore((s) => s.updateRecurringExpense)
   const deleteRecurringExpense = useFinanceStore((s) => s.deleteRecurringExpense)
+  const setAccountMonthBalance = useFinanceStore((s) => s.setAccountMonthBalance)
   const userProfile = useFinanceStore((s) => s.userProfile)
+  const investments = useFinanceStore((s) => s.investments)
 
   // ── Auto-animate refs ────────────────────────────────────────────────────────
   const [accountsRef] = useAutoAnimate<HTMLDivElement>()
@@ -82,6 +84,11 @@ export default function Accounts() {
   const [editingRecurring, setEditingRecurring] = useState<RecurringExpense | null>(null)
   const [deletingRecurringId, setDeletingRecurringId] = useState<string | null>(null)
 
+  // ── Filter month key ─────────────────────────────────────────────────────────
+  const filterMonthKey = useMemo(() =>
+    `${filterMonth.getFullYear()}-${String(filterMonth.getMonth() + 1).padStart(2, '0')}`,
+  [filterMonth])
+
   // ── Reactive effective balance per account (month-scoped) ────────────────────
   const accountEffectiveBalances = useMemo(() => {
     const map: Record<string, number> = {}
@@ -92,6 +99,8 @@ export default function Accounts() {
       catch { return false }
     }
     for (const a of accounts) {
+      const balance = a.balanceHistory?.[filterMonthKey] ?? 0
+      const deposit = a.depositHistory?.[filterMonthKey] ?? 0
       const linkedCardIds = creditCards
         .filter((c) => c.bankAccountId === a.id)
         .map((c) => c.id)
@@ -104,10 +113,10 @@ export default function Accounts() {
       const recurringLinked = recurringExpenses
         .filter((r) => r.isActive && r.bankAccountId === a.id)
         .reduce((s, r) => s + r.amount, 0)
-      map[a.id] = (a.balance ?? 0) + (a.deposit ?? 0) - expenses - recurringLinked + income
+      map[a.id] = balance + deposit - expenses - recurringLinked + income
     }
     return map
-  }, [accounts, creditCards, transactions, incomeEntries, recurringExpenses, filterMonth])
+  }, [accounts, creditCards, transactions, incomeEntries, recurringExpenses, filterMonth, filterMonthKey])
 
   const totalBalance = Object.values(accountEffectiveBalances).reduce((s, v) => s + v, 0)
 
@@ -131,16 +140,16 @@ export default function Accounts() {
   const activeRecurringTotal = recurringExpenses.filter((r) => r.isActive).reduce((s, r) => s + r.amount, 0)
   const monthlyExpenses = ccExpensesTotal + activeRecurringTotal
 
-  const monthlyIncome = useMemo(() => {
+  const monthIncomeEntries = useMemo(() => {
     const from = startOfMonth(filterMonth)
     const to = endOfMonth(filterMonth)
-    return incomeEntries
-      .filter((e) => {
-        try { return isWithinInterval(parseISO(e.date), { start: from, end: to }) }
-        catch { return false }
-      })
-      .reduce((s, e) => s + e.amount, 0)
+    return incomeEntries.filter((e) => {
+      try { return isWithinInterval(parseISO(e.date), { start: from, end: to }) }
+      catch { return false }
+    })
   }, [incomeEntries, filterMonth])
+
+  const monthlyIncome = monthIncomeEntries.reduce((s, e) => s + e.amount, 0)
 
   const netBalance = monthlyIncome - monthlyExpenses
 
@@ -242,8 +251,13 @@ export default function Accounts() {
               <BankAccountCard
                 key={a.id}
                 account={a}
-                effectiveBalance={accountEffectiveBalances[a.id] ?? (a.balance + (a.deposit ?? 0))}
-                onSave={(d) => { updateAccount(a.id, d); toast.success('Account updated') }}
+                filterMonthKey={filterMonthKey}
+                effectiveBalance={accountEffectiveBalances[a.id] ?? 0}
+                onSave={(d) => {
+                  updateAccount(a.id, { name: d.name, lastFourDigits: d.lastFourDigits })
+                  setAccountMonthBalance(a.id, filterMonthKey, d.balance, d.deposit)
+                  toast.success('Account updated')
+                }}
                 onDelete={() => setDeletingAccount({ id: a.id, name: a.name })}
               />
             ))}
@@ -288,6 +302,8 @@ export default function Accounts() {
       <RecommendationSection
         accounts={accounts}
         effectiveBalances={accountEffectiveBalances}
+        filterMonthKey={filterMonthKey}
+        investments={investments}
         priorities={userProfile.recommendationPriorities}
       />
 
@@ -389,7 +405,7 @@ export default function Accounts() {
       {/* ── Income + Recurring ── */}
       <section className="flex flex-col gap-3">
         <IncomeSection
-          incomeEntries={incomeEntries}
+          incomeEntries={monthIncomeEntries}
           onAdd={() => setAddIncomeOpen(true)}
           onEdit={(entry) => setEditingIncome(entry)}
           onDelete={(id) => setDeletingIncomeId(id)}
@@ -407,7 +423,14 @@ export default function Accounts() {
       <BankAccountModal
         open={addAccountOpen}
         onClose={() => setAddAccountOpen(false)}
-        onSave={(d) => { addAccount(d); toast.success('Account added') }}
+        onSave={(d) => {
+          addAccount({
+            name: d.name, lastFourDigits: d.lastFourDigits,
+            balanceHistory: { [filterMonthKey]: d.balance },
+            depositHistory: { [filterMonthKey]: d.deposit },
+          })
+          toast.success('Account added')
+        }}
       />
       <ConfirmDialog
         open={!!deletingAccount}

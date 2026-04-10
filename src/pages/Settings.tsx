@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { GripVertical, ArrowLeft } from 'lucide-react'
+import { GripVertical, ArrowLeft, Camera } from 'lucide-react'
 import {
   DndContext,
   closestCenter,
@@ -18,25 +18,34 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useFinanceStore } from '../store/useFinanceStore'
-import type { RecommendationPriority } from '../store/useFinanceStore'
+import type { RecommendationResource } from '../store/useFinanceStore'
+import { formatCurrency } from '../lib/formatters'
 import Input from '../components/ui/Input'
 import Button from '../components/ui/Button'
 
-const AVATARS = ['👤', '👨', '👩', '🧑', '👴', '👵', '🧔']
+// Stable key for a resource (for dnd-kit id)
+function resourceKey(r: RecommendationResource): string {
+  if (r.type === 'investment') return `inv-${r.investmentId}`
+  return `${r.type}-${r.accountId}`
+}
 
-const PRIORITY_LABELS: Record<RecommendationPriority, string> = {
-  deposit: 'Use account deposit',
-  transfer: 'Transfer between accounts',
-  reduce_recurring: 'Reduce fixed expenses',
-  reduce_spending: 'Reduce variable spending',
+// Check two resources are the same
+function sameResource(a: RecommendationResource, b: RecommendationResource): boolean {
+  if (a.type !== b.type) return false
+  if (a.type === 'investment' && b.type === 'investment') return a.investmentId === b.investmentId
+  if ((a.type === 'account' || a.type === 'deposit') && (b.type === 'account' || b.type === 'deposit'))
+    return a.accountId === b.accountId
+  return false
 }
 
 interface SortableItemProps {
-  id: RecommendationPriority
+  id: string
+  title: string
+  subtitle: string
   index: number
 }
 
-function SortableItem({ id, index }: SortableItemProps) {
+function SortableItem({ id, title, subtitle, index }: SortableItemProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
 
   return (
@@ -51,14 +60,15 @@ function SortableItem({ id, index }: SortableItemProps) {
         opacity: isDragging ? 0.5 : 1,
       }}
     >
-      <span className="text-xs font-bold w-5 text-center" style={{ color: 'var(--color-text-secondary)' }}>
+      <span className="text-xs font-bold w-5 text-center shrink-0" style={{ color: 'var(--color-text-secondary)' }}>
         {index + 1}
       </span>
-      <span className="flex-1 text-sm" style={{ color: 'var(--color-text-primary)' }}>
-        {PRIORITY_LABELS[id]}
-      </span>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium truncate" style={{ color: 'var(--color-text-primary)' }}>{title}</p>
+        <p className="text-xs" style={{ color: '#4361EE' }}>{subtitle}</p>
+      </div>
       <button
-        className="p-1 cursor-grab active:cursor-grabbing touch-none"
+        className="p-1 cursor-grab active:cursor-grabbing touch-none shrink-0"
         style={{ color: 'var(--color-text-secondary)' }}
         {...attributes}
         {...listeners}
@@ -73,11 +83,34 @@ export default function Settings() {
   const navigate = useNavigate()
   const userProfile = useFinanceStore((s) => s.userProfile)
   const updateUserProfile = useFinanceStore((s) => s.updateUserProfile)
+  const accounts = useFinanceStore((s) => s.accounts)
+  const investments = useFinanceStore((s) => s.investments)
 
   const [displayName, setDisplayName] = useState(userProfile.displayName)
   const [avatar, setAvatar] = useState(userProfile.avatar)
   const [age, setAge] = useState<string>(userProfile.age !== null ? String(userProfile.age) : '')
-  const [priorities, setPriorities] = useState<RecommendationPriority[]>(userProfile.recommendationPriorities)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Build full resource list from current accounts + investments
+  const allResources = useMemo<RecommendationResource[]>(() => [
+    ...accounts.map((a) => ({ type: 'account' as const, accountId: a.id })),
+    ...accounts.map((a) => ({ type: 'deposit' as const, accountId: a.id })),
+    ...investments.map((inv) => ({ type: 'investment' as const, investmentId: inv.id })),
+  ], [accounts, investments])
+
+  // Merge saved priorities with newly discovered resources
+  const initialPriorities = useMemo(() => {
+    const saved = userProfile.recommendationPriorities.filter((p) => {
+      if (!p || typeof p !== 'object') return false
+      if (p.type === 'account' || p.type === 'deposit') return accounts.some((a) => a.id === p.accountId)
+      if (p.type === 'investment') return investments.some((inv) => inv.id === p.investmentId)
+      return false
+    })
+    const newOnes = allResources.filter((r) => !saved.some((s) => sameResource(s, r)))
+    return [...saved, ...newOnes]
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps — intentionally only on mount
+
+  const [priorities, setPriorities] = useState<RecommendationResource[]>(initialPriorities)
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
 
@@ -85,11 +118,19 @@ export default function Settings() {
     const { active, over } = event
     if (over && active.id !== over.id) {
       setPriorities((items) => {
-        const oldIndex = items.indexOf(active.id as RecommendationPriority)
-        const newIndex = items.indexOf(over.id as RecommendationPriority)
+        const oldIndex = items.findIndex((r) => resourceKey(r) === active.id)
+        const newIndex = items.findIndex((r) => resourceKey(r) === over.id)
         return arrayMove(items, oldIndex, newIndex)
       })
     }
+  }
+
+  function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => setAvatar(reader.result as string)
+    reader.readAsDataURL(file)
   }
 
   function handleSave() {
@@ -105,6 +146,23 @@ export default function Settings() {
     })
     toast.success('Settings saved')
     navigate(-1)
+  }
+
+  // Label for each resource
+  function resourceLabel(r: RecommendationResource): { title: string; subtitle: string } {
+    const currentMonth = new Date().toISOString().slice(0, 7)
+    if (r.type === 'account') {
+      const a = accounts.find((x) => x.id === r.accountId)
+      const bal = a?.balanceHistory?.[currentMonth] ?? 0
+      return { title: a?.name ?? 'Unknown Account', subtitle: formatCurrency(bal) }
+    }
+    if (r.type === 'deposit') {
+      const a = accounts.find((x) => x.id === r.accountId)
+      const dep = a?.depositHistory?.[currentMonth] ?? 0
+      return { title: `${a?.name ?? 'Unknown'} – Deposit`, subtitle: formatCurrency(dep) }
+    }
+    const inv = investments.find((x) => x.id === r.investmentId)
+    return { title: inv?.name ?? 'Unknown Investment', subtitle: formatCurrency(inv?.currentValue ?? 0) }
   }
 
   return (
@@ -125,23 +183,39 @@ export default function Settings() {
       <div className="card p-4 flex flex-col gap-4">
         <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>Profile</p>
 
-        {/* Avatar picker */}
-        <div className="flex flex-col gap-2">
-          <label className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>Avatar</label>
-          <div className="flex gap-2 flex-wrap">
-            {AVATARS.map((emoji) => (
+        {/* Photo upload */}
+        <div className="flex items-center gap-4">
+          <div
+            className="w-16 h-16 rounded-full overflow-hidden flex items-center justify-center shrink-0"
+            style={{ background: 'var(--color-surface)', border: '2px solid var(--color-border)' }}
+          >
+            {avatar && avatar.startsWith('data:')
+              ? <img src={avatar} className="w-full h-full object-cover" alt="Profile" />
+              : <Camera size={24} style={{ color: 'var(--color-text-secondary)' }} />}
+          </div>
+          <div className="flex flex-col gap-2">
+            <label
+              className="cursor-pointer text-xs font-medium px-3 py-2 rounded-xl text-center"
+              style={{ background: '#4361EE20', color: '#4361EE' }}
+            >
+              Upload Photo
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleImageUpload}
+              />
+            </label>
+            {avatar && avatar.startsWith('data:') && (
               <button
-                key={emoji}
-                onClick={() => setAvatar(emoji)}
-                className="w-10 h-10 text-xl rounded-xl flex items-center justify-center transition-all"
-                style={{
-                  background: avatar === emoji ? '#4361EE20' : 'var(--color-surface)',
-                  border: avatar === emoji ? '2px solid #4361EE' : '2px solid transparent',
-                }}
+                onClick={() => setAvatar('')}
+                className="text-xs font-medium px-3 py-1.5 rounded-xl"
+                style={{ background: '#EF444420', color: '#EF4444' }}
               >
-                {emoji}
+                Remove
               </button>
-            ))}
+            )}
           </div>
         </div>
 
@@ -171,18 +245,32 @@ export default function Settings() {
           </p>
         </div>
 
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-          <SortableContext items={priorities} strategy={verticalListSortingStrategy}>
-            <div className="flex flex-col gap-2">
-              {priorities.map((p, i) => (
-                <SortableItem key={p} id={p} index={i} />
-              ))}
-            </div>
-          </SortableContext>
-        </DndContext>
+        {priorities.length === 0 ? (
+          <p className="text-sm text-center py-4" style={{ color: 'var(--color-text-secondary)' }}>
+            Add bank accounts or investments to configure priorities.
+          </p>
+        ) : (
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={priorities.map(resourceKey)} strategy={verticalListSortingStrategy}>
+              <div className="flex flex-col gap-2">
+                {priorities.map((r, i) => {
+                  const { title, subtitle } = resourceLabel(r)
+                  return (
+                    <SortableItem
+                      key={resourceKey(r)}
+                      id={resourceKey(r)}
+                      title={title}
+                      subtitle={subtitle}
+                      index={i}
+                    />
+                  )
+                })}
+              </div>
+            </SortableContext>
+          </DndContext>
+        )}
       </div>
 
-      {/* Save */}
       <Button variant="primary" onClick={handleSave}>Save Settings</Button>
     </div>
   )

@@ -7,7 +7,10 @@ export default function NetWorthHeader() {
   const assets = useFinanceStore((s) => s.assets)
   const investments = useFinanceStore((s) => s.investments)
 
-  const bankTotal = useMemo(() => accounts.reduce((s, a) => s + a.balance, 0), [accounts])
+  const bankTotal = useMemo(() => {
+    const month = new Date().toISOString().slice(0, 7)
+    return accounts.reduce((s, a) => s + (a.balanceHistory?.[month] ?? 0) + (a.depositHistory?.[month] ?? 0), 0)
+  }, [accounts])
   const assetTotal = useMemo(() => assets.reduce((s, a) => s + a.estimatedValue, 0), [assets])
   const investTotal = useMemo(() => investments.reduce((s, i) => s + i.currentValue, 0), [investments])
   const netWorth = bankTotal + assetTotal + investTotal

@@ -2,27 +2,25 @@ import { useState, useEffect } from 'react'
 import Modal from '../ui/Modal'
 import Input from '../ui/Input'
 import Button from '../ui/Button'
-import type { BankAccount } from '../../store/useFinanceStore'
 
-type FormData = Omit<BankAccount, 'id' | 'createdAt'>
+type FormData = { name: string; lastFourDigits: string; balance: number; deposit: number }
 
 interface Props {
   open: boolean
   onClose: () => void
   onSave: (data: FormData) => void
-  initial?: BankAccount
 }
 
 const EMPTY: FormData = { name: '', lastFourDigits: '', balance: 0, deposit: 0 }
 
-export default function BankAccountModal({ open, onClose, onSave, initial }: Props) {
+export default function BankAccountModal({ open, onClose, onSave }: Props) {
   const [form, setForm] = useState<FormData>(EMPTY)
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({})
 
   useEffect(() => {
-    setForm(initial ? { name: initial.name, lastFourDigits: initial.lastFourDigits, balance: initial.balance, deposit: initial.deposit ?? 0 } : EMPTY)
+    setForm(EMPTY)
     setErrors({})
-  }, [open, initial])
+  }, [open])
 
   function validate(): boolean {
     const e: typeof errors = {}
@@ -39,7 +37,7 @@ export default function BankAccountModal({ open, onClose, onSave, initial }: Pro
   }
 
   return (
-    <Modal open={open} onClose={onClose} title={initial ? 'Edit Account' : 'Add Bank Account'}>
+    <Modal open={open} onClose={onClose} title="Add Bank Account">
       <div className="flex flex-col gap-4">
         <Input label="Bank Name" placeholder="e.g. Bank Hapoalim" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} error={errors.name} />
         <Input label="Last 4 Digits (optional)" placeholder="1234" maxLength={4} value={form.lastFourDigits} onChange={(e) => setForm((f) => ({ ...f, lastFourDigits: e.target.value.replace(/\D/g, '').slice(0, 4) }))} error={errors.lastFourDigits} />
@@ -47,7 +45,7 @@ export default function BankAccountModal({ open, onClose, onSave, initial }: Pro
         <Input label="Deposit Amount (₪)" type="number" inputMode="decimal" placeholder="0" value={form.deposit || ''} onChange={(e) => setForm((f) => ({ ...f, deposit: parseFloat(e.target.value) || 0 }))} />
         <div className="flex gap-2 pt-1">
           <Button variant="secondary" className="flex-1" onClick={onClose}>Cancel</Button>
-          <Button variant="primary" className="flex-1" onClick={handleSubmit}>{initial ? 'Save Changes' : 'Add Account'}</Button>
+          <Button variant="primary" className="flex-1" onClick={handleSubmit}>Add Account</Button>
         </div>
       </div>
     </Modal>

@@ -5,8 +5,9 @@ import type { BankAccount } from '../../store/useFinanceStore'
 
 interface Props {
   account: BankAccount
+  filterMonthKey: string
   effectiveBalance: number
-  onSave: (data: Partial<Omit<BankAccount, 'id' | 'createdAt'>>) => void
+  onSave: (d: { name: string; lastFourDigits: string; balance: number; deposit: number }) => void
   onDelete: () => void
 }
 
@@ -17,21 +18,19 @@ const inputStyle = {
   border: '1px solid var(--color-border)',
 }
 
-export default function BankAccountCard({ account, effectiveBalance, onSave, onDelete }: Props) {
+export default function BankAccountCard({ account, filterMonthKey, effectiveBalance, onSave, onDelete }: Props) {
   const [editing, setEditing] = useState(false)
-  const [form, setForm] = useState({
-    name: account.name,
-    lastFourDigits: account.lastFourDigits,
-    balance: account.balance,
-    deposit: account.deposit ?? 0,
-  })
+  const [form, setForm] = useState({ name: '', lastFourDigits: '', balance: 0, deposit: 0 })
+
+  const monthBalance = account.balanceHistory?.[filterMonthKey] ?? 0
+  const monthDeposit = account.depositHistory?.[filterMonthKey] ?? 0
 
   function startEdit() {
     setForm({
       name: account.name,
       lastFourDigits: account.lastFourDigits,
-      balance: account.balance,
-      deposit: account.deposit ?? 0,
+      balance: monthBalance,
+      deposit: monthDeposit,
     })
     setEditing(true)
   }
@@ -149,18 +148,17 @@ export default function BankAccountCard({ account, effectiveBalance, onSave, onD
         </div>
       </div>
 
-      {/* Balance row */}
+      {/* Balance rows */}
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
           <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>Balance</span>
-          <span className="text-xs font-semibold" style={{ color: 'var(--color-text-primary)' }}>{formatCurrency(account.balance)}</span>
+          <span className="text-xs font-semibold" style={{ color: 'var(--color-text-primary)' }}>{formatCurrency(monthBalance)}</span>
         </div>
         <div className="flex items-center justify-between">
           <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>Deposit</span>
-          <span className="text-xs font-semibold" style={{ color: 'var(--color-text-primary)' }}>{formatCurrency(account.deposit ?? 0)}</span>
+          <span className="text-xs font-semibold" style={{ color: 'var(--color-text-primary)' }}>{formatCurrency(monthDeposit)}</span>
         </div>
 
-        {/* Divider */}
         <div className="border-t" style={{ borderColor: 'var(--color-border)' }} />
 
         <div className="flex items-center justify-between">

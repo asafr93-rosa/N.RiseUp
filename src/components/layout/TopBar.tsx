@@ -34,7 +34,9 @@ export default function TopBar() {
             className="flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-lg"
             style={{ color: 'var(--color-text-secondary)', background: 'var(--color-card)' }}
           >
-            <span>{userProfile.avatar}</span>
+            {userProfile.avatar && userProfile.avatar.startsWith('data:')
+              ? <img src={userProfile.avatar} className="w-5 h-5 rounded-full object-cover" alt="Profile" />
+              : null}
             <span>{userProfile.displayName}</span>
             <Settings size={12} />
           </button>

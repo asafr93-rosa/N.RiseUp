@@ -233,7 +233,8 @@ export function getBalanceOverTime(
   const cutoff = startOfMonth(subMonths(now, months - 1))
 
   // Walk backwards from current balance
-  let balance = account.balance
+  const currentMonth = new Date().toISOString().slice(0, 7)
+  let balance = (account.balanceHistory?.[currentMonth] ?? 0) + (account.depositHistory?.[currentMonth] ?? 0)
   const points: BalancePoint[] = [
     { date: format(now, 'dd/MM'), balance },
   ]
