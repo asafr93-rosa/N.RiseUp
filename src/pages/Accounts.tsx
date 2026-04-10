@@ -91,25 +91,73 @@ export default function Accounts() {
     })
   }, [transactions, filterMonth, ccFilterCategory, ccFilterCardId])
 
-  const monthlyIncome = useMemo(() => {
-    const from = startOfMonth(filterMonth)
-    const to = endOfMonth(filterMonth)
-    return incomeEntries
-      .filter((e) => {
-        try { return isWithinInterval(parseISO(e.date), { start: from, end: to }) }
-        catch { return false }
-      })
-      .reduce((s, e) => s + e.amount, 0)
-  }, [incomeEntries, filterMonth])
+  // ── Balance helpers ───────────────────────────────────────────────────────────
+  function adjustAccountBalance(accountId: string, delta: number) {
+    const account = accounts.find((a) => a.id === accountId)
+    if (account) updateAccount(accountId, { balance: account.balance + delta })
+  }
 
-  const totalExpenses = ccTransactions.reduce((s, t) => s + t.amount, 0)
-  const netBalance = monthlyIncome - totalExpenses
+  function linkedAccountId(creditCardId: string): string | null {
+    return creditCards.find((c) => c.id === creditCardId)?.bankAccountId ?? null
+  }
 
-  function handleDeposit(id: string, amount: number) {
-    const account = accounts.find((a) => a.id === id)
-    if (!account) return
-    updateAccount(id, { balance: account.balance + amount })
+  function handleDeposit(accountId: string, amount: number) {
+    adjustAccountBalance(accountId, amount)
     toast.success('Balance updated')
+  }
+
+  function handleAddExpense(d: Parameters<typeof addTransaction>[0]) {
+    addTransaction(d)
+    // Subtract from linked bank account
+    if (d.creditCardId) {
+      const accId = linkedAccountId(d.creditCardId)
+      if (accId) adjustAccountBalance(accId, -d.amount)
+    }
+    toast.success('Expense added')
+  }
+
+  function handleDeleteTransaction(id: string) {
+    const txn = transactions.find((x) => x.id === id)
+    deleteTransaction(id)
+    // Reverse the balance deduction
+    if (txn?.creditCardId) {
+      const accId = linkedAccountId(txn.creditCardId)
+      if (accId) adjustAccountBalance(accId, txn.amount)
+    }
+    toast.success('Transaction deleted')
+  }
+
+  function handleCSVImport(txns: Parameters<typeof addTransactionsBatch>[0], meta: Parameters<typeof addTransactionsBatch>[1]) {
+    addTransactionsBatch(txns, meta)
+    // Subtract total from linked bank account
+    if (meta.creditCardId) {
+      const accId = linkedAccountId(meta.creditCardId)
+      if (accId) {
+        const total = txns.reduce((s, t) => s + t.amount, 0)
+        adjustAccountBalance(accId, -total)
+      }
+    }
+    setShowCCImport(false)
+    if (txns.length > 0) {
+      const latestDate = txns.reduce((a, b) => a.date > b.date ? a : b).date
+      setFilterMonth(parseISO(latestDate))
+    }
+    toast.success(`Imported ${txns.length} expenses`)
+  }
+
+  function handleAddIncome(d: Parameters<typeof addIncomeEntry>[0]) {
+    addIncomeEntry(d)
+    // Add to linked bank account
+    if (d.bankAccountId) adjustAccountBalance(d.bankAccountId, d.amount)
+    toast.success('Income added')
+  }
+
+  function handleDeleteIncome(id: string) {
+    const entry = incomeEntries.find((e) => e.id === id)
+    deleteIncomeEntry(id)
+    // Reverse the balance credit
+    if (entry?.bankAccountId) adjustAccountBalance(entry.bankAccountId, -entry.amount)
+    toast.success('Income deleted')
   }
 
   return (
@@ -202,27 +250,7 @@ export default function Accounts() {
         )}
       </section>
 
-      {/* ── Section 3: Financial Summary ── */}
-      {creditCards.length > 0 && (
-        <div className="grid grid-cols-3 gap-2">
-          <div className="card p-3 flex flex-col gap-1">
-            <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>Expenses</p>
-            <p className="text-sm font-bold" style={{ color: '#EF4444' }}>{formatCurrency(totalExpenses)}</p>
-          </div>
-          <div className="card p-3 flex flex-col gap-1">
-            <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>Income</p>
-            <p className="text-sm font-bold" style={{ color: '#22C55E' }}>{formatCurrency(monthlyIncome)}</p>
-          </div>
-          <div className="card p-3 flex flex-col gap-1">
-            <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>Net</p>
-            <p className="text-sm font-bold" style={{ color: netBalance >= 0 ? '#22C55E' : '#EF4444' }}>
-              {formatCurrency(Math.abs(netBalance))}
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* ── Section 4 & 5: Filters + Action Buttons ── */}
+      {/* ── Sections 3–6: Filters, buttons, CSV, expenses (CC only) ── */}
       {creditCards.length > 0 && (
         <>
           {/* Filters */}
@@ -267,41 +295,34 @@ export default function Accounts() {
             </Button>
           </div>
 
-          {/* CSV import area */}
+          {/* CSV import */}
           {showCCImport && (
-            <div>
-              <CreditCardCSVFlow
-                creditCards={creditCards}
-                categoryRules={categoryRules}
-                onImport={(txns, meta) => {
-                  addTransactionsBatch(txns, meta)
-                  setShowCCImport(false)
-                  if (txns.length > 0) {
-                    const latestDate = txns.reduce((a, b) => a.date > b.date ? a : b).date
-                    setFilterMonth(parseISO(latestDate))
-                  }
-                }}
-              />
-            </div>
+            <CreditCardCSVFlow
+              creditCards={creditCards}
+              categoryRules={categoryRules}
+              onImport={handleCSVImport}
+            />
           )}
 
-          {/* ── Section 6: Expenses list ── */}
-          <TransactionTable
-            transactions={ccTransactions}
-            accounts={accounts}
-            creditCards={creditCards}
-            onDelete={(id) => { deleteTransaction(id); toast.success('Transaction deleted') }}
-            onCategoryChange={(id, category) => {
-              const t = transactions.find((x) => x.id === id)
-              if (t) updateTransactionCategory(id, category, t.description)
-            }}
-          />
-
-          {ccTransactions.length === 0 && (
-            <p className="text-sm text-center py-2" style={{ color: 'var(--color-text-secondary)' }}>
-              No expenses found for this period.
-            </p>
-          )}
+          {/* Expenses list */}
+          <div>
+            <p className="text-base font-semibold mb-3" style={{ color: 'var(--color-text-primary)' }}>Expenses</p>
+            <TransactionTable
+              transactions={ccTransactions}
+              accounts={accounts}
+              creditCards={creditCards}
+              onDelete={handleDeleteTransaction}
+              onCategoryChange={(id, category) => {
+                const t = transactions.find((x) => x.id === id)
+                if (t) updateTransactionCategory(id, category, t.description)
+              }}
+            />
+            {ccTransactions.length === 0 && (
+              <p className="text-sm text-center py-4" style={{ color: 'var(--color-text-secondary)' }}>
+                No expenses found for this period.
+              </p>
+            )}
+          </div>
         </>
       )}
 
@@ -344,12 +365,14 @@ export default function Accounts() {
         open={addCardOpen}
         onClose={() => setAddCardOpen(false)}
         onSave={(d) => { addCreditCard(d); toast.success('Card added') }}
+        accounts={accounts}
       />
       <CreditCardModal
         open={!!editingCard}
         onClose={() => setEditingCard(null)}
         onSave={(d) => { if (editingCard) { updateCreditCard(editingCard.id, d); toast.success('Card updated') } }}
         initial={editingCard ?? undefined}
+        accounts={accounts}
       />
       <ConfirmDialog
         open={!!deletingCard}
@@ -360,7 +383,7 @@ export default function Accounts() {
       <AddExpenseModal
         open={addExpenseOpen}
         onClose={() => setAddExpenseOpen(false)}
-        onSave={(d) => { addTransaction(d); toast.success('Expense added') }}
+        onSave={handleAddExpense}
         creditCards={creditCards}
         categoryRules={categoryRules}
       />
@@ -369,12 +392,18 @@ export default function Accounts() {
       <IncomeModal
         open={addIncomeOpen}
         onClose={() => setAddIncomeOpen(false)}
-        onSave={(d) => { addIncomeEntry(d); toast.success('Income added') }}
+        onSave={handleAddIncome}
+        accounts={accounts}
       />
       <ConfirmDialog
         open={!!deletingIncomeId}
         onClose={() => setDeletingIncomeId(null)}
-        onConfirm={() => { if (deletingIncomeId) { deleteIncomeEntry(deletingIncomeId); toast.success('Income deleted'); setDeletingIncomeId(null) } }}
+        onConfirm={() => {
+          if (deletingIncomeId) {
+            handleDeleteIncome(deletingIncomeId)
+            setDeletingIncomeId(null)
+          }
+        }}
         message="Delete this income entry? This cannot be undone."
       />
 

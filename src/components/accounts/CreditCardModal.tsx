@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import Modal from '../ui/Modal'
 import Input from '../ui/Input'
 import Button from '../ui/Button'
-import type { CreditCard } from '../../store/useFinanceStore'
+import type { CreditCard, BankAccount } from '../../store/useFinanceStore'
 
 type FormData = Omit<CreditCard, 'id' | 'createdAt'>
 
@@ -11,11 +11,12 @@ interface Props {
   onClose: () => void
   onSave: (data: FormData) => void
   initial?: CreditCard
+  accounts: BankAccount[]
 }
 
-const EMPTY: FormData = { name: '', lastFourDigits: '', paymentCycleDay: 10 }
+const EMPTY: FormData = { name: '', lastFourDigits: '', paymentCycleDay: 10, bankAccountId: null }
 
-export default function CreditCardModal({ open, onClose, onSave, initial }: Props) {
+export default function CreditCardModal({ open, onClose, onSave, initial, accounts }: Props) {
   const [form, setForm] = useState<FormData>(EMPTY)
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({})
 
@@ -78,6 +79,31 @@ export default function CreditCardModal({ open, onClose, onSave, initial }: Prop
             error={errors.paymentCycleDay}
           />
         </div>
+
+        {accounts.length > 0 && (
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-medium" style={{ color: 'var(--color-text-secondary)' }}>
+              Linked Bank Account
+            </label>
+            <select
+              value={form.bankAccountId ?? ''}
+              onChange={(e) => set('bankAccountId', e.target.value || null)}
+              className="w-full px-3 py-2 text-sm rounded-xl outline-none"
+              style={{ background: 'var(--color-card)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)' }}
+            >
+              <option value="">No linked account</option>
+              {accounts.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name}{a.lastFourDigits ? ` ···· ${a.lastFourDigits}` : ''}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
+              Expenses on this card will automatically adjust the linked account balance.
+            </p>
+          </div>
+        )}
+
         <div className="flex gap-2 pt-1">
           <Button variant="secondary" className="flex-1" onClick={onClose}>Cancel</Button>
           <Button variant="primary" className="flex-1" onClick={handleSubmit}>

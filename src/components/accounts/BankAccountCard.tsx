@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Pencil, Trash2, CreditCard, Plus, Check, X } from 'lucide-react'
+import { Pencil, Trash2, CreditCard } from 'lucide-react'
 import { formatCurrency } from '../../lib/formatters'
 import type { BankAccount } from '../../store/useFinanceStore'
 
@@ -11,21 +11,19 @@ interface Props {
 }
 
 export default function BankAccountCard({ account, onEdit, onDelete, onDeposit }: Props) {
-  const [showDeposit, setShowDeposit] = useState(false)
   const [depositVal, setDepositVal] = useState('')
 
-  function handleConfirm() {
+  function handleDeposit() {
     const amt = parseFloat(depositVal)
     if (!isNaN(amt) && amt > 0) {
       onDeposit(amt)
       setDepositVal('')
-      setShowDeposit(false)
     }
   }
 
   return (
-    <div className="card p-4 flex flex-col min-h-[140px] animate-fade-in">
-      {/* Top row */}
+    <div className="card p-4 flex flex-col gap-3 min-h-[160px] animate-fade-in">
+      {/* Top: icon + name + actions */}
       <div className="flex items-start justify-between gap-1">
         <div className="flex items-center gap-2 min-w-0">
           <div
@@ -35,7 +33,7 @@ export default function BankAccountCard({ account, onEdit, onDelete, onDeposit }
             <CreditCard size={16} />
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-semibold truncate" style={{ color: 'var(--color-text-primary)' }}>
+            <p className="text-xs font-semibold truncate" style={{ color: 'var(--color-text-primary)' }}>
               {account.name}
             </p>
             {account.lastFourDigits && (
@@ -46,43 +44,35 @@ export default function BankAccountCard({ account, onEdit, onDelete, onDeposit }
           </div>
         </div>
         <div className="flex gap-1 shrink-0">
-          <button
-            onClick={onEdit}
-            className="p-1.5 rounded-lg"
-            style={{ color: 'var(--color-text-secondary)', background: 'var(--color-surface)' }}
-          >
-            <Pencil size={13} />
+          <button onClick={onEdit} className="p-1 rounded-lg" style={{ color: 'var(--color-text-secondary)' }}>
+            <Pencil size={12} />
           </button>
-          <button
-            onClick={onDelete}
-            className="p-1.5 rounded-lg"
-            style={{ color: '#EF4444', background: 'var(--color-surface)' }}
-          >
-            <Trash2 size={13} />
+          <button onClick={onDelete} className="p-1 rounded-lg" style={{ color: '#EF4444' }}>
+            <Trash2 size={12} />
           </button>
         </div>
       </div>
 
-      {/* Spacer */}
-      <div className="flex-1" />
-
       {/* Balance */}
-      <p className="text-xl font-bold mb-2" style={{ color: 'var(--color-text-primary)' }}>
-        {formatCurrency(account.balance)}
-      </p>
+      <div className="flex-1">
+        <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>Balance</p>
+        <p className="text-lg font-bold" style={{ color: 'var(--color-text-primary)' }}>
+          {formatCurrency(account.balance)}
+        </p>
+      </div>
 
-      {/* Add Funds */}
-      {showDeposit ? (
-        <div className="flex gap-1.5 items-center">
+      {/* Deposit input — always visible */}
+      <div className="border-t pt-2" style={{ borderColor: 'var(--color-border)' }}>
+        <p className="text-xs mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>Add Deposit</p>
+        <div className="flex gap-1.5">
           <input
             type="number"
             inputMode="decimal"
             placeholder="Amount"
             value={depositVal}
             onChange={(e) => setDepositVal(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleConfirm()}
-            autoFocus
-            className="flex-1 text-xs px-2 py-1.5 rounded-lg outline-none"
+            onKeyDown={(e) => e.key === 'Enter' && handleDeposit()}
+            className="flex-1 text-xs px-2 py-1.5 rounded-lg outline-none min-w-0"
             style={{
               background: 'var(--color-surface)',
               color: 'var(--color-text-primary)',
@@ -90,29 +80,14 @@ export default function BankAccountCard({ account, onEdit, onDelete, onDeposit }
             }}
           />
           <button
-            onClick={handleConfirm}
-            className="p-1.5 rounded-lg"
-            style={{ background: '#22C55E20', color: '#22C55E' }}
+            onClick={handleDeposit}
+            className="text-xs px-2.5 py-1.5 rounded-lg font-medium shrink-0"
+            style={{ background: '#4361EE20', color: '#4361EE' }}
           >
-            <Check size={13} />
-          </button>
-          <button
-            onClick={() => { setShowDeposit(false); setDepositVal('') }}
-            className="p-1.5 rounded-lg"
-            style={{ background: 'var(--color-surface)', color: 'var(--color-text-secondary)' }}
-          >
-            <X size={13} />
+            Add
           </button>
         </div>
-      ) : (
-        <button
-          onClick={() => setShowDeposit(true)}
-          className="text-xs font-medium flex items-center gap-1 self-start"
-          style={{ color: '#4361EE' }}
-        >
-          <Plus size={12} /> Add Funds
-        </button>
-      )}
+      </div>
     </div>
   )
 }

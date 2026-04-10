@@ -57,6 +57,7 @@ export interface CreditCard {
   name: string
   lastFourDigits: string
   paymentCycleDay: number  // 1–28
+  bankAccountId: string | null  // linked bank account for balance tracking
   createdAt: string
 }
 
@@ -90,6 +91,7 @@ export interface IncomeEntry {
   amount: number            // always positive
   description: string
   source: IncomeSource
+  bankAccountId: string | null  // account to credit when income is added
   createdAt: string
 }
 
@@ -607,6 +609,20 @@ export const useFinanceStore = create<FinanceState>()(
             ...b,
             creditCardId: (b as { creditCardId?: string | null }).creditCardId ?? null,
             bankAccountId: (b as { bankAccountId?: string | null }).bankAccountId ?? null,
+          }))
+        }
+
+        if (state.creditCards) {
+          state.creditCards = state.creditCards.map((c) => ({
+            ...c,
+            bankAccountId: (c as { bankAccountId?: string | null }).bankAccountId ?? null,
+          }))
+        }
+
+        if (state.incomeEntries) {
+          state.incomeEntries = state.incomeEntries.map((e) => ({
+            ...e,
+            bankAccountId: (e as { bankAccountId?: string | null }).bankAccountId ?? null,
           }))
         }
       },

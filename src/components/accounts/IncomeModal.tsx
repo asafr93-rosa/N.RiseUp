@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import Modal from '../ui/Modal'
 import Input from '../ui/Input'
 import Button from '../ui/Button'
-import type { IncomeEntry, IncomeSource } from '../../store/useFinanceStore'
+import type { IncomeEntry, IncomeSource, BankAccount } from '../../store/useFinanceStore'
 import { INCOME_SOURCE_LABELS } from '../../lib/formatters'
 
 type FormData = Omit<IncomeEntry, 'id' | 'createdAt'>
@@ -11,6 +11,7 @@ interface Props {
   open: boolean
   onClose: () => void
   onSave: (data: FormData) => void
+  accounts: BankAccount[]
 }
 
 const SOURCES = Object.entries(INCOME_SOURCE_LABELS) as [IncomeSource, string][]
@@ -20,9 +21,10 @@ const EMPTY: FormData = {
   amount: 0,
   description: '',
   source: 'salary',
+  bankAccountId: null,
 }
 
-export default function IncomeModal({ open, onClose, onSave }: Props) {
+export default function IncomeModal({ open, onClose, onSave, accounts }: Props) {
   const [form, setForm] = useState<FormData>(EMPTY)
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({})
 
@@ -87,6 +89,27 @@ export default function IncomeModal({ open, onClose, onSave }: Props) {
             {SOURCES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </select>
         </div>
+
+        {accounts.length > 0 && (
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-medium" style={{ color: 'var(--color-text-secondary)' }}>
+              Add to Bank Account
+            </label>
+            <select
+              value={form.bankAccountId ?? ''}
+              onChange={(e) => set('bankAccountId', e.target.value || null)}
+              className="w-full px-3 py-2 text-sm rounded-xl outline-none"
+              style={{ background: 'var(--color-card)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)' }}
+            >
+              <option value="">Don't update balance</option>
+              {accounts.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name}{a.lastFourDigits ? ` ···· ${a.lastFourDigits}` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <div className="flex gap-2 pt-1">
           <Button variant="secondary" className="flex-1" onClick={onClose}>Cancel</Button>
