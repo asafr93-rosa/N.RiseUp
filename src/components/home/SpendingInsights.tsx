@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useMemo } from 'react'
 import { addMonths, subMonths } from 'date-fns'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import CategoryCard from './CategoryCard'
@@ -6,10 +6,14 @@ import { getMonthLabel, formatCurrency } from '../../lib/formatters'
 import { getMonthExpenses } from '../../lib/chartHelpers'
 import { useFinanceStore } from '../../store/useFinanceStore'
 
-export default function SpendingInsights() {
+interface Props {
+  month: Date
+  onMonthChange: (m: Date) => void
+}
+
+export default function SpendingInsights({ month, onMonthChange }: Props) {
   const transactions = useFinanceStore((s) => s.transactions)
   const recurringExpenses = useFinanceStore((s) => s.recurringExpenses)
-  const [month, setMonth] = useState(new Date())
 
   const summaries = useMemo(() => getMonthExpenses(transactions, month), [transactions, month])
   const ccExpensesTotal = summaries.reduce((s, c) => s + c.total, 0)
@@ -24,13 +28,13 @@ export default function SpendingInsights() {
           Spending Insights
         </p>
         <div className="flex items-center gap-1">
-          <button onClick={() => setMonth((m) => subMonths(m, 1))} className="p-1 rounded-lg" style={{ color: 'var(--color-text-secondary)', background: 'var(--color-card)' }}>
+          <button onClick={() => onMonthChange(subMonths(month, 1))} className="p-1 rounded-lg" style={{ color: 'var(--color-text-secondary)', background: 'var(--color-card)' }}>
             <ChevronLeft size={16} />
           </button>
           <span className="text-xs font-medium px-2" style={{ color: 'var(--color-text-primary)' }}>
             {getMonthLabel(month)}
           </span>
-          <button onClick={() => setMonth((m) => addMonths(m, 1))} className="p-1 rounded-lg" style={{ color: 'var(--color-text-secondary)', background: 'var(--color-card)' }}>
+          <button onClick={() => onMonthChange(addMonths(month, 1))} className="p-1 rounded-lg" style={{ color: 'var(--color-text-secondary)', background: 'var(--color-card)' }}>
             <ChevronRight size={16} />
           </button>
         </div>

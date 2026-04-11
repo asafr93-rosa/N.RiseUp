@@ -22,9 +22,10 @@ import type { ChartWidget as ChartWidgetType } from '../../store/useFinanceStore
 interface SortableWidgetProps {
   widget: ChartWidgetType
   onDelete: () => void
+  selectedMonth?: Date
 }
 
-function SortableWidget({ widget, onDelete }: SortableWidgetProps) {
+function SortableWidget({ widget, onDelete, selectedMonth }: SortableWidgetProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: widget.id })
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -44,7 +45,7 @@ function SortableWidget({ widget, onDelete }: SortableWidgetProps) {
           <GripVertical size={14} />
         </div>
         <div className="pl-5">
-          <ChartWidget widget={widget} onDelete={onDelete} />
+          <ChartWidget widget={widget} onDelete={onDelete} selectedMonth={selectedMonth} />
         </div>
       </div>
     </div>
@@ -56,9 +57,10 @@ interface Props {
   onReorder: (widgets: ChartWidgetType[]) => void
   onDelete: (id: string) => void
   onAdd: () => void
+  selectedMonth?: Date
 }
 
-export default function ChartWidgetGrid({ widgets, onReorder, onDelete, onAdd }: Props) {
+export default function ChartWidgetGrid({ widgets, onReorder, onDelete, onAdd, selectedMonth }: Props) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } })
@@ -95,7 +97,12 @@ export default function ChartWidgetGrid({ widgets, onReorder, onDelete, onAdd }:
           <SortableContext items={sorted.map((w) => w.id)} strategy={verticalListSortingStrategy}>
             <div className="flex flex-col gap-3">
               {sorted.map((widget) => (
-                <SortableWidget key={widget.id} widget={widget} onDelete={() => onDelete(widget.id)} />
+                <SortableWidget
+                  key={widget.id}
+                  widget={widget}
+                  onDelete={() => onDelete(widget.id)}
+                  selectedMonth={selectedMonth}
+                />
               ))}
             </div>
           </SortableContext>

@@ -7,6 +7,7 @@ import { formatCompact } from '../../lib/formatters'
 export default function MonthlyComparisonChart() {
   const transactions = useFinanceStore((s) => s.transactions)
   const recurringExpenses = useFinanceStore((s) => s.recurringExpenses)
+  const incomeEntries = useFinanceStore((s) => s.incomeEntries)
 
   const data = useMemo(() => {
     const months = getExpensesByMonth(transactions, 3)
@@ -14,12 +15,18 @@ export default function MonthlyComparisonChart() {
       .filter((r) => r.isActive)
       .reduce((s, r) => s + r.amount, 0)
     const currentMonthKey = new Date().toISOString().slice(0, 7)
-    return months.map((m) => ({
-      month: m.month,
-      Expenses: m.monthKey === currentMonthKey ? m.expenses + activeRecurringTotal : m.expenses,
-      Income: m.income,
-    }))
-  }, [transactions, recurringExpenses])
+    return months.map((m) => {
+      // incomeEntries are stored separately from transactions — add them in
+      const entryIncome = incomeEntries
+        .filter((e) => e.date.startsWith(m.monthKey))
+        .reduce((s, e) => s + e.amount, 0)
+      return {
+        month: m.month,
+        Expenses: m.monthKey === currentMonthKey ? m.expenses + activeRecurringTotal : m.expenses,
+        Income: m.income + entryIncome,
+      }
+    })
+  }, [transactions, recurringExpenses, incomeEntries])
 
   if (data.every((d) => d.Expenses === 0 && d.Income === 0)) return null
 

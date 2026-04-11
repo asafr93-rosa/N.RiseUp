@@ -254,6 +254,8 @@ interface FinanceState {
   addChartWidget: (data: Omit<ChartWidget, 'id' | 'order'>) => void
   deleteChartWidget: (id: string) => void
   reorderChartWidgets: (widgets: ChartWidget[]) => void
+  dashboardSectionOrder: string[]
+  reorderDashboardSections: (order: string[]) => void
 
   // Theme
   updateTheme: (theme: AppTheme) => void
@@ -403,6 +405,7 @@ export const useFinanceStore = create<FinanceState>()(
         recommendationPriorities: [],
       },
       appSettings: DEFAULT_APP_SETTINGS,
+      dashboardSectionOrder: ['monthly', 'spending', 'charts'],
 
       // ── Account actions ────────────────────────────────────────────────────
       addAccount: (data) =>
@@ -646,6 +649,8 @@ export const useFinanceStore = create<FinanceState>()(
 
       reorderChartWidgets: (widgets) => set({ chartWidgets: widgets }),
 
+      reorderDashboardSections: (order) => set({ dashboardSectionOrder: order }),
+
       // ── Theme ──────────────────────────────────────────────────────────────
       updateTheme: (theme) => {
         document.documentElement.dataset.theme = theme
@@ -741,6 +746,8 @@ export const useFinanceStore = create<FinanceState>()(
         if (!state.creditCards) state.creditCards = []
         if (!state.incomeEntries) state.incomeEntries = []
         if (!state.recurringExpenses) state.recurringExpenses = []
+
+        if (!state.dashboardSectionOrder) state.dashboardSectionOrder = ['monthly', 'spending', 'charts']
 
         if (!state.appSettings) state.appSettings = DEFAULT_APP_SETTINGS
         if (!state.appSettings.enabledCurrencies) {
