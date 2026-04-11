@@ -1,5 +1,7 @@
+import { useMemo } from 'react'
 import AnimatedCounter from '../ui/AnimatedCounter'
-import { formatCurrency } from '../../lib/formatters'
+import { convertAmount, formatCurrencyIn } from '../../lib/formatters'
+import { useFinanceStore } from '../../store/useFinanceStore'
 import type { Asset } from '../../store/useFinanceStore'
 
 interface Props {
@@ -7,9 +9,16 @@ interface Props {
 }
 
 export default function AssetSummary({ assets }: Props) {
-  const total = assets.reduce((s, a) => s + a.estimatedValue, 0)
-  const totalCost = assets.reduce((s, a) => s + a.originalPurchaseCost, 0)
-  const profit = total - totalCost
+  const { displayCurrency, exchangeRates } = useFinanceStore((s) => s.appSettings)
+
+  const { total, profit, totalCost } = useMemo(() => {
+    const t = assets.reduce((s, a) =>
+      s + convertAmount(a.estimatedValue, a.currency ?? 'ILS', displayCurrency, exchangeRates), 0)
+    const tc = assets.reduce((s, a) =>
+      s + convertAmount(a.originalPurchaseCost, a.currency ?? 'ILS', displayCurrency, exchangeRates), 0)
+    return { total: t, totalCost: tc, profit: t - tc }
+  }, [assets, displayCurrency, exchangeRates])
+
   const isProfit = profit >= 0
 
   return (
@@ -19,11 +28,11 @@ export default function AssetSummary({ assets }: Props) {
           Total Asset Value
         </span>
       </div>
-      <AnimatedCounter value={total} className="text-3xl font-bold" />
+      <AnimatedCounter value={total} alreadyConverted className="text-3xl font-bold" />
 
       {totalCost > 0 && (
         <p className="text-sm mt-1" style={{ color: isProfit ? '#22C55E' : '#EF4444' }}>
-          {isProfit ? '+' : ''}{formatCurrency(profit)} overall {isProfit ? 'gain' : 'loss'}
+          {isProfit ? '+' : ''}{formatCurrencyIn(profit, displayCurrency)} overall {isProfit ? 'gain' : 'loss'}
         </p>
       )}
     </div>
