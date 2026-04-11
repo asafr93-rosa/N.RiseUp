@@ -101,6 +101,21 @@ const KEYWORD_MAP: Array<[string[], ExpenseCategory]> = [
      'רשות המסים', 'tax authority', 'עיריית', 'municipality'],
     'taxes',
   ],
+  // Pets
+  [
+    ['pet', 'vet', 'veterinary', 'וטרינר', 'רופא וטרינר', 'חיות מחמד',
+     'חנות לחיות', 'petco', 'petsmart', 'animal', 'כלב', 'חתול',
+     'ציפור', 'דג', 'אקווריום', 'aquarium', 'pet shop', 'dog', 'cat'],
+    'pets',
+  ],
+  // Subscriptions
+  [
+    ['microsoft 365', 'office 365', 'icloud+', 'google one', 'adobe',
+     'canva', 'figma', 'notion', 'monday.com', 'slack', 'zoom',
+     'dropbox plus', 'dashlane', '1password', 'nordvpn', 'expressvpn',
+     'subscription', 'מנוי', 'חברות', 'membership'],
+    'subscriptions',
+  ],
 ]
 
 // ── Main export ───────────────────────────────────────────────────────────────

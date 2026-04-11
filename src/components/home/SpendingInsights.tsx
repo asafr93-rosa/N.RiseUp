@@ -8,10 +8,13 @@ import { useFinanceStore } from '../../store/useFinanceStore'
 
 export default function SpendingInsights() {
   const transactions = useFinanceStore((s) => s.transactions)
+  const recurringExpenses = useFinanceStore((s) => s.recurringExpenses)
   const [month, setMonth] = useState(new Date())
 
   const summaries = useMemo(() => getMonthExpenses(transactions, month), [transactions, month])
-  const totalExpenses = summaries.reduce((s, c) => s + c.total, 0)
+  const ccExpensesTotal = summaries.reduce((s, c) => s + c.total, 0)
+  const activeRecurringTotal = recurringExpenses.filter((r) => r.isActive).reduce((s, r) => s + r.amount, 0)
+  const totalExpenses = ccExpensesTotal + activeRecurringTotal
 
   return (
     <div className="mb-4">
@@ -33,19 +36,26 @@ export default function SpendingInsights() {
         </div>
       </div>
 
-      {summaries.length === 0 ? (
+      {summaries.length === 0 && activeRecurringTotal === 0 ? (
         <div className="card p-4 text-center">
           <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>No expenses recorded for {getMonthLabel(month)}</p>
         </div>
       ) : (
         <>
-          <div className="flex items-baseline gap-2 mb-3">
+          <div className="flex items-baseline gap-2 mb-1">
             <p className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>{formatCurrency(totalExpenses)}</p>
             <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>total expenses</p>
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            {summaries.map((s) => <CategoryCard key={s.category} summary={s} />)}
-          </div>
+          {activeRecurringTotal > 0 && (
+            <p className="text-xs mb-3" style={{ color: 'var(--color-text-secondary)' }}>
+              Includes {formatCurrency(activeRecurringTotal)} fixed monthly
+            </p>
+          )}
+          {summaries.length > 0 && (
+            <div className="grid grid-cols-2 gap-2">
+              {summaries.map((s) => <CategoryCard key={s.category} summary={s} />)}
+            </div>
+          )}
         </>
       )}
     </div>

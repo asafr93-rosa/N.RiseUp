@@ -14,6 +14,8 @@ export type ExpenseCategory =
   | 'housing'
   | 'household_bills'
   | 'taxes'
+  | 'pets'
+  | 'subscriptions'
   | 'other'
 
 export type AssetType = 'apartment' | 'land' | 'vehicle' | 'other'
@@ -120,6 +122,7 @@ export interface RecurringExpense {
   dayOfMonth: number | null
   isActive: boolean
   bankAccountId: string | null
+  creditCardId: string | null
   createdAt: string
 }
 
@@ -217,6 +220,7 @@ interface FinanceState {
   updateTransaction: (id: string, data: Partial<Omit<Transaction, 'id' | 'createdAt'>>) => void
   updateTransactionCategory: (id: string, category: ExpenseCategory, description: string) => void
   deleteTransaction: (id: string) => void
+  deleteTransactions: (ids: string[]) => void
   addTransactionsBatch: (
     txns: Omit<Transaction, 'id' | 'createdAt'>[],
     batch: Omit<ImportBatch, 'id'>
@@ -243,6 +247,7 @@ interface FinanceState {
   updateInvestment: (id: string, data: Partial<Omit<Investment, 'id' | 'createdAt'>>) => void
   deleteInvestment: (id: string) => void
   addInvestmentHistoryEntry: (id: string, month: string, value: number) => void
+  removeInvestmentHistoryEntry: (id: string, month: string) => void
 
   // Chart widget actions
   addChartWidget: (data: Omit<ChartWidget, 'id' | 'order'>) => void
@@ -491,6 +496,11 @@ export const useFinanceStore = create<FinanceState>()(
           transactions: s.transactions.filter((t) => t.id !== id),
         })),
 
+      deleteTransactions: (ids) =>
+        set((s) => ({
+          transactions: s.transactions.filter((t) => !ids.includes(t.id)),
+        })),
+
       addTransactionsBatch: (txns, batch) =>
         set((s) => ({
           transactions: [
@@ -598,6 +608,20 @@ export const useFinanceStore = create<FinanceState>()(
                 }
               : i
           ),
+        })),
+
+      removeInvestmentHistoryEntry: (id, month) =>
+        set((s) => ({
+          investments: s.investments.map((i) => {
+            if (i.id !== id) return i
+            const newHistory = (i.valueHistory ?? []).filter((h) => h.month !== month)
+            const sorted = [...newHistory].sort((a, b) => b.month.localeCompare(a.month))
+            return {
+              ...i,
+              valueHistory: newHistory,
+              currentValue: sorted.length > 0 ? sorted[0].value : i.currentValue,
+            }
+          }),
         })),
 
       // ── Chart widget actions ───────────────────────────────────────────────
@@ -780,6 +804,7 @@ export const useFinanceStore = create<FinanceState>()(
           state.recurringExpenses = state.recurringExpenses.map((r) => ({
             ...r,
             bankAccountId: (r as { bankAccountId?: string | null }).bankAccountId ?? null,
+            creditCardId: (r as { creditCardId?: string | null }).creditCardId ?? null,
           }))
         }
 

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import Modal from '../ui/Modal'
 import Input from '../ui/Input'
 import Button from '../ui/Button'
-import type { RecurringExpense, ExpenseCategory, BankAccount } from '../../store/useFinanceStore'
+import type { RecurringExpense, ExpenseCategory, BankAccount, CreditCard } from '../../store/useFinanceStore'
 import { CATEGORY_LABELS } from '../../lib/formatters'
 
 type FormData = Omit<RecurringExpense, 'id' | 'createdAt'>
@@ -13,6 +13,7 @@ interface Props {
   onSave: (data: FormData) => void
   initial?: RecurringExpense
   accounts: BankAccount[]
+  creditCards?: CreditCard[]
 }
 
 const CATEGORIES = Object.entries(CATEGORY_LABELS) as [ExpenseCategory, string][]
@@ -24,18 +25,22 @@ const EMPTY: FormData = {
   dayOfMonth: null,
   isActive: true,
   bankAccountId: null,
+  creditCardId: null,
 }
 
-export default function RecurringExpenseModal({ open, onClose, onSave, initial, accounts }: Props) {
+export default function RecurringExpenseModal({ open, onClose, onSave, initial, accounts, creditCards = [] }: Props) {
   const [form, setForm] = useState<FormData>(EMPTY)
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({})
+  const [payVia, setPayVia] = useState<'account' | 'card'>('account')
 
   useEffect(() => {
     if (initial) {
       const { id: _id, createdAt: _c, ...rest } = initial
-      setForm(rest)
+      setForm({ ...rest, creditCardId: rest.creditCardId ?? null })
+      setPayVia(rest.creditCardId ? 'card' : 'account')
     } else {
       setForm(EMPTY)
+      setPayVia('account')
     }
     setErrors({})
   }, [open, initial])
@@ -59,6 +64,15 @@ export default function RecurringExpenseModal({ open, onClose, onSave, initial, 
 
   const set = <K extends keyof FormData>(key: K, value: FormData[K]) =>
     setForm((f) => ({ ...f, [key]: value }))
+
+  function switchPayVia(mode: 'account' | 'card') {
+    setPayVia(mode)
+    if (mode === 'account') setForm((f) => ({ ...f, creditCardId: null }))
+    else setForm((f) => ({ ...f, bankAccountId: null }))
+  }
+
+  const hasCCs = creditCards.length > 0
+  const hasAccounts = accounts.length > 0
 
   return (
     <Modal open={open} onClose={onClose} title={initial ? 'Edit Recurring Expense' : 'Add Recurring Expense'}>
@@ -123,22 +137,65 @@ export default function RecurringExpenseModal({ open, onClose, onSave, initial, 
           </button>
         </div>
 
-        {accounts.length > 0 && (
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium" style={{ color: 'var(--color-text-secondary)' }}>Linked Bank Account</label>
-            <select
-              value={form.bankAccountId ?? ''}
-              onChange={(e) => set('bankAccountId', e.target.value || null)}
-              className="w-full px-3 py-2 text-sm rounded-xl outline-none"
-              style={{ background: 'var(--color-card)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)' }}
-            >
-              <option value="">No linked account</option>
-              {accounts.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.name}{a.lastFourDigits ? ` ···· ${a.lastFourDigits}` : ''}
-                </option>
-              ))}
-            </select>
+        {(hasAccounts || hasCCs) && (
+          <div className="flex flex-col gap-2">
+            <label className="text-xs font-medium" style={{ color: 'var(--color-text-secondary)' }}>Pay via</label>
+            {hasCCs && (
+              <div className="flex rounded-xl overflow-hidden" style={{ border: '1px solid var(--color-border)' }}>
+                <button
+                  onClick={() => switchPayVia('account')}
+                  className="flex-1 text-xs py-1.5 font-medium transition-colors"
+                  style={{
+                    background: payVia === 'account' ? '#4361EE' : 'var(--color-surface)',
+                    color: payVia === 'account' ? '#fff' : 'var(--color-text-secondary)',
+                  }}
+                >
+                  Bank Account
+                </button>
+                <button
+                  onClick={() => switchPayVia('card')}
+                  className="flex-1 text-xs py-1.5 font-medium transition-colors"
+                  style={{
+                    background: payVia === 'card' ? '#4361EE' : 'var(--color-surface)',
+                    color: payVia === 'card' ? '#fff' : 'var(--color-text-secondary)',
+                  }}
+                >
+                  Credit Card
+                </button>
+              </div>
+            )}
+
+            {payVia === 'account' && hasAccounts && (
+              <select
+                value={form.bankAccountId ?? ''}
+                onChange={(e) => set('bankAccountId', e.target.value || null)}
+                className="w-full px-3 py-2 text-sm rounded-xl outline-none"
+                style={{ background: 'var(--color-card)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)' }}
+              >
+                <option value="">No linked account</option>
+                {accounts.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name}{a.lastFourDigits ? ` ···· ${a.lastFourDigits}` : ''}
+                  </option>
+                ))}
+              </select>
+            )}
+
+            {payVia === 'card' && hasCCs && (
+              <select
+                value={form.creditCardId ?? ''}
+                onChange={(e) => set('creditCardId', e.target.value || null)}
+                className="w-full px-3 py-2 text-sm rounded-xl outline-none"
+                style={{ background: 'var(--color-card)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)' }}
+              >
+                <option value="">No linked card</option>
+                {creditCards.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}{c.lastFourDigits ? ` ···· ${c.lastFourDigits}` : ''}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
         )}
 

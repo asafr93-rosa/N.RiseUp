@@ -124,6 +124,8 @@ export const CATEGORY_LABELS: Record<ExpenseCategory, string> = {
   housing: 'Housing',
   household_bills: 'Household Bills',
   taxes: 'Taxes',
+  pets: 'Pets',
+  subscriptions: 'Subscriptions',
   other: 'Other',
 }
 
@@ -158,6 +160,8 @@ export const CATEGORY_COLORS: Record<ExpenseCategory, string> = {
   housing: '#6366f1',
   household_bills: '#14b8a6',
   taxes: '#ef4444',
+  pets: '#f472b6',
+  subscriptions: '#a78bfa',
   other: '#9ca3af',
 }
 

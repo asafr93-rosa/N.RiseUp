@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useAutoAnimate } from '@formkit/auto-animate/react'
 import toast from 'react-hot-toast'
-import { Plus, CreditCard as CreditCardIcon, Upload, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Plus, CreditCard as CreditCardIcon, Upload, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, CheckSquare } from 'lucide-react'
 import { startOfMonth, endOfMonth, parseISO, isWithinInterval, addMonths, subMonths } from 'date-fns'
 import { useFinanceStore } from '../store/useFinanceStore'
 import type { CreditCard, RecurringExpense, ExpenseCategory, Transaction, IncomeEntry } from '../store/useFinanceStore'
@@ -35,6 +35,7 @@ export default function Accounts() {
   const updateAccount = useFinanceStore((s) => s.updateAccount)
   const deleteAccount = useFinanceStore((s) => s.deleteAccount)
   const deleteTransaction = useFinanceStore((s) => s.deleteTransaction)
+  const deleteTransactions = useFinanceStore((s) => s.deleteTransactions)
   const addTransaction = useFinanceStore((s) => s.addTransaction)
   const updateTransaction = useFinanceStore((s) => s.updateTransaction)
   const updateTransactionCategory = useFinanceStore((s) => s.updateTransactionCategory)
@@ -85,6 +86,11 @@ export default function Accounts() {
   const [editingRecurring, setEditingRecurring] = useState<RecurringExpense | null>(null)
   const [deletingRecurringId, setDeletingRecurringId] = useState<string | null>(null)
 
+  // Multiselect state
+  const [selectMode, setSelectMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [deletingBulk, setDeletingBulk] = useState<string[] | null>(null)
+
   // ── Filter month key ─────────────────────────────────────────────────────────
   const filterMonthKey = useMemo(() =>
     `${filterMonth.getFullYear()}-${String(filterMonth.getMonth() + 1).padStart(2, '0')}`,
@@ -117,7 +123,11 @@ export default function Accounts() {
       const recurringLinked = recurringExpenses
         .filter((r) => r.isActive && r.bankAccountId === a.id)
         .reduce((s, r) => s + r.amount, 0)
-      map[a.id] = balance + deposit - expenses - recurringLinked + income
+      const recurringViaCc = recurringExpenses
+        .filter((r) => r.isActive && r.creditCardId != null &&
+          creditCards.find((cc) => cc.id === r.creditCardId)?.bankAccountId === a.id)
+        .reduce((s, r) => s + r.amount, 0)
+      map[a.id] = balance + deposit - expenses - recurringLinked - recurringViaCc + income
     }
     return map
   }, [accounts, creditCards, transactions, incomeEntries, recurringExpenses, filterMonth, filterMonthKey, appSettings])
@@ -385,7 +395,46 @@ export default function Accounts() {
 
           {/* Expenses list */}
           <div>
-            <p className="text-base font-semibold mb-3" style={{ color: 'var(--color-text-primary)' }}>Expenses</p>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-base font-semibold" style={{ color: 'var(--color-text-primary)' }}>Expenses</p>
+              <div className="flex gap-1.5">
+                {selectMode ? (
+                  <>
+                    <button
+                      onClick={() => { setSelectMode(false); setSelectedIds(new Set()) }}
+                      className="text-xs px-2 py-1 rounded-lg"
+                      style={{ background: 'var(--color-surface)', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)' }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      disabled={selectedIds.size === 0}
+                      onClick={() => setDeletingBulk([...selectedIds])}
+                      className="text-xs px-2 py-1 rounded-lg font-medium"
+                      style={{ background: selectedIds.size > 0 ? '#EF444420' : 'var(--color-surface)', color: selectedIds.size > 0 ? '#EF4444' : 'var(--color-text-secondary)', border: `1px solid ${selectedIds.size > 0 ? '#EF444440' : 'var(--color-border)'}` }}
+                    >
+                      Delete ({selectedIds.size})
+                    </button>
+                    <button
+                      disabled={ccTransactions.length === 0}
+                      onClick={() => setDeletingBulk(ccTransactions.map((t) => t.id))}
+                      className="text-xs px-2 py-1 rounded-lg font-medium"
+                      style={{ background: '#EF444420', color: '#EF4444', border: '1px solid #EF444440' }}
+                    >
+                      Delete All
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => setSelectMode(true)}
+                    className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg"
+                    style={{ background: 'var(--color-surface)', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)' }}
+                  >
+                    <CheckSquare size={12} /> Select
+                  </button>
+                )}
+              </div>
+            </div>
             <TransactionTable
               transactions={ccTransactions}
               accounts={accounts}
@@ -395,6 +444,17 @@ export default function Accounts() {
               onCategoryChange={(id, category) => {
                 const t = transactions.find((x) => x.id === id)
                 if (t) updateTransactionCategory(id, category, t.description)
+              }}
+              selectMode={selectMode}
+              selectedIds={selectedIds}
+              onToggleSelect={(id) => setSelectedIds((prev) => {
+                const next = new Set(prev)
+                next.has(id) ? next.delete(id) : next.add(id)
+                return next
+              })}
+              onToggleSelectAll={(allIds) => {
+                const allSelected = allIds.every((id) => selectedIds.has(id))
+                setSelectedIds(allSelected ? new Set() : new Set(allIds))
               }}
             />
             {ccTransactions.length === 0 && (
@@ -417,6 +477,7 @@ export default function Accounts() {
         <RecurringExpensesSection
           recurringExpenses={recurringExpenses}
           accounts={accounts}
+          creditCards={creditCards}
           onAdd={() => setAddRecurringOpen(true)}
           onEdit={(e) => setEditingRecurring(e)}
           onDelete={(id) => setDeletingRecurringId(id)}
@@ -487,6 +548,20 @@ export default function Accounts() {
         onConfirm={() => { if (deletingExpenseId) { handleDeleteExpense(deletingExpenseId); setDeletingExpenseId(null) } }}
         message="Delete this expense? This cannot be undone."
       />
+      <ConfirmDialog
+        open={!!deletingBulk}
+        onClose={() => setDeletingBulk(null)}
+        onConfirm={() => {
+          if (deletingBulk) {
+            deleteTransactions(deletingBulk)
+            toast.success(`${deletingBulk.length} expense${deletingBulk.length !== 1 ? 's' : ''} deleted`)
+            setDeletingBulk(null)
+            setSelectedIds(new Set())
+            setSelectMode(false)
+          }
+        }}
+        message={`Delete ${deletingBulk?.length ?? 0} expense${(deletingBulk?.length ?? 0) !== 1 ? 's' : ''}? This cannot be undone.`}
+      />
 
       {/* ── Modals: Income ── */}
       <IncomeModal
@@ -515,6 +590,7 @@ export default function Accounts() {
         onClose={() => setAddRecurringOpen(false)}
         onSave={(d) => { addRecurringExpense(d); toast.success('Recurring expense added') }}
         accounts={accounts}
+        creditCards={creditCards}
       />
       <RecurringExpenseModal
         open={!!editingRecurring}
@@ -522,6 +598,7 @@ export default function Accounts() {
         onSave={(d) => { if (editingRecurring) { updateRecurringExpense(editingRecurring.id, d); toast.success('Updated') } }}
         initial={editingRecurring ?? undefined}
         accounts={accounts}
+        creditCards={creditCards}
       />
       <ConfirmDialog
         open={!!deletingRecurringId}

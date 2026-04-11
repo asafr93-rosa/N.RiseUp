@@ -4,8 +4,8 @@ import { LayoutDashboard, CreditCard, Building2, TrendingUp, Brain } from 'lucid
 const TABS = [
   { path: '/', label: 'Home', Icon: LayoutDashboard },
   { path: '/accounts', label: 'Accounts', Icon: CreditCard },
-  { path: '/assets', label: 'Assets', Icon: Building2 },
   { path: '/investments', label: 'Investments', Icon: TrendingUp },
+  { path: '/assets', label: 'Assets', Icon: Building2 },
   { path: '/advisor', label: 'Advisor', Icon: Brain },
 ]
 

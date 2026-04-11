@@ -15,11 +15,18 @@ interface Props {
   onEdit?: (t: Transaction) => void
   onCategoryChange: (id: string, category: ExpenseCategory) => void
   showEmptyState?: boolean
+  selectMode?: boolean
+  selectedIds?: Set<string>
+  onToggleSelect?: (id: string) => void
+  onToggleSelectAll?: (allIds: string[]) => void
 }
 
 const CATEGORIES = Object.entries(CATEGORY_LABELS) as [ExpenseCategory, string][]
 
-export default function TransactionTable({ transactions, accounts, creditCards = [], onDelete, onEdit, onCategoryChange, showEmptyState = true }: Props) {
+export default function TransactionTable({
+  transactions, accounts, creditCards = [], onDelete, onEdit, onCategoryChange,
+  showEmptyState = true, selectMode = false, selectedIds, onToggleSelect, onToggleSelectAll,
+}: Props) {
   const [sort, setSort] = useState<{ key: SortKey; dir: SortDir }>({ key: 'date', dir: 'desc' })
 
   const accountMap: Record<string, string> = {
@@ -44,6 +51,8 @@ export default function TransactionTable({ transactions, accounts, creditCards =
     return sort.dir === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />
   }
 
+  const allSelected = sorted.length > 0 && sorted.every((t) => selectedIds?.has(t.id))
+
   if (transactions.length === 0) {
     if (!showEmptyState) return null
     return (
@@ -56,23 +65,58 @@ export default function TransactionTable({ transactions, accounts, creditCards =
   return (
     <div className="card overflow-hidden">
       {/* Header */}
-      <div className="grid grid-cols-12 px-3 py-2 text-xs font-medium border-b" style={{ color: 'var(--color-text-secondary)', borderColor: 'var(--color-border)', background: 'var(--color-card)' }}>
-        <button className="col-span-2 text-left flex items-center gap-1" onClick={() => toggleSort('date')}>Date <SortIcon k="date" /></button>
-        <button className="col-span-4 text-left flex items-center gap-1" onClick={() => toggleSort('description')}>Description <SortIcon k="description" /></button>
-        <span className="col-span-3">Category</span>
-        <button className="col-span-2 text-right flex items-center justify-end gap-1" onClick={() => toggleSort('amount')}>Amount <SortIcon k="amount" /></button>
-        <span className="col-span-1" />
+      <div
+        className="grid px-3 py-2 text-xs font-medium border-b"
+        style={{
+          gridTemplateColumns: selectMode ? '24px 1fr 2fr 1.5fr 1fr 40px' : '1fr 2fr 1.5fr 1fr 40px',
+          color: 'var(--color-text-secondary)',
+          borderColor: 'var(--color-border)',
+          background: 'var(--color-card)',
+        }}
+      >
+        {selectMode && (
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              checked={allSelected}
+              onChange={() => onToggleSelectAll?.(sorted.map((t) => t.id))}
+              className="rounded"
+            />
+          </div>
+        )}
+        <button className="text-left flex items-center gap-1" onClick={() => toggleSort('date')}>Date <SortIcon k="date" /></button>
+        <button className="text-left flex items-center gap-1" onClick={() => toggleSort('description')}>Description <SortIcon k="description" /></button>
+        <span>Category</span>
+        <button className="text-right flex items-center justify-end gap-1" onClick={() => toggleSort('amount')}>Amount <SortIcon k="amount" /></button>
+        <span />
       </div>
 
       <div className="divide-y divide-[var(--color-border)]">
         {sorted.map((t) => (
-          <div key={t.id} className="grid grid-cols-12 px-3 py-2.5 items-center text-xs">
-            <span className="col-span-2" style={{ color: 'var(--color-text-secondary)' }}>{formatDate(t.date)}</span>
-            <div className="col-span-4 truncate pr-1">
+          <div
+            key={t.id}
+            className="grid px-3 py-2.5 items-center text-xs"
+            style={{
+              gridTemplateColumns: selectMode ? '24px 1fr 2fr 1.5fr 1fr 40px' : '1fr 2fr 1.5fr 1fr 40px',
+              background: selectedIds?.has(t.id) ? 'var(--color-accent-light)' : undefined,
+            }}
+          >
+            {selectMode && (
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={selectedIds?.has(t.id) ?? false}
+                  onChange={() => onToggleSelect?.(t.id)}
+                  className="rounded"
+                />
+              </div>
+            )}
+            <span style={{ color: 'var(--color-text-secondary)' }}>{formatDate(t.date)}</span>
+            <div className="truncate pr-1">
               <span style={{ color: 'var(--color-text-primary)' }}>{t.description}</span>
               <span className="block text-xs" style={{ color: 'var(--color-text-secondary)' }}>{accountMap[t.creditCardId ?? t.bankAccountId ?? ''] ?? ''}</span>
             </div>
-            <div className="col-span-3">
+            <div>
               {t.type === 'expense' ? (
                 <select
                   value={t.category}
@@ -86,18 +130,20 @@ export default function TransactionTable({ transactions, accounts, creditCards =
                 <Badge label="Income" color="#22C55E" small />
               )}
             </div>
-            <span className="col-span-2 text-right font-medium" style={{ color: t.type === 'income' ? '#22C55E' : '#EF4444' }}>
+            <span className="text-right font-medium" style={{ color: t.type === 'income' ? '#22C55E' : '#EF4444' }}>
               {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
             </span>
-            <div className="col-span-1 flex justify-end gap-0.5">
+            <div className="flex justify-end gap-0.5">
               {onEdit && (
                 <button onClick={() => onEdit(t)} className="p-1 rounded" style={{ color: 'var(--color-text-secondary)' }}>
                   <Pencil size={12} />
                 </button>
               )}
-              <button onClick={() => onDelete(t.id)} className="p-1 rounded" style={{ color: 'var(--color-text-secondary)' }}>
-                <Trash2 size={12} />
-              </button>
+              {!selectMode && (
+                <button onClick={() => onDelete(t.id)} className="p-1 rounded" style={{ color: 'var(--color-text-secondary)' }}>
+                  <Trash2 size={12} />
+                </button>
+              )}
             </div>
           </div>
         ))}

@@ -1,6 +1,7 @@
 import {
   ShoppingCart, Fuel, Shield, ShoppingBag, Heart,
   GraduationCap, Music, Home, Zap, Receipt, MoreHorizontal,
+  PawPrint, RefreshCw,
   TrendingUp, TrendingDown, Minus,
 } from 'lucide-react'
 import { formatCurrency } from '../../lib/formatters'
@@ -18,6 +19,8 @@ const CATEGORY_ICONS: Record<ExpenseCategory, React.ElementType> = {
   housing: Home,
   household_bills: Zap,
   taxes: Receipt,
+  pets: PawPrint,
+  subscriptions: RefreshCw,
   other: MoreHorizontal,
 }
 
