@@ -1,5 +1,5 @@
 import { format, parseISO } from 'date-fns'
-import type { ExpenseCategory, InvestmentType, AssetType, IncomeSource } from '../store/useFinanceStore'
+import type { ExpenseCategory, InvestmentType, AssetType, IncomeSource, SupportedCurrency, ExchangeRates } from '../store/useFinanceStore'
 
 // ── Currency ──────────────────────────────────────────────────────────────────
 
@@ -28,6 +28,57 @@ export function formatCompact(amount: number): string {
     return `₪${(amount / 1_000).toFixed(0)}K`
   }
   return formatCurrency(amount)
+}
+
+/** Convert amount between currencies using ILS as pivot */
+export function convertAmount(
+  amount: number,
+  fromCurrency: SupportedCurrency,
+  toCurrency: SupportedCurrency,
+  rates: ExchangeRates
+): number {
+  if (fromCurrency === toCurrency) return amount
+  const gbp = rates.GBP_ILS || 4.60
+  // Step 1: to ILS
+  let inILS = amount
+  if (fromCurrency === 'USD') inILS = amount * rates.USD_ILS
+  else if (fromCurrency === 'EUR') inILS = amount * rates.EUR_ILS
+  else if (fromCurrency === 'GBP') inILS = amount * gbp
+  // Step 2: ILS to target
+  if (toCurrency === 'ILS') return inILS
+  if (toCurrency === 'USD') return inILS / rates.USD_ILS
+  if (toCurrency === 'EUR') return inILS / rates.EUR_ILS
+  if (toCurrency === 'GBP') return inILS / gbp
+  return inILS
+}
+
+const currencyFmts: Record<SupportedCurrency, Intl.NumberFormat> = {
+  ILS: new Intl.NumberFormat('he-IL', { style: 'currency', currency: 'ILS', maximumFractionDigits: 0 }),
+  USD: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }),
+  EUR: new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }),
+  GBP: new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 0 }),
+}
+
+const currencyFmtsDecimal: Record<SupportedCurrency, Intl.NumberFormat> = {
+  ILS: new Intl.NumberFormat('he-IL', { style: 'currency', currency: 'ILS', minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+  USD: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+  EUR: new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+  GBP: new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+}
+
+const CURRENCY_SYMBOL: Record<SupportedCurrency, string> = {
+  ILS: '₪', USD: '$', EUR: '€', GBP: '£',
+}
+
+export function formatCurrencyIn(amount: number, currency: SupportedCurrency, decimals = false): string {
+  return decimals ? currencyFmtsDecimal[currency].format(amount) : currencyFmts[currency].format(amount)
+}
+
+export function formatCompactIn(amount: number, currency: SupportedCurrency): string {
+  const sym = CURRENCY_SYMBOL[currency]
+  if (Math.abs(amount) >= 1_000_000) return `${sym}${(amount / 1_000_000).toFixed(1)}M`
+  if (Math.abs(amount) >= 1_000) return `${sym}${(amount / 1_000).toFixed(0)}K`
+  return formatCurrencyIn(amount, currency)
 }
 
 // ── Percentages ───────────────────────────────────────────────────────────────
