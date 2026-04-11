@@ -10,6 +10,7 @@ import Home from './pages/Home'
 import Accounts from './pages/Accounts'
 import Assets from './pages/Assets'
 import Investments from './pages/Investments'
+import Advisor from './pages/Advisor'
 import SplashScreen from './pages/SplashScreen'
 import LoginScreen from './pages/LoginScreen'
 import Settings from './pages/Settings'
@@ -67,6 +68,7 @@ export default function App() {
             <Route path="/accounts" element={<Accounts />} />
             <Route path="/assets" element={<Assets />} />
             <Route path="/investments" element={<Investments />} />
+            <Route path="/advisor" element={<Advisor />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

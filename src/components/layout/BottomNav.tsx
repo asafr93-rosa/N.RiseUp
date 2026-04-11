@@ -1,11 +1,12 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, CreditCard, Building2, TrendingUp } from 'lucide-react'
+import { LayoutDashboard, CreditCard, Building2, TrendingUp, Brain } from 'lucide-react'
 
 const TABS = [
   { path: '/', label: 'Home', Icon: LayoutDashboard },
   { path: '/accounts', label: 'Accounts', Icon: CreditCard },
   { path: '/assets', label: 'Assets', Icon: Building2 },
   { path: '/investments', label: 'Investments', Icon: TrendingUp },
+  { path: '/advisor', label: 'Advisor', Icon: Brain },
 ]
 
 export default function BottomNav() {
