@@ -2,9 +2,10 @@ import { useMemo } from 'react'
 import { addMonths, subMonths } from 'date-fns'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import CategoryCard from './CategoryCard'
-import { getMonthLabel, formatCurrency } from '../../lib/formatters'
+import { getMonthLabel, formatCurrency, CATEGORY_LABELS, CATEGORY_COLORS } from '../../lib/formatters'
 import { getMonthExpenses } from '../../lib/chartHelpers'
 import { useFinanceStore } from '../../store/useFinanceStore'
+import type { ExpenseCategory } from '../../store/useFinanceStore'
 
 interface Props {
   month: Date
@@ -15,10 +16,38 @@ export default function SpendingInsights({ month, onMonthChange }: Props) {
   const transactions = useFinanceStore((s) => s.transactions)
   const recurringExpenses = useFinanceStore((s) => s.recurringExpenses)
 
-  const summaries = useMemo(() => getMonthExpenses(transactions, month), [transactions, month])
-  const ccExpensesTotal = summaries.reduce((s, c) => s + c.total, 0)
+  const summaries = useMemo(() => {
+    const txnSummaries = getMonthExpenses(transactions, month)
+
+    // Merge active recurring expenses into category cards by their category field
+    const activeRecurring = recurringExpenses.filter((r) => r.isActive)
+    if (activeRecurring.length === 0) return txnSummaries
+
+    const merged = txnSummaries.map((s) => ({ ...s }))
+
+    for (const r of activeRecurring) {
+      const existing = merged.find((s) => s.category === r.category)
+      if (existing) {
+        existing.total += r.amount
+      } else {
+        merged.push({
+          category: r.category as ExpenseCategory,
+          label: CATEGORY_LABELS[r.category],
+          total: r.amount,
+          prevMonthTotal: 0,
+          changePct: null,
+          fill: CATEGORY_COLORS[r.category],
+        })
+      }
+    }
+
+    return merged.sort((a, b) => b.total - a.total)
+  }, [transactions, recurringExpenses, month])
+
+  // Total comes from merged summaries — no double-counting
+  const totalExpenses = summaries.reduce((s, c) => s + c.total, 0)
+  // Keep for subtitle display only
   const activeRecurringTotal = recurringExpenses.filter((r) => r.isActive).reduce((s, r) => s + r.amount, 0)
-  const totalExpenses = ccExpensesTotal + activeRecurringTotal
 
   return (
     <div className="mb-4">
