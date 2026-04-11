@@ -42,6 +42,21 @@ export type ChartTimeRange = '1m' | '3m' | '6m' | '1y' | 'all'
 
 export type AppTheme = 'light' | 'dark'
 
+export type SupportedCurrency = 'ILS' | 'USD' | 'EUR' | 'GBP'
+
+export interface ExchangeRates {
+  USD_ILS: number
+  EUR_ILS: number
+  GBP_ILS: number
+  lastUpdated: string
+}
+
+export interface AppSettings {
+  displayCurrency: SupportedCurrency
+  enabledCurrencies: SupportedCurrency[]
+  exchangeRates: ExchangeRates
+}
+
 // ── Interfaces ────────────────────────────────────────────────────────────────
 
 export interface BankAccount {
@@ -50,6 +65,7 @@ export interface BankAccount {
   lastFourDigits: string
   balanceHistory: Record<string, number>   // 'YYYY-MM' → balance entered by user
   depositHistory: Record<string, number>   // 'YYYY-MM' → deposit entered by user
+  currency: SupportedCurrency
   createdAt: string
 }
 
@@ -127,6 +143,7 @@ export interface Asset {
   purchaseDate: string
   originalPurchaseCost: number
   notes: string
+  currency: SupportedCurrency
   createdAt: string
 }
 
@@ -147,6 +164,8 @@ export interface Investment {
   description: string
   openingDate: string
   valueHistory: ValueHistoryEntry[]
+  currency: SupportedCurrency
+  contributionCurrency: SupportedCurrency
   createdAt: string
 }
 
@@ -232,6 +251,9 @@ interface FinanceState {
   // Theme
   updateTheme: (theme: AppTheme) => void
 
+  appSettings: AppSettings
+  updateAppSettings: (partial: Partial<AppSettings>) => void
+
   dismissSampleBanner: () => void
 
   // User profile
@@ -260,6 +282,17 @@ function upsertValueHistory(
 ): ValueHistoryEntry[] {
   const filtered = history.filter((h) => h.month !== month)
   return [...filtered, { month, value }].sort((a, b) => a.month.localeCompare(b.month))
+}
+
+const DEFAULT_APP_SETTINGS: AppSettings = {
+  displayCurrency: 'ILS',
+  enabledCurrencies: ['ILS', 'USD', 'EUR'],
+  exchangeRates: {
+    USD_ILS: 3.65,
+    EUR_ILS: 3.95,
+    GBP_ILS: 4.60,
+    lastUpdated: '',
+  },
 }
 
 // Fixed localStorage key
@@ -316,7 +349,7 @@ function buildSampleData(): Pick<
 
   return {
     accounts: [
-      { id: accountId, name: 'Bank Hapoalim', lastFourDigits: '4521', balanceHistory: { [months[0]]: 42500 }, depositHistory: { [months[0]]: 0 }, createdAt: new Date().toISOString() },
+      { id: accountId, name: 'Bank Hapoalim', lastFourDigits: '4521', balanceHistory: { [months[0]]: 42500 }, depositHistory: { [months[0]]: 0 }, currency: 'ILS' as SupportedCurrency, createdAt: new Date().toISOString() },
     ],
     creditCards: [],
     transactions,
@@ -324,12 +357,12 @@ function buildSampleData(): Pick<
     incomeEntries: [],
     recurringExpenses: [],
     assets: [
-      { id: uid(), name: 'Apartment – Tel Aviv', type: 'apartment', estimatedValue: 2200000, purchaseDate: '2018-06-15', originalPurchaseCost: 1650000, notes: '3 bedroom, Ramat Gan area', createdAt: new Date().toISOString() },
-      { id: uid(), name: 'Toyota Corolla 2021', type: 'vehicle', estimatedValue: 85000, purchaseDate: '2021-03-01', originalPurchaseCost: 105000, notes: '', createdAt: new Date().toISOString() },
+      { id: uid(), name: 'Apartment – Tel Aviv', type: 'apartment', estimatedValue: 2200000, purchaseDate: '2018-06-15', originalPurchaseCost: 1650000, notes: '3 bedroom, Ramat Gan area', currency: 'ILS' as SupportedCurrency, createdAt: new Date().toISOString() },
+      { id: uid(), name: 'Toyota Corolla 2021', type: 'vehicle', estimatedValue: 85000, purchaseDate: '2021-03-01', originalPurchaseCost: 105000, notes: '', currency: 'ILS' as SupportedCurrency, createdAt: new Date().toISOString() },
     ],
     investments: [
-      { id: uid(), name: 'Menora Pension Fund', type: 'pension_fund', currentValue: inv1Base, monthlyContribution: 2500, managementFeeContributionPct: 1.5, managementFeeAccumulationPct: 0.5, managingInstitution: 'מנורה מבטחים', description: 'Employee pension', openingDate: '2016-01-01', valueHistory: inv1History, createdAt: new Date().toISOString() },
-      { id: uid(), name: 'Harel Keren Hishtalmut', type: 'education_fund', currentValue: inv2Base, monthlyContribution: 1800, managementFeeContributionPct: 0.5, managementFeeAccumulationPct: 0.3, managingInstitution: 'הראל', description: '', openingDate: '2019-04-01', valueHistory: inv2History, createdAt: new Date().toISOString() },
+      { id: uid(), name: 'Menora Pension Fund', type: 'pension_fund', currentValue: inv1Base, monthlyContribution: 2500, managementFeeContributionPct: 1.5, managementFeeAccumulationPct: 0.5, managingInstitution: 'מנורה מבטחים', description: 'Employee pension', openingDate: '2016-01-01', valueHistory: inv1History, currency: 'ILS' as SupportedCurrency, contributionCurrency: 'ILS' as SupportedCurrency, createdAt: new Date().toISOString() },
+      { id: uid(), name: 'Harel Keren Hishtalmut', type: 'education_fund', currentValue: inv2Base, monthlyContribution: 1800, managementFeeContributionPct: 0.5, managementFeeAccumulationPct: 0.3, managingInstitution: 'הראל', description: '', openingDate: '2019-04-01', valueHistory: inv2History, currency: 'ILS' as SupportedCurrency, contributionCurrency: 'ILS' as SupportedCurrency, createdAt: new Date().toISOString() },
     ],
     chartWidgets: [
       { id: uid(), chartType: 'pie', dataSource: 'expenses_by_category', timeRange: '1m', filterCategory: 'all', filterAccountId: null, title: 'Expenses This Month', order: 0 },
@@ -362,6 +395,7 @@ export const useFinanceStore = create<FinanceState>()(
         age: null,
         recommendationPriorities: [],
       },
+      appSettings: DEFAULT_APP_SETTINGS,
 
       // ── Account actions ────────────────────────────────────────────────────
       addAccount: (data) =>
@@ -572,6 +606,11 @@ export const useFinanceStore = create<FinanceState>()(
         set({ theme })
       },
 
+      updateAppSettings: (partial) =>
+        set((s) => ({
+          appSettings: { ...s.appSettings, ...partial },
+        })),
+
       dismissSampleBanner: () => set({ sampleDataDismissed: true }),
 
       updateUserProfile: (data) =>
@@ -657,11 +696,27 @@ export const useFinanceStore = create<FinanceState>()(
         if (!state.incomeEntries) state.incomeEntries = []
         if (!state.recurringExpenses) state.recurringExpenses = []
 
+        if (!state.appSettings) state.appSettings = DEFAULT_APP_SETTINGS
+        if (!state.appSettings.enabledCurrencies) {
+          state.appSettings = { ...state.appSettings, enabledCurrencies: ['ILS', 'USD', 'EUR'] }
+        }
+
+        // Backfill currency on existing entities
+        if (state.assets) {
+          state.assets = state.assets.map((a) => ({
+            ...a,
+            currency: (a as { currency?: SupportedCurrency }).currency ?? 'ILS',
+          }))
+        }
+
         if (state.investments) {
           const month = currentMonth()
-          state.investments = state.investments.map((inv) =>
-            inv.valueHistory ? inv : { ...inv, valueHistory: [{ month, value: inv.currentValue }] }
-          )
+          state.investments = state.investments.map((i) => ({
+            ...i,
+            valueHistory: i.valueHistory ?? [{ month, value: i.currentValue }],
+            currency: (i as { currency?: SupportedCurrency }).currency ?? 'ILS',
+            contributionCurrency: (i as { contributionCurrency?: SupportedCurrency }).contributionCurrency ?? 'ILS',
+          }))
         }
 
         if (state.transactions) {
@@ -683,11 +738,12 @@ export const useFinanceStore = create<FinanceState>()(
         if (state.accounts) {
           const month = currentMonth()
           state.accounts = state.accounts.map((a) => {
-            const old = a as { balance?: number; deposit?: number; balanceHistory?: Record<string, number>; depositHistory?: Record<string, number> }
+            const old = a as { balance?: number; deposit?: number; balanceHistory?: Record<string, number>; depositHistory?: Record<string, number>; currency?: SupportedCurrency }
             return {
               id: a.id, name: a.name, lastFourDigits: a.lastFourDigits, createdAt: a.createdAt,
               balanceHistory: old.balanceHistory ?? { [month]: old.balance ?? 0 },
               depositHistory: old.depositHistory ?? { [month]: old.deposit ?? 0 },
+              currency: old.currency ?? 'ILS',
             }
           })
         }

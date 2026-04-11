@@ -27,6 +27,7 @@ const EMPTY: FormData = {
   purchaseDate: new Date().toISOString().slice(0, 10),
   originalPurchaseCost: 0,
   notes: '',
+  currency: 'ILS',
 }
 
 export default function AssetModal({ open, onClose, onSave, initial }: Props) {
@@ -34,7 +35,7 @@ export default function AssetModal({ open, onClose, onSave, initial }: Props) {
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({})
 
   useEffect(() => {
-    setForm(initial ? { name: initial.name, type: initial.type, estimatedValue: initial.estimatedValue, purchaseDate: initial.purchaseDate, originalPurchaseCost: initial.originalPurchaseCost, notes: initial.notes } : EMPTY)
+    setForm(initial ? { name: initial.name, type: initial.type, estimatedValue: initial.estimatedValue, purchaseDate: initial.purchaseDate, originalPurchaseCost: initial.originalPurchaseCost, notes: initial.notes, currency: initial.currency ?? 'ILS' } : EMPTY)
     setErrors({})
   }, [open, initial])
 

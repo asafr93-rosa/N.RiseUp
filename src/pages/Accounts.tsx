@@ -428,6 +428,7 @@ export default function Accounts() {
             name: d.name, lastFourDigits: d.lastFourDigits,
             balanceHistory: { [filterMonthKey]: d.balance },
             depositHistory: { [filterMonthKey]: d.deposit },
+            currency: 'ILS',
           })
           toast.success('Account added')
         }}

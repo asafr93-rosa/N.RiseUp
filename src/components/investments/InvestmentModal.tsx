@@ -27,6 +27,8 @@ const EMPTY: FormData = {
   description: '',
   openingDate: new Date().toISOString().slice(0, 10),
   valueHistory: [],
+  currency: 'ILS',
+  contributionCurrency: 'ILS',
 }
 
 export default function InvestmentModal({ open, onClose, onSave, initial }: Props) {
