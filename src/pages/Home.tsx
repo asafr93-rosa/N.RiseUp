@@ -3,6 +3,7 @@ import toast from 'react-hot-toast'
 import { useFinanceStore } from '../store/useFinanceStore'
 import NetWorthHeader from '../components/home/NetWorthHeader'
 import SpendingInsights from '../components/home/SpendingInsights'
+import MonthlyComparisonChart from '../components/home/MonthlyComparisonChart'
 import ChartWidgetGrid from '../components/home/ChartWidgetGrid'
 import AddChartModal from '../components/home/AddChartModal'
 
@@ -17,6 +18,7 @@ export default function Home() {
   return (
     <div className="p-4 pb-6">
       <NetWorthHeader />
+      <MonthlyComparisonChart />
       <SpendingInsights />
       <ChartWidgetGrid
         widgets={chartWidgets}

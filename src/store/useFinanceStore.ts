@@ -221,6 +221,7 @@ interface FinanceState {
   updateTransactionCategory: (id: string, category: ExpenseCategory, description: string) => void
   deleteTransaction: (id: string) => void
   deleteTransactions: (ids: string[]) => void
+  bulkUpdateTransactionCategory: (ids: string[], category: ExpenseCategory) => void
   addTransactionsBatch: (
     txns: Omit<Transaction, 'id' | 'createdAt'>[],
     batch: Omit<ImportBatch, 'id'>
@@ -499,6 +500,13 @@ export const useFinanceStore = create<FinanceState>()(
       deleteTransactions: (ids) =>
         set((s) => ({
           transactions: s.transactions.filter((t) => !ids.includes(t.id)),
+        })),
+
+      bulkUpdateTransactionCategory: (ids, category) =>
+        set((s) => ({
+          transactions: s.transactions.map((t) =>
+            ids.includes(t.id) ? { ...t, category, categorySource: 'user' as const } : t
+          ),
         })),
 
       addTransactionsBatch: (txns, batch) =>

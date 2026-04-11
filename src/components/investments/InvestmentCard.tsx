@@ -183,6 +183,9 @@ export default function InvestmentCard({ investment: inv, onEdit, onDelete }: Pr
             <p className="font-medium" style={{ color: '#EF4444' }}>
               {formatCurrencyIn(accFee, displayCurrency)}
             </p>
+            <p className="text-[10px]" style={{ color: 'var(--color-text-secondary)' }}>
+              {inv.managementFeeAccumulationPct}% of balance
+            </p>
           </div>
         )}
         {inv.managementFeeContributionPct > 0 && (
@@ -190,6 +193,9 @@ export default function InvestmentCard({ investment: inv, onEdit, onDelete }: Pr
             <p style={{ color: 'var(--color-text-secondary)' }}>Contribution fee / yr</p>
             <p className="font-medium" style={{ color: '#EF4444' }}>
               {formatCurrencyIn(contribFee, displayCurrency)}
+            </p>
+            <p className="text-[10px]" style={{ color: 'var(--color-text-secondary)' }}>
+              {inv.managementFeeContributionPct}% of contributions
             </p>
           </div>
         )}

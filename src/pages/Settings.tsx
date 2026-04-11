@@ -20,7 +20,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { useFinanceStore } from '../store/useFinanceStore'
 import type { RecommendationResource, SupportedCurrency } from '../store/useFinanceStore'
 import { fetchLiveRates } from '../lib/exchangeRates'
-import { formatCurrency } from '../lib/formatters'
+import { useCurrency } from '../hooks/useCurrency'
 import Input from '../components/ui/Input'
 import Button from '../components/ui/Button'
 
@@ -94,6 +94,7 @@ export default function Settings() {
   const [age, setAge] = useState<string>(userProfile.age !== null ? String(userProfile.age) : '')
   const [rateLoading, setRateLoading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const { format } = useCurrency()
 
   // Build full resource list from current accounts + investments
   const allResources = useMemo<RecommendationResource[]>(() => [
@@ -171,15 +172,15 @@ export default function Settings() {
     if (r.type === 'account') {
       const a = accounts.find((x) => x.id === r.accountId)
       const bal = a?.balanceHistory?.[currentMonth] ?? 0
-      return { title: a?.name ?? 'Unknown Account', subtitle: formatCurrency(bal) }
+      return { title: a?.name ?? 'Unknown Account', subtitle: format(bal, (a?.currency ?? 'ILS') as SupportedCurrency) }
     }
     if (r.type === 'deposit') {
       const a = accounts.find((x) => x.id === r.accountId)
       const dep = a?.depositHistory?.[currentMonth] ?? 0
-      return { title: `${a?.name ?? 'Unknown'} – Deposit`, subtitle: formatCurrency(dep) }
+      return { title: `${a?.name ?? 'Unknown'} – Deposit`, subtitle: format(dep, (a?.currency ?? 'ILS') as SupportedCurrency) }
     }
     const inv = investments.find((x) => x.id === r.investmentId)
-    return { title: inv?.name ?? 'Unknown Investment', subtitle: formatCurrency(inv?.currentValue ?? 0) }
+    return { title: inv?.name ?? 'Unknown Investment', subtitle: format(inv?.currentValue ?? 0, (inv?.currency ?? 'ILS') as SupportedCurrency) }
   }
 
   return (
@@ -370,6 +371,8 @@ export default function Settings() {
       </section>
 
       <Button variant="primary" onClick={handleSave}>Save Settings</Button>
+
+      <p className="text-center text-xs py-2" style={{ color: 'var(--color-text-secondary)' }}>v2.0</p>
     </div>
   )
 }

@@ -52,6 +52,7 @@ export default function Accounts() {
   const addRecurringExpense = useFinanceStore((s) => s.addRecurringExpense)
   const updateRecurringExpense = useFinanceStore((s) => s.updateRecurringExpense)
   const deleteRecurringExpense = useFinanceStore((s) => s.deleteRecurringExpense)
+  const bulkUpdateTransactionCategory = useFinanceStore((s) => s.bulkUpdateTransactionCategory)
   const setAccountMonthBalance = useFinanceStore((s) => s.setAccountMonthBalance)
   const userProfile = useFinanceStore((s) => s.userProfile)
   const investments = useFinanceStore((s) => s.investments)
@@ -423,6 +424,26 @@ export default function Accounts() {
                     >
                       Delete All
                     </button>
+                    {selectedIds.size > 0 && (
+                      <select
+                        key={`cat-select-${selectedIds.size}`}
+                        defaultValue=""
+                        onChange={(e) => {
+                          if (!e.target.value) return
+                          bulkUpdateTransactionCategory([...selectedIds], e.target.value as ExpenseCategory)
+                          setSelectedIds(new Set())
+                          setSelectMode(false)
+                          toast.success('Category updated')
+                        }}
+                        className="text-xs px-2 py-1.5 rounded-lg outline-none"
+                        style={{ background: 'var(--color-surface)', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)' }}
+                      >
+                        <option value="" disabled>Set category…</option>
+                        {(Object.entries(CATEGORY_LABELS) as [ExpenseCategory, string][]).map(([v, l]) => (
+                          <option key={v} value={v}>{l}</option>
+                        ))}
+                      </select>
+                    )}
                   </>
                 ) : (
                   <button
