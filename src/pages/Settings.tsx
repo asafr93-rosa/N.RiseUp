@@ -18,7 +18,9 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useFinanceStore } from '../store/useFinanceStore'
+import type { RecommendationResource, SupportedCurrency } from '../store/useFinanceStore'
 import { fetchLiveRates } from '../lib/exchangeRates'
+import { formatCurrency } from '../lib/formatters'
 import Input from '../components/ui/Input'
 import Button from '../components/ui/Button'
 
