@@ -242,6 +242,7 @@ interface FinanceState {
   addInvestment: (data: Omit<Investment, 'id' | 'createdAt'>) => void
   updateInvestment: (id: string, data: Partial<Omit<Investment, 'id' | 'createdAt'>>) => void
   deleteInvestment: (id: string) => void
+  addInvestmentHistoryEntry: (id: string, month: string, value: number) => void
 
   // Chart widget actions
   addChartWidget: (data: Omit<ChartWidget, 'id' | 'order'>) => void
@@ -585,6 +586,19 @@ export const useFinanceStore = create<FinanceState>()(
 
       deleteInvestment: (id) =>
         set((s) => ({ investments: s.investments.filter((i) => i.id !== id) })),
+
+      addInvestmentHistoryEntry: (id, month, value) =>
+        set((s) => ({
+          investments: s.investments.map((i) =>
+            i.id === id
+              ? {
+                  ...i,
+                  valueHistory: upsertValueHistory(i.valueHistory ?? [], month, value),
+                  currentValue: month >= currentMonth() ? value : i.currentValue,
+                }
+              : i
+          ),
+        })),
 
       // ── Chart widget actions ───────────────────────────────────────────────
       addChartWidget: (data) =>

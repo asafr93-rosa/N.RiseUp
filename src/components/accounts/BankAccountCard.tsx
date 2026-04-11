@@ -3,6 +3,7 @@ import { Pencil, Trash2, CreditCard, Check, X } from 'lucide-react'
 import { useCurrency } from '../../hooks/useCurrency'
 import { useFinanceStore } from '../../store/useFinanceStore'
 import type { BankAccount, SupportedCurrency } from '../../store/useFinanceStore'
+import { formatCurrencyIn } from '../../lib/formatters'
 import CurrencyInput from '../ui/CurrencyInput'
 
 interface Props {
@@ -23,7 +24,7 @@ const inputStyle = {
 export default function BankAccountCard({ account, filterMonthKey, effectiveBalance, onSave, onDelete }: Props) {
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState({ name: '', lastFourDigits: '', balance: 0, deposit: 0, currency: 'ILS' as SupportedCurrency })
-  const { format } = useCurrency()
+  const { format, displayCurrency } = useCurrency()
   const enabledCurrencies = useFinanceStore((s) => s.appSettings.enabledCurrencies)
 
   const monthBalance = account.balanceHistory?.[filterMonthKey] ?? 0
@@ -123,18 +124,27 @@ export default function BankAccountCard({ account, filterMonthKey, effectiveBala
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
           <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>Balance</span>
-          <span className="text-xs font-semibold" style={{ color: 'var(--color-text-primary)' }}>{format(monthBalance, acctCurrency)}</span>
+          <div className="flex flex-col items-end">
+            <span className="text-xs font-semibold" style={{ color: 'var(--color-text-primary)' }}>{format(monthBalance, acctCurrency)}</span>
+            {acctCurrency !== displayCurrency && <span className="text-[10px]" style={{ color: 'var(--color-text-secondary)' }}>{formatCurrencyIn(monthBalance, acctCurrency)}</span>}
+          </div>
         </div>
         <div className="flex items-center justify-between">
           <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>Deposit</span>
-          <span className="text-xs font-semibold" style={{ color: 'var(--color-text-primary)' }}>{format(monthDeposit, acctCurrency)}</span>
+          <div className="flex flex-col items-end">
+            <span className="text-xs font-semibold" style={{ color: 'var(--color-text-primary)' }}>{format(monthDeposit, acctCurrency)}</span>
+            {acctCurrency !== displayCurrency && <span className="text-[10px]" style={{ color: 'var(--color-text-secondary)' }}>{formatCurrencyIn(monthDeposit, acctCurrency)}</span>}
+          </div>
         </div>
         <div className="border-t" style={{ borderColor: 'var(--color-border)' }} />
         <div className="flex items-center justify-between">
           <span className="text-xs font-medium" style={{ color: '#4361EE' }}>Effective</span>
-          <span className="text-sm font-bold" style={{ color: effectiveBalance >= 0 ? '#4361EE' : '#EF4444' }}>
-            {format(effectiveBalance, acctCurrency)}
-          </span>
+          <div className="flex flex-col items-end">
+            <span className="text-sm font-bold" style={{ color: effectiveBalance >= 0 ? '#4361EE' : '#EF4444' }}>
+              {format(effectiveBalance, acctCurrency)}
+            </span>
+            {acctCurrency !== displayCurrency && <span className="text-[10px]" style={{ color: 'var(--color-text-secondary)' }}>{formatCurrencyIn(effectiveBalance, acctCurrency)}</span>}
+          </div>
         </div>
       </div>
     </div>

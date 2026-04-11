@@ -1,9 +1,12 @@
+import { useState } from 'react'
 import { Pencil, Trash2 } from 'lucide-react'
 import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import Badge from '../ui/Badge'
-import { formatPercent, INVESTMENT_TYPE_LABELS, INVESTMENT_TYPE_COLORS, convertAmount, formatCurrencyIn } from '../../lib/formatters'
+import { formatPercent, formatCurrencyIn, convertAmount, INVESTMENT_TYPE_LABELS, INVESTMENT_TYPE_COLORS } from '../../lib/formatters'
 import { useCurrency } from '../../hooks/useCurrency'
+import { useFinanceStore } from '../../store/useFinanceStore'
 import type { Investment, SupportedCurrency } from '../../store/useFinanceStore'
+import CurrencyInput from '../ui/CurrencyInput'
 
 interface Props {
   investment: Investment
@@ -19,6 +22,9 @@ function shortMonth(yyyyMM: string): string {
 
 export default function InvestmentCard({ investment: inv, onEdit, onDelete }: Props) {
   const { format, rates, displayCurrency } = useCurrency()
+  const addInvestmentHistoryEntry = useFinanceStore((s) => s.addInvestmentHistoryEntry)
+  const enabledCurrencies = useFinanceStore((s) => s.appSettings.enabledCurrencies)
+
   const invCurrency = (inv.currency ?? 'ILS') as SupportedCurrency
   const contribCurrency = (inv.contributionCurrency ?? 'ILS') as SupportedCurrency
   const color = INVESTMENT_TYPE_COLORS[inv.type]
@@ -37,6 +43,26 @@ export default function InvestmentCard({ investment: inv, onEdit, onDelete }: Pr
   const monthlyPct = prevEntry !== null && prevEntry.value !== 0
     ? ((inv.currentValue - prevEntry.value) / Math.abs(prevEntry.value)) * 100
     : null
+
+  const [addingHistory, setAddingHistory] = useState(false)
+  const [histMonth, setHistMonth] = useState('')
+  const [histValue, setHistValue] = useState(0)
+  const [histCurrency, setHistCurrency] = useState<SupportedCurrency>(invCurrency)
+
+  function openHistoryForm() {
+    const d = new Date()
+    d.setMonth(d.getMonth() - 1)
+    setHistMonth(d.toISOString().slice(0, 7))
+    setHistValue(0)
+    setHistCurrency(invCurrency)
+    setAddingHistory(true)
+  }
+
+  function saveHistory() {
+    if (!histMonth || histValue <= 0) return
+    addInvestmentHistoryEntry(inv.id, histMonth, convertAmount(histValue, histCurrency, invCurrency, rates))
+    setAddingHistory(false)
+  }
 
   return (
     <div className="card p-4 animate-fade-in">
@@ -70,6 +96,11 @@ export default function InvestmentCard({ investment: inv, onEdit, onDelete }: Pr
         <p className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
           {format(inv.currentValue, invCurrency)}
         </p>
+        {invCurrency !== displayCurrency && (
+          <p className="text-[10px]" style={{ color: 'var(--color-text-secondary)' }}>
+            {formatCurrencyIn(inv.currentValue, invCurrency)}
+          </p>
+        )}
         {monthlyDiff !== null && monthlyPct !== null && (
           <div className="flex items-center gap-2 mt-0.5">
             <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>vs last month</span>
@@ -117,6 +148,11 @@ export default function InvestmentCard({ investment: inv, onEdit, onDelete }: Pr
             <p className="font-medium" style={{ color: 'var(--color-text-primary)' }}>
               {format(inv.monthlyContribution, contribCurrency)}
             </p>
+            {contribCurrency !== displayCurrency && (
+              <p className="text-[10px]" style={{ color: 'var(--color-text-secondary)' }}>
+                {formatCurrencyIn(inv.monthlyContribution, contribCurrency)}
+              </p>
+            )}
           </div>
         )}
         {(inv.managementFeeContributionPct > 0 || inv.managementFeeAccumulationPct > 0) && (
@@ -133,6 +169,51 @@ export default function InvestmentCard({ investment: inv, onEdit, onDelete }: Pr
         <p className="text-xs mt-2 line-clamp-2" style={{ color: 'var(--color-text-secondary)' }}>
           {inv.description}
         </p>
+      )}
+
+      {addingHistory ? (
+        <div className="mt-3 flex flex-col gap-2 p-3 rounded-xl" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+          <p className="text-xs font-medium" style={{ color: 'var(--color-text-secondary)' }}>Add past month value</p>
+          <input
+            type="month"
+            value={histMonth}
+            onChange={(e) => setHistMonth(e.target.value)}
+            className="w-full px-3 py-2 text-sm rounded-xl outline-none"
+            style={{ background: 'var(--color-card)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)' }}
+          />
+          <CurrencyInput
+            value={histValue}
+            currency={histCurrency}
+            enabledCurrencies={enabledCurrencies}
+            onValueChange={setHistValue}
+            onCurrencyChange={setHistCurrency}
+          />
+          <div className="flex gap-2">
+            <button
+              onClick={() => setAddingHistory(false)}
+              className="flex-1 text-xs py-1.5 rounded-lg"
+              style={{ background: 'var(--color-surface)', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)' }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={saveHistory}
+              disabled={!histMonth || histValue <= 0}
+              className="flex-1 text-xs py-1.5 rounded-lg font-medium"
+              style={{ background: '#4361EE20', color: '#4361EE', border: '1px solid #4361EE40' }}
+            >
+              Save
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          onClick={openHistoryForm}
+          className="mt-3 w-full text-xs py-1.5 rounded-lg"
+          style={{ color: 'var(--color-text-secondary)', border: '1px dashed var(--color-border)' }}
+        >
+          + Add past month value
+        </button>
       )}
     </div>
   )
