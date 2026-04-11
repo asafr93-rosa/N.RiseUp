@@ -372,7 +372,7 @@ export default function Settings() {
 
       <Button variant="primary" onClick={handleSave}>Save Settings</Button>
 
-      <p className="text-center text-xs py-2" style={{ color: 'var(--color-text-secondary)' }}>v2.0</p>
+      <p className="text-center text-xs py-2" style={{ color: 'var(--color-text-secondary)' }}>v2.1</p>
     </div>
   )
 }

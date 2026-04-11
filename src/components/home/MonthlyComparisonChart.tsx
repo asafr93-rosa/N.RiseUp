@@ -2,7 +2,6 @@ import { useMemo } from 'react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import { useFinanceStore } from '../../store/useFinanceStore'
 import { getExpensesByMonth } from '../../lib/chartHelpers'
-import { formatCompact } from '../../lib/formatters'
 
 export default function MonthlyComparisonChart() {
   const transactions = useFinanceStore((s) => s.transactions)
@@ -45,13 +44,15 @@ export default function MonthlyComparisonChart() {
           />
           <YAxis hide />
           <Tooltip
-            formatter={(v: unknown, name: unknown) => [formatCompact(Number(v)), String(name)]}
+            formatter={(v: unknown, name: unknown) => [`₪${Math.round(Number(v)).toLocaleString()}`, String(name)]}
+            labelFormatter={(label: unknown) => String(label)}
             contentStyle={{
               background: 'var(--color-card)',
               border: '1px solid var(--color-border)',
               borderRadius: 8,
               fontSize: 12,
             }}
+            labelStyle={{ color: 'var(--color-text-primary)', fontWeight: 600, marginBottom: 4 }}
           />
           <Legend wrapperStyle={{ fontSize: 11 }} />
           <Bar dataKey="Expenses" fill="#EF4444" radius={[3, 3, 0, 0]} />

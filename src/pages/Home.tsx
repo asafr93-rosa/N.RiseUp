@@ -40,7 +40,7 @@ function SortableSection({ id, children }: SortableSectionProps) {
         <div
           {...attributes}
           {...listeners}
-          className="absolute right-0 top-0 z-10 cursor-grab active:cursor-grabbing p-2 rounded"
+          className="absolute right-0 bottom-0 z-10 cursor-grab active:cursor-grabbing p-2 rounded"
           style={{ color: 'var(--color-text-secondary)', touchAction: 'none' }}
         >
           <GripVertical size={14} />
