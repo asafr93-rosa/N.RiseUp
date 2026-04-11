@@ -18,8 +18,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useFinanceStore } from '../store/useFinanceStore'
-import type { RecommendationResource } from '../store/useFinanceStore'
-import { formatCurrency } from '../lib/formatters'
+import { fetchLiveRates } from '../lib/exchangeRates'
 import Input from '../components/ui/Input'
 import Button from '../components/ui/Button'
 
@@ -85,10 +84,13 @@ export default function Settings() {
   const updateUserProfile = useFinanceStore((s) => s.updateUserProfile)
   const accounts = useFinanceStore((s) => s.accounts)
   const investments = useFinanceStore((s) => s.investments)
+  const appSettings = useFinanceStore((s) => s.appSettings)
+  const updateAppSettings = useFinanceStore((s) => s.updateAppSettings)
 
   const [displayName, setDisplayName] = useState(userProfile.displayName)
   const [avatar, setAvatar] = useState(userProfile.avatar)
   const [age, setAge] = useState<string>(userProfile.age !== null ? String(userProfile.age) : '')
+  const [rateLoading, setRateLoading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Build full resource list from current accounts + investments
@@ -131,6 +133,19 @@ export default function Settings() {
     const reader = new FileReader()
     reader.onload = () => setAvatar(reader.result as string)
     reader.readAsDataURL(file)
+  }
+
+  async function handleRefreshRates() {
+    setRateLoading(true)
+    try {
+      const rates = await fetchLiveRates()
+      updateAppSettings({ exchangeRates: rates })
+      toast.success('Exchange rates updated')
+    } catch {
+      toast.error('Failed to fetch rates — check your connection')
+    } finally {
+      setRateLoading(false)
+    }
   }
 
   function handleSave() {
@@ -270,6 +285,87 @@ export default function Settings() {
           </DndContext>
         )}
       </div>
+
+      {/* ── Currency Settings ── */}
+      <section className="card p-4 flex flex-col gap-4">
+        <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>Currency Settings</p>
+
+        {/* Display currency */}
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-medium" style={{ color: 'var(--color-text-secondary)' }}>Display Currency</label>
+          <select
+            value={appSettings.displayCurrency}
+            onChange={(e) => updateAppSettings({ displayCurrency: e.target.value as SupportedCurrency })}
+            className="w-full px-3 py-2 text-sm rounded-xl outline-none"
+            style={{ background: 'var(--color-card)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)' }}
+          >
+            {(['ILS', 'USD', 'EUR', 'GBP'] as SupportedCurrency[]).map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Enabled input currencies */}
+        <div className="flex flex-col gap-2">
+          <label className="text-xs font-medium" style={{ color: 'var(--color-text-secondary)' }}>Available Input Currencies</label>
+          {(['ILS', 'USD', 'EUR', 'GBP'] as SupportedCurrency[]).map((c) => {
+            const enabled = appSettings.enabledCurrencies.includes(c)
+            const isILS = c === 'ILS'
+            return (
+              <label key={c} className="flex items-center gap-2 text-sm cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={enabled}
+                  disabled={isILS}
+                  onChange={() => {
+                    const next = enabled
+                      ? appSettings.enabledCurrencies.filter((x) => x !== c)
+                      : [...appSettings.enabledCurrencies, c]
+                    updateAppSettings({ enabledCurrencies: next })
+                  }}
+                  className="rounded"
+                />
+                <span style={{ color: isILS ? 'var(--color-text-secondary)' : 'var(--color-text-primary)' }}>
+                  {c}{isILS ? ' (always on)' : ''}
+                </span>
+              </label>
+            )
+          })}
+        </div>
+
+        {/* Exchange rates */}
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-medium" style={{ color: 'var(--color-text-secondary)' }}>Exchange Rates (to ILS)</label>
+            <button
+              onClick={() => void handleRefreshRates()}
+              disabled={rateLoading}
+              className="text-xs px-3 py-1 rounded-lg font-medium"
+              style={{ background: 'var(--color-accent-light)', color: '#4361EE' }}
+            >
+              {rateLoading ? 'Refreshing…' : 'Refresh'}
+            </button>
+          </div>
+          {appSettings.exchangeRates.lastUpdated && (
+            <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
+              Last updated: {new Date(appSettings.exchangeRates.lastUpdated).toLocaleString()}
+            </p>
+          )}
+          <div className="flex flex-col gap-1 text-sm">
+            {(['USD', 'EUR', 'GBP'] as const).map((cur) => {
+              const rateVal = cur === 'USD' ? appSettings.exchangeRates.USD_ILS : cur === 'EUR' ? appSettings.exchangeRates.EUR_ILS : appSettings.exchangeRates.GBP_ILS
+              return (
+                <div key={cur} className="flex items-center justify-between py-1.5 border-b" style={{ borderColor: 'var(--color-border)' }}>
+                  <span style={{ color: 'var(--color-text-secondary)' }}>1 {cur}</span>
+                  <span className="font-medium" style={{ color: 'var(--color-text-primary)' }}>
+                    ₪ {rateVal.toFixed(4)}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </section>
 
       <Button variant="primary" onClick={handleSave}>Save Settings</Button>
     </div>
