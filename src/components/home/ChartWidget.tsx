@@ -7,7 +7,7 @@ import {
 } from 'recharts'
 import { useFinanceStore } from '../../store/useFinanceStore'
 import type { ChartWidget as ChartWidgetType } from '../../store/useFinanceStore'
-import { formatCurrency, CATEGORY_COLORS } from '../../lib/formatters'
+import { formatCurrency, CATEGORY_COLORS, CATEGORY_LABELS } from '../../lib/formatters'
 import {
   getExpensesByCategory,
   getExpensesByMonth,
@@ -25,6 +25,7 @@ interface Props {
 export default function ChartWidget({ widget, onDelete, selectedMonth }: Props) {
   const transactions = useFinanceStore((s) => s.transactions)
   const accounts = useFinanceStore((s) => s.accounts)
+  const recurringExpenses = useFinanceStore((s) => s.recurringExpenses)
 
   const { from: rangeFrom, to: rangeTo, months } = rangeFromTimeRange(widget.timeRange)
 
@@ -41,8 +42,28 @@ export default function ChartWidget({ widget, onDelete, selectedMonth }: Props) 
       ? endOfMonth(selectedMonth) : rangeTo
 
     switch (widget.dataSource) {
-      case 'expenses_by_category':
-        return getExpensesByCategory(filteredTxns, from, to, widget.filterCategory)
+      case 'expenses_by_category': {
+        const base = getExpensesByCategory(filteredTxns, from, to, widget.filterCategory)
+        // Merge active recurring expenses into category data
+        const activeRecurring = recurringExpenses.filter((r) => r.isActive)
+        if (activeRecurring.length === 0) return base
+        const merged = base.map((d) => ({ ...d }))
+        for (const r of activeRecurring) {
+          if (widget.filterCategory !== 'all' && r.category !== widget.filterCategory) continue
+          const existing = merged.find((d) => d.category === r.category)
+          if (existing) {
+            existing.total += r.amount
+          } else {
+            merged.push({
+              category: r.category,
+              label: CATEGORY_LABELS[r.category],
+              total: r.amount,
+              fill: CATEGORY_COLORS[r.category],
+            })
+          }
+        }
+        return merged.sort((a, b) => b.total - a.total)
+      }
       case 'expenses_by_month':
         return getExpensesByMonth(filteredTxns, months, widget.filterAccountId)
       case 'balance_over_time': {
@@ -57,7 +78,7 @@ export default function ChartWidget({ widget, onDelete, selectedMonth }: Props) 
       default:
         return []
     }
-  }, [filteredTxns, widget, accounts, rangeFrom, rangeTo, months, selectedMonth])
+  }, [filteredTxns, widget, accounts, rangeFrom, rangeTo, months, selectedMonth, recurringExpenses])
 
   const tooltipStyle = {
     background: 'var(--color-card)',

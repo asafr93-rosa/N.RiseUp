@@ -14,8 +14,7 @@ export default function NetWorthHeader() {
     return accounts.reduce((s, a) => {
       const cur = a.currency ?? 'ILS'
       const balance = a.balanceHistory?.[month] ?? 0
-      const deposit = a.depositHistory?.[month] ?? 0
-      return s + convertAmount(balance + deposit, cur, displayCurrency, exchangeRates)
+      return s + convertAmount(balance, cur, displayCurrency, exchangeRates)
     }, 0)
   }, [accounts, displayCurrency, exchangeRates])
 
@@ -47,7 +46,7 @@ export default function NetWorthHeader() {
         ].map(({ label, value }) => (
           <div key={label} className="rounded-xl py-2 px-1" style={{ background: 'rgba(255,255,255,0.15)' }}>
             <p className="text-xs opacity-75">{label}</p>
-            <AnimatedCounter value={value} alreadyConverted compact className="text-sm font-semibold block mt-0.5" />
+            <AnimatedCounter value={value} alreadyConverted className="text-sm font-semibold block mt-0.5" />
           </div>
         ))}
       </div>
