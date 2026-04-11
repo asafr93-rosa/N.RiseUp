@@ -1,18 +1,34 @@
 import { useMemo } from 'react'
 import AnimatedCounter from '../ui/AnimatedCounter'
 import { useFinanceStore } from '../../store/useFinanceStore'
+import { convertAmount } from '../../lib/formatters'
 
 export default function NetWorthHeader() {
   const accounts = useFinanceStore((s) => s.accounts)
   const assets = useFinanceStore((s) => s.assets)
   const investments = useFinanceStore((s) => s.investments)
+  const { displayCurrency, exchangeRates } = useFinanceStore((s) => s.appSettings)
 
   const bankTotal = useMemo(() => {
     const month = new Date().toISOString().slice(0, 7)
-    return accounts.reduce((s, a) => s + (a.balanceHistory?.[month] ?? 0) + (a.depositHistory?.[month] ?? 0), 0)
-  }, [accounts])
-  const assetTotal = useMemo(() => assets.reduce((s, a) => s + a.estimatedValue, 0), [assets])
-  const investTotal = useMemo(() => investments.reduce((s, i) => s + i.currentValue, 0), [investments])
+    return accounts.reduce((s, a) => {
+      const cur = a.currency ?? 'ILS'
+      const balance = a.balanceHistory?.[month] ?? 0
+      const deposit = a.depositHistory?.[month] ?? 0
+      return s + convertAmount(balance + deposit, cur, displayCurrency, exchangeRates)
+    }, 0)
+  }, [accounts, displayCurrency, exchangeRates])
+
+  const assetTotal = useMemo(() =>
+    assets.reduce((s, a) =>
+      s + convertAmount(a.estimatedValue, a.currency ?? 'ILS', displayCurrency, exchangeRates), 0),
+  [assets, displayCurrency, exchangeRates])
+
+  const investTotal = useMemo(() =>
+    investments.reduce((s, i) =>
+      s + convertAmount(i.currentValue, i.currency ?? 'ILS', displayCurrency, exchangeRates), 0),
+  [investments, displayCurrency, exchangeRates])
+
   const netWorth = bankTotal + assetTotal + investTotal
 
   return (
@@ -21,7 +37,7 @@ export default function NetWorthHeader() {
       style={{ background: 'linear-gradient(135deg, #4361EE 0%, #7B5EA7 100%)', color: '#fff' }}
     >
       <p className="text-xs font-medium opacity-80 uppercase tracking-wide mb-1">Total Net Worth</p>
-      <AnimatedCounter value={netWorth} className="text-4xl font-bold block" />
+      <AnimatedCounter value={netWorth} alreadyConverted className="text-4xl font-bold block" />
 
       <div className="grid grid-cols-3 gap-2 mt-4">
         {[
@@ -31,7 +47,7 @@ export default function NetWorthHeader() {
         ].map(({ label, value }) => (
           <div key={label} className="rounded-xl py-2 px-1" style={{ background: 'rgba(255,255,255,0.15)' }}>
             <p className="text-xs opacity-75">{label}</p>
-            <AnimatedCounter value={value} compact className="text-sm font-semibold block mt-0.5" />
+            <AnimatedCounter value={value} alreadyConverted compact className="text-sm font-semibold block mt-0.5" />
           </div>
         ))}
       </div>

@@ -1,16 +1,21 @@
 import { useEffect, useRef, useState } from 'react'
-import { formatCurrency, formatCompact } from '../../lib/formatters'
+import { formatCurrencyIn, formatCompactIn } from '../../lib/formatters'
+import { useCurrency } from '../../hooks/useCurrency'
+import type { SupportedCurrency } from '../../store/useFinanceStore'
 
 interface Props {
   value: number
+  fromCurrency?: SupportedCurrency
+  alreadyConverted?: boolean
   compact?: boolean
   className?: string
 }
 
-export default function AnimatedCounter({ value, compact = false, className = '' }: Props) {
+export default function AnimatedCounter({ value, fromCurrency = 'ILS', alreadyConverted = false, compact = false, className = '' }: Props) {
   const [displayed, setDisplayed] = useState(value)
   const rafRef = useRef<number | null>(null)
   const startRef = useRef<{ from: number; to: number; startTime: number } | null>(null)
+  const { format, formatCompact, displayCurrency } = useCurrency()
 
   useEffect(() => {
     const from = displayed
@@ -24,7 +29,6 @@ export default function AnimatedCounter({ value, compact = false, className = ''
       const s = startRef.current!
       const elapsed = now - s.startTime
       const t = Math.min(elapsed / duration, 1)
-      // ease-out cubic
       const eased = 1 - Math.pow(1 - t, 3)
       setDisplayed(s.from + (s.to - s.from) * eased)
       if (t < 1) {
@@ -38,6 +42,9 @@ export default function AnimatedCounter({ value, compact = false, className = ''
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current) }
   }, [value]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const formatted = compact ? formatCompact(displayed) : formatCurrency(displayed)
+  const formatted = alreadyConverted
+    ? (compact ? formatCompactIn(displayed, displayCurrency) : formatCurrencyIn(displayed, displayCurrency))
+    : (compact ? formatCompact(displayed, fromCurrency) : format(displayed, fromCurrency))
+
   return <span className={className}>{formatted}</span>
 }
