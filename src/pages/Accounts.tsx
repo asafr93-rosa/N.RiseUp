@@ -10,7 +10,7 @@ import BankAccountModal from '../components/accounts/BankAccountModal'
 import TransactionTable from '../components/accounts/TransactionTable'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
 import Button from '../components/ui/Button'
-import { formatCurrency, getMonthLabel, CATEGORY_LABELS } from '../lib/formatters'
+import { formatCurrency, getMonthLabel, CATEGORY_LABELS, convertAmount } from '../lib/formatters'
 import CreditCardCard from '../components/accounts/CreditCardCard'
 import CreditCardModal from '../components/accounts/CreditCardModal'
 import CreditCardCSVFlow from '../components/accounts/CreditCardCSVFlow'
@@ -54,6 +54,7 @@ export default function Accounts() {
   const setAccountMonthBalance = useFinanceStore((s) => s.setAccountMonthBalance)
   const userProfile = useFinanceStore((s) => s.userProfile)
   const investments = useFinanceStore((s) => s.investments)
+  const appSettings = useFinanceStore((s) => s.appSettings)
 
   // ── Auto-animate refs ────────────────────────────────────────────────────────
   const [accountsRef] = useAutoAnimate<HTMLDivElement>()
@@ -99,8 +100,11 @@ export default function Accounts() {
       catch { return false }
     }
     for (const a of accounts) {
-      const balance = a.balanceHistory?.[filterMonthKey] ?? 0
-      const deposit = a.depositHistory?.[filterMonthKey] ?? 0
+      const rawBalance = a.balanceHistory?.[filterMonthKey] ?? 0
+      const rawDeposit = a.depositHistory?.[filterMonthKey] ?? 0
+      const acctCurrency = a.currency ?? 'ILS'
+      const balance = convertAmount(rawBalance, acctCurrency, 'ILS', appSettings.exchangeRates)
+      const deposit = convertAmount(rawDeposit, acctCurrency, 'ILS', appSettings.exchangeRates)
       const linkedCardIds = creditCards
         .filter((c) => c.bankAccountId === a.id)
         .map((c) => c.id)
@@ -116,7 +120,7 @@ export default function Accounts() {
       map[a.id] = balance + deposit - expenses - recurringLinked + income
     }
     return map
-  }, [accounts, creditCards, transactions, incomeEntries, recurringExpenses, filterMonth, filterMonthKey])
+  }, [accounts, creditCards, transactions, incomeEntries, recurringExpenses, filterMonth, filterMonthKey, appSettings])
 
   const totalBalance = Object.values(accountEffectiveBalances).reduce((s, v) => s + v, 0)
 
@@ -254,7 +258,7 @@ export default function Accounts() {
                 filterMonthKey={filterMonthKey}
                 effectiveBalance={accountEffectiveBalances[a.id] ?? 0}
                 onSave={(d) => {
-                  updateAccount(a.id, { name: d.name, lastFourDigits: d.lastFourDigits })
+                  updateAccount(a.id, { name: d.name, lastFourDigits: d.lastFourDigits, currency: d.currency })
                   setAccountMonthBalance(a.id, filterMonthKey, d.balance, d.deposit)
                   toast.success('Account updated')
                 }}
@@ -428,7 +432,7 @@ export default function Accounts() {
             name: d.name, lastFourDigits: d.lastFourDigits,
             balanceHistory: { [filterMonthKey]: d.balance },
             depositHistory: { [filterMonthKey]: d.deposit },
-            currency: 'ILS',
+            currency: d.currency,
           })
           toast.success('Account added')
         }}
