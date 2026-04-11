@@ -1,7 +1,8 @@
 import { Pencil, Trash2 } from 'lucide-react'
 import Badge from '../ui/Badge'
-import { formatCurrency, formatPercent, ASSET_TYPE_LABELS, ASSET_TYPE_COLORS } from '../../lib/formatters'
+import { formatPercent, ASSET_TYPE_LABELS, ASSET_TYPE_COLORS } from '../../lib/formatters'
 import type { Asset } from '../../store/useFinanceStore'
+import { useCurrency } from '../../hooks/useCurrency'
 
 interface Props {
   asset: Asset
@@ -10,6 +11,8 @@ interface Props {
 }
 
 export default function AssetCard({ asset, onEdit, onDelete }: Props) {
+  const { format } = useCurrency()
+  const assetCurrency = asset.currency ?? 'ILS'
   const profit = asset.estimatedValue - asset.originalPurchaseCost
   const profitPct = asset.originalPurchaseCost > 0
     ? (profit / asset.originalPurchaseCost) * 100
@@ -54,7 +57,7 @@ export default function AssetCard({ asset, onEdit, onDelete }: Props) {
         <div>
           <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>Current Value</p>
           <p className="text-xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
-            {formatCurrency(asset.estimatedValue)}
+            {format(asset.estimatedValue, assetCurrency)}
           </p>
         </div>
 
@@ -65,7 +68,7 @@ export default function AssetCard({ asset, onEdit, onDelete }: Props) {
               className="text-sm font-semibold"
               style={{ color: isProfit ? '#22C55E' : '#EF4444' }}
             >
-              {isProfit ? '+' : ''}{formatCurrency(profit)}
+              {isProfit ? '+' : ''}{format(profit, assetCurrency)}
               {profitPct !== null && (
                 <span className="text-xs ml-1">({formatPercent(profitPct, 1)})</span>
               )}

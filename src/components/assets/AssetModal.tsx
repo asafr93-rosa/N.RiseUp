@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react'
 import Modal from '../ui/Modal'
 import Input from '../ui/Input'
 import Button from '../ui/Button'
+import CurrencyInput from '../ui/CurrencyInput'
 import type { Asset, AssetType } from '../../store/useFinanceStore'
+import { useFinanceStore } from '../../store/useFinanceStore'
 
 type FormData = Omit<Asset, 'id' | 'createdAt'>
 
@@ -31,6 +33,7 @@ const EMPTY: FormData = {
 }
 
 export default function AssetModal({ open, onClose, onSave, initial }: Props) {
+  const enabledCurrencies = useFinanceStore((s) => s.appSettings.enabledCurrencies)
   const [form, setForm] = useState<FormData>(EMPTY)
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({})
 
@@ -80,23 +83,23 @@ export default function AssetModal({ open, onClose, onSave, initial }: Props) {
           </select>
         </div>
 
-        <Input
-          label="Estimated Current Value (₪)"
-          type="number"
-          inputMode="decimal"
-          placeholder="0"
-          value={form.estimatedValue || ''}
-          onChange={(e) => setForm((f) => ({ ...f, estimatedValue: parseFloat(e.target.value) || 0 }))}
+        <CurrencyInput
+          label="Estimated Current Value"
+          value={form.estimatedValue}
+          currency={form.currency}
+          enabledCurrencies={enabledCurrencies}
+          onValueChange={(v) => setForm((f) => ({ ...f, estimatedValue: v }))}
+          onCurrencyChange={(c) => setForm((f) => ({ ...f, currency: c }))}
           error={errors.estimatedValue}
         />
 
-        <Input
-          label="Original Purchase Cost (₪)"
-          type="number"
-          inputMode="decimal"
-          placeholder="0"
-          value={form.originalPurchaseCost || ''}
-          onChange={(e) => setForm((f) => ({ ...f, originalPurchaseCost: parseFloat(e.target.value) || 0 }))}
+        <CurrencyInput
+          label="Original Purchase Cost"
+          value={form.originalPurchaseCost}
+          currency={form.currency}
+          enabledCurrencies={enabledCurrencies}
+          onValueChange={(v) => setForm((f) => ({ ...f, originalPurchaseCost: v }))}
+          onCurrencyChange={(c) => setForm((f) => ({ ...f, currency: c }))}
         />
 
         <Input
