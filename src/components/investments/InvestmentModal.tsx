@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react'
 import Modal from '../ui/Modal'
 import Input from '../ui/Input'
 import Button from '../ui/Button'
+import CurrencyInput from '../ui/CurrencyInput'
 import type { Investment, InvestmentType } from '../../store/useFinanceStore'
+import { useFinanceStore } from '../../store/useFinanceStore'
 import { INVESTMENT_TYPE_LABELS } from '../../lib/formatters'
 
 type FormData = Omit<Investment, 'id' | 'createdAt'>
@@ -32,13 +34,14 @@ const EMPTY: FormData = {
 }
 
 export default function InvestmentModal({ open, onClose, onSave, initial }: Props) {
+  const enabledCurrencies = useFinanceStore((s) => s.appSettings.enabledCurrencies)
   const [form, setForm] = useState<FormData>(EMPTY)
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({})
 
   useEffect(() => {
     if (initial) {
       const { id: _id, createdAt: _c, ...rest } = initial
-      setForm(rest)
+      setForm({ ...rest, currency: rest.currency ?? 'ILS', contributionCurrency: rest.contributionCurrency ?? 'ILS' })
     } else {
       setForm(EMPTY)
     }
@@ -89,23 +92,23 @@ export default function InvestmentModal({ open, onClose, onSave, initial }: Prop
           </select>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <Input
-            label="Current Value (₪)"
-            type="number"
-            inputMode="decimal"
-            placeholder="0"
-            value={form.currentValue || ''}
-            onChange={(e) => set('currentValue', parseFloat(e.target.value) || 0)}
+        <div className="flex flex-col gap-3">
+          <CurrencyInput
+            label="Current Value"
+            value={form.currentValue}
+            currency={form.currency}
+            enabledCurrencies={enabledCurrencies}
+            onValueChange={(v) => set('currentValue', v)}
+            onCurrencyChange={(c) => set('currency', c)}
             error={errors.currentValue}
           />
-          <Input
-            label="Monthly Contribution (₪)"
-            type="number"
-            inputMode="decimal"
-            placeholder="0"
-            value={form.monthlyContribution || ''}
-            onChange={(e) => set('monthlyContribution', parseFloat(e.target.value) || 0)}
+          <CurrencyInput
+            label="Monthly Contribution"
+            value={form.monthlyContribution}
+            currency={form.contributionCurrency}
+            enabledCurrencies={enabledCurrencies}
+            onValueChange={(v) => set('monthlyContribution', v)}
+            onCurrencyChange={(c) => set('contributionCurrency', c)}
           />
         </div>
 

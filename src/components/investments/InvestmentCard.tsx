@@ -1,8 +1,9 @@
 import { Pencil, Trash2 } from 'lucide-react'
 import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import Badge from '../ui/Badge'
-import { formatCurrency, formatCompact, formatPercent, INVESTMENT_TYPE_LABELS, INVESTMENT_TYPE_COLORS } from '../../lib/formatters'
-import type { Investment } from '../../store/useFinanceStore'
+import { formatPercent, INVESTMENT_TYPE_LABELS, INVESTMENT_TYPE_COLORS, convertAmount, formatCurrencyIn } from '../../lib/formatters'
+import { useCurrency } from '../../hooks/useCurrency'
+import type { Investment, SupportedCurrency } from '../../store/useFinanceStore'
 
 interface Props {
   investment: Investment
@@ -17,10 +18,13 @@ function shortMonth(yyyyMM: string): string {
 }
 
 export default function InvestmentCard({ investment: inv, onEdit, onDelete }: Props) {
+  const { format, rates, displayCurrency } = useCurrency()
+  const invCurrency = (inv.currency ?? 'ILS') as SupportedCurrency
+  const contribCurrency = (inv.contributionCurrency ?? 'ILS') as SupportedCurrency
   const color = INVESTMENT_TYPE_COLORS[inv.type]
   const annualFee =
-    (inv.currentValue * inv.managementFeeAccumulationPct) / 100 +
-    (inv.monthlyContribution * 12 * inv.managementFeeContributionPct) / 100
+    convertAmount(inv.currentValue, invCurrency, displayCurrency, rates) * inv.managementFeeAccumulationPct / 100 +
+    convertAmount(inv.monthlyContribution, contribCurrency, displayCurrency, rates) * 12 * inv.managementFeeContributionPct / 100
 
   const showChart = inv.valueHistory && inv.valueHistory.length >= 2
   const chartData = showChart
@@ -64,13 +68,13 @@ export default function InvestmentCard({ investment: inv, onEdit, onDelete }: Pr
       <div className="mt-3">
         <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>Current Value</p>
         <p className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
-          {formatCurrency(inv.currentValue)}
+          {format(inv.currentValue, invCurrency)}
         </p>
         {monthlyDiff !== null && monthlyPct !== null && (
           <div className="flex items-center gap-2 mt-0.5">
             <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>vs last month</span>
             <span className="text-xs font-semibold" style={{ color: monthlyDiff >= 0 ? '#22C55E' : '#EF4444' }}>
-              {monthlyDiff >= 0 ? '+' : ''}{formatCurrency(monthlyDiff)}
+              {monthlyDiff >= 0 ? '+' : ''}{format(monthlyDiff ?? 0, invCurrency)}
             </span>
             <span className="text-xs" style={{ color: monthlyDiff >= 0 ? '#22C55E' : '#EF4444' }}>
               ({formatPercent(monthlyPct)})
@@ -90,7 +94,7 @@ export default function InvestmentCard({ investment: inv, onEdit, onDelete }: Pr
                 tickLine={false}
               />
               <Tooltip
-                formatter={(v) => [formatCompact(Number(v)), 'Value']}
+                formatter={(v) => [formatCurrencyIn(convertAmount(Number(v), invCurrency, displayCurrency, rates), displayCurrency), 'Value']}
                 contentStyle={{
                   background: 'var(--color-card)',
                   border: '1px solid var(--color-border)',
@@ -111,7 +115,7 @@ export default function InvestmentCard({ investment: inv, onEdit, onDelete }: Pr
           <div className="rounded-lg px-3 py-2" style={{ background: 'var(--color-surface)' }}>
             <p style={{ color: 'var(--color-text-secondary)' }}>Monthly</p>
             <p className="font-medium" style={{ color: 'var(--color-text-primary)' }}>
-              {formatCurrency(inv.monthlyContribution)}
+              {format(inv.monthlyContribution, contribCurrency)}
             </p>
           </div>
         )}
@@ -119,7 +123,7 @@ export default function InvestmentCard({ investment: inv, onEdit, onDelete }: Pr
           <div className="rounded-lg px-3 py-2" style={{ background: 'var(--color-surface)' }}>
             <p style={{ color: 'var(--color-text-secondary)' }}>Fees / yr</p>
             <p className="font-medium" style={{ color: '#EF4444' }}>
-              {formatCurrency(annualFee)}
+              {formatCurrencyIn(annualFee, displayCurrency)}
             </p>
           </div>
         )}
