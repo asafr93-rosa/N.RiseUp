@@ -59,6 +59,13 @@ export interface AppSettings {
   exchangeRates: ExchangeRates
 }
 
+export interface LockSettings {
+  enabled: boolean
+  pinHash: string | null          // SHA-256 hex of the 6-digit PIN
+  biometricEnabled: boolean       // WebAuthn credential registered
+  biometricCredentialId: string | null  // base64-encoded rawId
+}
+
 // ── Interfaces ────────────────────────────────────────────────────────────────
 
 export interface BankAccount {
@@ -265,6 +272,9 @@ interface FinanceState {
 
   dismissSampleBanner: () => void
 
+  lockSettings: LockSettings
+  updateLockSettings: (partial: Partial<LockSettings>) => void
+
   // User profile
   updateUserProfile: (data: Partial<UserProfile>) => void
 
@@ -406,6 +416,7 @@ export const useFinanceStore = create<FinanceState>()(
       },
       appSettings: DEFAULT_APP_SETTINGS,
       dashboardSectionOrder: ['monthly', 'spending', 'charts'],
+      lockSettings: { enabled: false, pinHash: null, biometricEnabled: false, biometricCredentialId: null },
 
       // ── Account actions ────────────────────────────────────────────────────
       addAccount: (data) =>
@@ -664,6 +675,9 @@ export const useFinanceStore = create<FinanceState>()(
 
       dismissSampleBanner: () => set({ sampleDataDismissed: true }),
 
+      updateLockSettings: (partial) =>
+        set((s) => ({ lockSettings: { ...s.lockSettings, ...partial } })),
+
       updateUserProfile: (data) =>
         set((s) => ({ userProfile: { ...s.userProfile, ...data } })),
 
@@ -748,6 +762,7 @@ export const useFinanceStore = create<FinanceState>()(
         if (!state.recurringExpenses) state.recurringExpenses = []
 
         if (!state.dashboardSectionOrder) state.dashboardSectionOrder = ['monthly', 'spending', 'charts']
+        if (!state.lockSettings) state.lockSettings = { enabled: false, pinHash: null, biometricEnabled: false, biometricCredentialId: null }
 
         if (!state.appSettings) state.appSettings = DEFAULT_APP_SETTINGS
         if (!state.appSettings.enabledCurrencies) {

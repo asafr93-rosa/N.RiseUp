@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { GripVertical, ArrowLeft, Camera } from 'lucide-react'
+import { GripVertical, ArrowLeft, Camera, ScanFace, Delete } from 'lucide-react'
 import {
   DndContext,
   closestCenter,
@@ -19,6 +19,8 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { useFinanceStore } from '../store/useFinanceStore'
 import type { RecommendationResource, SupportedCurrency } from '../store/useFinanceStore'
+import { sha256 } from '../lib/crypto'
+import { useAuthStore } from '../store/useAuthStore'
 import { fetchLiveRates } from '../lib/exchangeRates'
 import { useCurrency } from '../hooks/useCurrency'
 import Input from '../components/ui/Input'
@@ -88,6 +90,9 @@ export default function Settings() {
   const investments = useFinanceStore((s) => s.investments)
   const appSettings = useFinanceStore((s) => s.appSettings)
   const updateAppSettings = useFinanceStore((s) => s.updateAppSettings)
+  const lockSettings = useFinanceStore((s) => s.lockSettings)
+  const updateLockSettings = useFinanceStore((s) => s.updateLockSettings)
+  const activeUser = useAuthStore((s) => s.activeUser)
 
   const [displayName, setDisplayName] = useState(userProfile.displayName)
   const [avatar, setAvatar] = useState(userProfile.avatar)
@@ -95,6 +100,87 @@ export default function Settings() {
   const [rateLoading, setRateLoading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { format } = useCurrency()
+
+  // Security / PIN setup
+  const [pinStep, setPinStep] = useState<'enter' | 'confirm' | null>(null)
+  const [pinFirst, setPinFirst] = useState('')
+  const [pinEntry, setPinEntry] = useState('')
+  const [biometricLoading, setBiometricLoading] = useState(false)
+  const PIN_LENGTH = 6
+
+  const hasBiometricSupport = typeof window !== 'undefined' && !!window.PublicKeyCredential
+
+  async function handlePinDigit(d: string) {
+    const next = pinEntry + d
+    if (next.length > PIN_LENGTH) return
+    setPinEntry(next)
+    if (next.length < PIN_LENGTH) return
+
+    if (pinStep === 'enter') {
+      setPinFirst(next)
+      setPinEntry('')
+      setPinStep('confirm')
+    } else {
+      if (next === pinFirst) {
+        const hash = await sha256(next)
+        updateLockSettings({ pinHash: hash })
+        toast.success('PIN saved')
+        setPinStep(null)
+        setPinEntry('')
+        setPinFirst('')
+      } else {
+        toast.error("PINs don't match")
+        setPinEntry('')
+        setPinStep('enter')
+        setPinFirst('')
+      }
+    }
+  }
+
+  function handlePinDelete() {
+    setPinEntry((p) => p.slice(0, -1))
+  }
+
+  function startPinSetup() {
+    setPinStep('enter')
+    setPinEntry('')
+    setPinFirst('')
+  }
+
+  async function handleRegisterBiometric() {
+    if (!hasBiometricSupport) return
+    setBiometricLoading(true)
+    try {
+      const credential = await navigator.credentials.create({
+        publicKey: {
+          challenge: crypto.getRandomValues(new Uint8Array(32)),
+          rp: { name: 'N.RiseUp', id: window.location.hostname },
+          user: {
+            id: new TextEncoder().encode(activeUser ?? 'user'),
+            name: activeUser ?? 'user',
+            displayName: userProfile.displayName,
+          },
+          pubKeyCredParams: [{ alg: -7, type: 'public-key' }],
+          authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required' },
+          timeout: 60000,
+        },
+      }) as PublicKeyCredential
+      const credId = btoa(String.fromCharCode(...new Uint8Array(credential.rawId)))
+      updateLockSettings({ biometricEnabled: true, biometricCredentialId: credId })
+      toast.success('Face ID / Touch ID enabled')
+    } catch {
+      toast.error('Biometric setup failed or was cancelled')
+    } finally {
+      setBiometricLoading(false)
+    }
+  }
+
+  function handleDisableBiometric() {
+    updateLockSettings({ biometricEnabled: false, biometricCredentialId: null })
+    toast.success('Face ID / Touch ID disabled')
+  }
+
+  const pinKeys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', null, '0', 'del'] as const
 
   // Build full resource list from current accounts + investments
   const allResources = useMemo<RecommendationResource[]>(() => [
@@ -370,9 +456,133 @@ export default function Settings() {
         </div>
       </section>
 
+      {/* ── Security ── */}
+      <section className="card p-4 flex flex-col gap-4">
+        <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>Security</p>
+
+        {/* Enable lock toggle */}
+        <label className="flex items-center justify-between cursor-pointer">
+          <div>
+            <p className="text-sm" style={{ color: 'var(--color-text-primary)' }}>Enable lock screen</p>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>
+              Require PIN or Face ID every time the app opens
+            </p>
+          </div>
+          <div
+            className="relative w-11 h-6 rounded-full transition-colors duration-200 shrink-0 ml-3"
+            style={{ background: lockSettings.enabled ? '#4361EE' : 'var(--color-border)' }}
+            onClick={() => {
+              if (!lockSettings.enabled && !lockSettings.pinHash) {
+                toast('Set a PIN first', { icon: '🔒' })
+                startPinSetup()
+                return
+              }
+              updateLockSettings({ enabled: !lockSettings.enabled })
+            }}
+          >
+            <div
+              className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200"
+              style={{ transform: lockSettings.enabled ? 'translateX(20px)' : 'translateX(2px)' }}
+            />
+          </div>
+        </label>
+
+        {/* PIN setup */}
+        {pinStep === null ? (
+          <button
+            onClick={startPinSetup}
+            className="text-sm font-medium text-left px-4 py-2.5 rounded-xl"
+            style={{ background: 'var(--color-accent-light)', color: '#4361EE' }}
+          >
+            {lockSettings.pinHash ? 'Change PIN' : 'Set PIN'}
+          </button>
+        ) : (
+          <div className="flex flex-col items-center gap-4 py-2">
+            <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>
+              {pinStep === 'enter' ? 'Enter new PIN' : 'Confirm PIN'}
+            </p>
+
+            {/* Dots */}
+            <div className="flex gap-3">
+              {Array.from({ length: PIN_LENGTH }).map((_, i) => (
+                <div
+                  key={i}
+                  className="w-3.5 h-3.5 rounded-full"
+                  style={{
+                    background: i < pinEntry.length ? '#4361EE' : 'transparent',
+                    border: `2px solid ${i < pinEntry.length ? '#4361EE' : 'var(--color-border)'}`,
+                  }}
+                />
+              ))}
+            </div>
+
+            {/* Mini keypad */}
+            <div className="grid grid-cols-3 gap-2 w-full max-w-[240px]">
+              {pinKeys.map((key, idx) => {
+                if (key === null) return <div key={idx} />
+                if (key === 'del') {
+                  return (
+                    <button
+                      key="del"
+                      onClick={handlePinDelete}
+                      className="flex items-center justify-center h-12 rounded-xl active:scale-95 transition-transform"
+                      style={{ background: 'var(--color-card)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)' }}
+                    >
+                      <Delete size={18} />
+                    </button>
+                  )
+                }
+                return (
+                  <button
+                    key={key}
+                    onClick={() => void handlePinDigit(key)}
+                    className="flex items-center justify-center h-12 rounded-xl text-lg font-semibold active:scale-95 transition-transform"
+                    style={{ background: 'var(--color-card)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)' }}
+                  >
+                    {key}
+                  </button>
+                )
+              })}
+            </div>
+
+            <button
+              onClick={() => { setPinStep(null); setPinEntry(''); setPinFirst('') }}
+              className="text-xs"
+              style={{ color: 'var(--color-text-secondary)' }}
+            >
+              Cancel
+            </button>
+          </div>
+        )}
+
+        {/* Biometric */}
+        {hasBiometricSupport && (
+          lockSettings.biometricEnabled ? (
+            <button
+              onClick={handleDisableBiometric}
+              className="flex items-center gap-2 text-sm font-medium px-4 py-2.5 rounded-xl"
+              style={{ background: '#EF444420', color: '#EF4444' }}
+            >
+              <ScanFace size={16} />
+              Disable Face ID / Touch ID
+            </button>
+          ) : (
+            <button
+              onClick={() => void handleRegisterBiometric()}
+              disabled={biometricLoading}
+              className="flex items-center gap-2 text-sm font-medium px-4 py-2.5 rounded-xl"
+              style={{ background: 'var(--color-accent-light)', color: '#4361EE' }}
+            >
+              <ScanFace size={16} />
+              {biometricLoading ? 'Setting up…' : 'Enable Face ID / Touch ID'}
+            </button>
+          )
+        )}
+      </section>
+
       <Button variant="primary" onClick={handleSave}>Save Settings</Button>
 
-      <p className="text-center text-xs py-2" style={{ color: 'var(--color-text-secondary)' }}>v2.3</p>
+      <p className="text-center text-xs py-2" style={{ color: 'var(--color-text-secondary)' }}>v2.4</p>
     </div>
   )
 }

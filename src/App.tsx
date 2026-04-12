@@ -13,12 +13,16 @@ import Investments from './pages/Investments'
 import Advisor from './pages/Advisor'
 import SplashScreen from './pages/SplashScreen'
 import LoginScreen from './pages/LoginScreen'
+import LockScreen from './pages/LockScreen'
 import Settings from './pages/Settings'
+import { useLock } from './hooks/useLock'
 
 export default function App() {
   const [showSplash, setShowSplash] = useState(true)
   const activeUser = useAuthStore((s) => s.activeUser)
   const theme = useFinanceStore((s) => s.theme)
+  const lockSettings = useFinanceStore((s) => s.lockSettings)
+  const { isUnlocked, unlock } = useLock()
   const syncUnsubRef = useRef<(() => void) | null>(null)
 
   useEffect(() => {
@@ -53,6 +57,10 @@ export default function App() {
 
   if (!activeUser) {
     return <LoginScreen />
+  }
+
+  if (lockSettings.enabled && !isUnlocked) {
+    return <LockScreen onUnlock={unlock} />
   }
 
   return (
