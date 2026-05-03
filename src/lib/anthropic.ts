@@ -78,8 +78,13 @@ function parseClassifiedCSV(csv: string): ParsedRow[] {
     fields.push(field.trim())
 
     if (fields.length < 4) continue
-    const [date, description, rawAmount, hebrewCategory] = fields
-    const amount = parseFloat(rawAmount.replace(/[,\s₪]/g, ''))
+    // Parse right-to-left: category is always last, amount always second-to-last.
+    // This handles unquoted commas inside merchant names gracefully.
+    const date = fields[0]
+    const hebrewCategory = fields[fields.length - 1]
+    const rawAmount = fields[fields.length - 2]
+    const description = fields.slice(1, fields.length - 2).join(', ')
+    const amount = parseFloat(rawAmount.replace(/[,\s₪+]/g, ''))
     if (!description || isNaN(amount) || amount <= 0) continue
 
     rows.push({
@@ -97,7 +102,7 @@ export async function classifyTransactionsFromFile(fileContent: string): Promise
   const c = getClient()
   const response = await c.messages.create({
     model: 'claude-sonnet-4-6',
-    max_tokens: 8096,
+    max_tokens: 16000,
     system: CLASSIFIER_SYSTEM_PROMPT,
     messages: [{ role: 'user', content: `Process this file and return the classified CSV:\n\n${fileContent}` }],
   })
