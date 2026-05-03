@@ -1,36 +1,28 @@
 import { useState } from 'react'
-import Papa from 'papaparse'
-import { Upload, CheckCircle, X } from 'lucide-react'
+import { Upload, CheckCircle, X, Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Button from '../ui/Button'
 import Modal from '../ui/Modal'
 import CSVPreviewTable from './CSVPreviewTable'
-import { parseDate } from '../../lib/csvParser'
 import type { ParsedRow } from '../../lib/csvParser'
-import { categorizeByKeyword } from '../../lib/categorizer'
+import { classifyTransactionsFromFile } from '../../lib/anthropic'
 import type { Transaction, CreditCard, ExpenseCategory } from '../../store/useFinanceStore'
 import { formatCurrency } from '../../lib/formatters'
 
 interface Props {
   creditCards: CreditCard[]
-  categoryRules: Record<string, ExpenseCategory>
+  categoryRules?: Record<string, ExpenseCategory>
   onImport: (
     txns: Omit<Transaction, 'id' | 'createdAt'>[],
     batchMeta: { bankAccountId: null; creditCardId: string; fileName: string; transactionCount: number; totalAmount: number; importedAt: string }
   ) => void
 }
 
-type Stage = 'idle' | 'preview'
+type Stage = 'idle' | 'loading' | 'preview'
 
 const UNIQUE_INPUT_ID = 'cc-csv-file-input'
 
-function findColumn(headers: string[], patterns: string[]): string | undefined {
-  return headers.find((h) =>
-    patterns.some((p) => h.toLowerCase().trim().includes(p.toLowerCase()))
-  )
-}
-
-export default function CreditCardCSVFlow({ creditCards, categoryRules, onImport }: Props) {
+export default function CreditCardCSVFlow({ creditCards, onImport }: Props) {
   const [stage, setStage] = useState<Stage>('idle')
   const [fileName, setFileName] = useState('')
   const [rows, setRows] = useState<ParsedRow[]>([])
@@ -39,62 +31,22 @@ export default function CreditCardCSVFlow({ creditCards, categoryRules, onImport
   const [selectedCardId, setSelectedCardId] = useState(creditCards[0]?.id ?? '')
 
   async function handleFile(file: File) {
+    setStage('loading')
+    setFileName(file.name)
     try {
-      const result = await new Promise<Papa.ParseResult<Record<string, string>>>((resolve, reject) => {
-        Papa.parse<Record<string, string>>(file, {
-          header: true,
-          skipEmptyLines: true,
-          complete: resolve,
-          error: (err: Error) => reject(err),
-        })
-      })
-
-      const headers = result.meta.fields ?? []
-
-      const dateCol = findColumn(headers, ['date', 'תאריך'])
-      const descCol = findColumn(headers, ['description', 'desc', 'name', 'תיאור', 'שם', 'פירוט', 'עסק', 'מוטב'])
-      const amountCol = findColumn(headers, ['amount', 'sum', 'total', 'סכום', 'חיוב'])
-
-      const missing: string[] = []
-      if (!dateCol) missing.push('Date')
-      if (!descCol) missing.push('Description')
-      if (!amountCol) missing.push('Amount')
-
-      if (missing.length > 0) {
-        const foundList = headers.length > 0
-          ? `Detected columns: ${headers.join(', ')}`
-          : 'No column headers found — make sure the first row is the header.'
-        toast.error(`Missing required column${missing.length > 1 ? 's' : ''}: ${missing.join(', ')}. ${foundList}`, { duration: 6000 })
-        return
-      }
-
-      const parsed: ParsedRow[] = result.data
-        .map((row): ParsedRow | null => {
-          const rawAmt = (row[amountCol!] ?? '').replace(/[₪$€£,\s]/g, '').replace(/\((.+)\)/, '-$1')
-          const amount = parseFloat(rawAmt)
-          const description = (row[descCol!] ?? '').trim()
-          if (!description || isNaN(amount) || amount === 0) return null
-          return {
-            date: parseDate(row[dateCol!] ?? ''),
-            description,
-            amount: Math.abs(amount),
-            type: 'expense' as const,
-            category: categorizeByKeyword(description, categoryRules),
-          }
-        })
-        .filter((r): r is ParsedRow => r !== null)
-
+      const text = await file.text()
+      const parsed = await classifyTransactionsFromFile(text)
       if (parsed.length === 0) {
-        toast.error('No valid expense rows found in the CSV.')
+        toast.error('No expense transactions found in the file.')
+        setStage('idle')
         return
       }
-
-      setFileName(file.name)
       setRows(parsed)
       setStage('preview')
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to read file.'
-      toast.error(`CSV error: ${msg}`)
+      const msg = err instanceof Error ? err.message : 'Failed to process file.'
+      toast.error(msg)
+      setStage('idle')
     }
   }
 
@@ -149,7 +101,21 @@ export default function CreditCardCSVFlow({ creditCards, categoryRules, onImport
   function reset() {
     setStage('idle')
     setRows([])
+    setFileName('')
     setShowCardModal(false)
+  }
+
+  // ── Loading stage ────────────────────────────────────────────────────────────
+  if (stage === 'loading') {
+    return (
+      <div className="border-2 border-dashed rounded-xl p-6 text-center" style={{ borderColor: 'var(--color-border)' }}>
+        <Loader2 size={24} className="mx-auto mb-2 animate-spin" style={{ color: 'var(--color-accent)' }} />
+        <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>
+          Classifying transactions…
+        </p>
+        <p className="text-xs mt-1" style={{ color: 'var(--color-text-secondary)' }}>{fileName}</p>
+      </div>
+    )
   }
 
   // ── Idle stage ───────────────────────────────────────────────────────────────
@@ -168,15 +134,15 @@ export default function CreditCardCSVFlow({ creditCards, categoryRules, onImport
       >
         <Upload size={24} className="mx-auto mb-2" style={{ color: 'var(--color-text-secondary)' }} />
         <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>
-          Drop CSV here or tap to browse
+          Drop CSV or XLSX here, or tap to browse
         </p>
         <p className="text-xs mt-1" style={{ color: 'var(--color-text-secondary)' }}>
-          Required columns: Date · Description · Amount
+          AI-powered — any Israeli bank format supported
         </p>
         <input
           id={UNIQUE_INPUT_ID}
           type="file"
-          accept=".csv,text/csv,application/csv"
+          accept=".csv,.xlsx,text/csv,application/csv"
           className="hidden"
           onChange={handleInputChange}
         />

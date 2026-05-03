@@ -29,3 +29,6 @@ dist-ssr
 *.sln
 *.sw?
 .vercel
+
+# AI import queue — contains user transaction data
+public/pending-import.json

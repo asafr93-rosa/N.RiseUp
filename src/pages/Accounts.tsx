@@ -20,6 +20,7 @@ import IncomeSection from '../components/accounts/IncomeSection'
 import RecurringExpenseModal from '../components/accounts/RecurringExpenseModal'
 import RecurringExpensesSection from '../components/accounts/RecurringExpensesSection'
 import RecommendationSection from '../components/accounts/RecommendationSection'
+import AIImportBanner from '../components/accounts/AIImportBanner'
 
 export default function Accounts() {
   // ── Store selectors ──────────────────────────────────────────────────────────
@@ -238,6 +239,11 @@ export default function Accounts() {
             <ChevronRight size={16} />
           </button>
         </div>
+      )}
+
+      {/* ── AI Import Banner ── */}
+      {creditCards.length > 0 && (
+        <AIImportBanner creditCards={creditCards} onImport={handleCSVImport} />
       )}
 
       {/* ── Section 1: Bank Accounts ── */}
