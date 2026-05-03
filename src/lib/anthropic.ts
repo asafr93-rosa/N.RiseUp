@@ -48,8 +48,8 @@ Your task: parse the raw file content, extract all expense transactions, classif
 
 ## Rules:
 - Skip ALL non-transaction rows: titles, subtitles, totals, summaries, legal text, empty rows
-- Exclude: cashback/refunds (זיכוי, החזר), card fees (דמי כרטיס), zero/negative amounts
-- Exclude these specific recurring purchases: הפניקס ביטוח, מגדל חיים/בריאות, חברת פרטנר תקשורת, קרן מכבי
+- Exclude zero/negative amounts
+- Exclude these exact merchants (nothing else): הפניקס ביטוח, מגדל חיים/בריאות, חברת פרטנר תקשורת, קרן מכבי, דמי כרטיס, החזר CashCal, CashCal זיכוי
 - If amount is in foreign currency, use the ILS equivalent column
 - Output ONLY the CSV — no explanation, no markdown, no summary`
 
