@@ -5,18 +5,24 @@ import type { ExpenseCategory } from '../../store/useFinanceStore'
 
 const CATEGORIES = Object.entries(CATEGORY_LABELS) as [ExpenseCategory, string][]
 
-interface Props {
-  rows: ParsedRow[]
-  onCategoryChange: (index: number, category: ExpenseCategory) => void
-  onDescriptionChange?: (index: number, value: string) => void
+export interface PreviewRow extends ParsedRow {
+  excluded: boolean
 }
 
-export default function CSVPreviewTable({ rows, onCategoryChange, onDescriptionChange }: Props) {
+interface Props {
+  rows: PreviewRow[]
+  onCategoryChange: (index: number, category: ExpenseCategory) => void
+  onDescriptionChange?: (index: number, value: string) => void
+  onToggleExclude?: (index: number) => void
+}
+
+export default function CSVPreviewTable({ rows, onCategoryChange, onDescriptionChange, onToggleExclude }: Props) {
   return (
     <div className="overflow-x-auto rounded-xl border" style={{ borderColor: 'var(--color-border)' }}>
       <table className="w-full text-xs min-w-[480px]">
         <thead>
           <tr className="border-b" style={{ background: 'var(--color-card)', borderColor: 'var(--color-border)' }}>
+            {onToggleExclude && <th className="px-3 py-2 w-8" />}
             <th className="text-left px-3 py-2 font-medium" style={{ color: 'var(--color-text-secondary)' }}>Date</th>
             <th className="text-left px-3 py-2 font-medium" style={{ color: 'var(--color-text-secondary)' }}>Description</th>
             <th className="text-left px-3 py-2 font-medium" style={{ color: 'var(--color-text-secondary)' }}>Category</th>
@@ -25,10 +31,28 @@ export default function CSVPreviewTable({ rows, onCategoryChange, onDescriptionC
         </thead>
         <tbody>
           {rows.map((row, i) => (
-            <tr key={i} className="border-b" style={{ borderColor: 'var(--color-border)' }}>
+            <tr
+              key={i}
+              className="border-b transition-opacity"
+              style={{
+                borderColor: 'var(--color-border)',
+                opacity: row.excluded ? 0.35 : 1,
+              }}
+            >
+              {onToggleExclude && (
+                <td className="px-3 py-2">
+                  <input
+                    type="checkbox"
+                    checked={!row.excluded}
+                    onChange={() => onToggleExclude(i)}
+                    className="cursor-pointer"
+                    style={{ accentColor: 'var(--color-accent)' }}
+                  />
+                </td>
+              )}
               <td className="px-3 py-2 whitespace-nowrap" style={{ color: 'var(--color-text-secondary)' }}>{formatDate(row.date)}</td>
               <td className="px-3 py-2 max-w-[160px]">
-                {onDescriptionChange ? (
+                {onDescriptionChange && !row.excluded ? (
                   <input
                     type="text"
                     value={row.description}
@@ -45,6 +69,7 @@ export default function CSVPreviewTable({ rows, onCategoryChange, onDescriptionC
                   <select
                     value={row.category}
                     onChange={(e) => onCategoryChange(i, e.target.value as ExpenseCategory)}
+                    disabled={row.excluded}
                     className="text-xs px-1.5 py-0.5 rounded-lg outline-none w-full max-w-[130px]"
                     style={{ background: `${CATEGORY_COLORS[row.category]}20`, color: CATEGORY_COLORS[row.category], border: 'none' }}
                   >

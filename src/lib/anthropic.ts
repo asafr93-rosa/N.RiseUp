@@ -20,7 +20,7 @@ function getClient(): Anthropic {
 
 const HEBREW_TO_APP = AGENT_CATEGORY_MAP as Record<string, ExpenseCategory>
 
-function isExcluded(description: string): boolean {
+export function isSuggestedExclusion(description: string): boolean {
   const lower = description.toLowerCase()
   return (EXCLUDED_MERCHANTS as string[]).some(m => lower.includes(m.toLowerCase()))
 }
@@ -103,8 +103,7 @@ export async function classifyTransactionsFromFile(fileContent: string): Promise
     messages: [{ role: 'user', content: `Process this file and return the classified CSV:\n\n${fileContent}` }],
   })
   const text = response.content[0].type === 'text' ? response.content[0].text : ''
-  // Hard filter: remove excluded merchants regardless of what Claude returned
-  return parseClassifiedCSV(text).filter(row => !isExcluded(row.description))
+  return parseClassifiedCSV(text)
 }
 
 export interface ChatMessage {

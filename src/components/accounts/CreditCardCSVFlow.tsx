@@ -3,9 +3,8 @@ import { Upload, CheckCircle, X, Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Button from '../ui/Button'
 import Modal from '../ui/Modal'
-import CSVPreviewTable from './CSVPreviewTable'
-import type { ParsedRow } from '../../lib/csvParser'
-import { classifyTransactionsFromFile } from '../../lib/anthropic'
+import CSVPreviewTable, { type PreviewRow } from './CSVPreviewTable'
+import { classifyTransactionsFromFile, isSuggestedExclusion } from '../../lib/anthropic'
 import type { Transaction, CreditCard, ExpenseCategory } from '../../store/useFinanceStore'
 import { formatCurrency } from '../../lib/formatters'
 
@@ -25,7 +24,7 @@ const UNIQUE_INPUT_ID = 'cc-csv-file-input'
 export default function CreditCardCSVFlow({ creditCards, onImport }: Props) {
   const [stage, setStage] = useState<Stage>('idle')
   const [fileName, setFileName] = useState('')
-  const [rows, setRows] = useState<ParsedRow[]>([])
+  const [rows, setRows] = useState<PreviewRow[]>([])
   const [isDragging, setIsDragging] = useState(false)
   const [showCardModal, setShowCardModal] = useState(false)
   const [selectedCardId, setSelectedCardId] = useState(creditCards[0]?.id ?? '')
@@ -41,7 +40,7 @@ export default function CreditCardCSVFlow({ creditCards, onImport }: Props) {
         setStage('idle')
         return
       }
-      setRows(parsed)
+      setRows(parsed.map(r => ({ ...r, excluded: isSuggestedExclusion(r.description) })))
       setStage('preview')
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to process file.'
@@ -71,8 +70,13 @@ export default function CreditCardCSVFlow({ creditCards, onImport }: Props) {
     setRows((r) => r.map((row, i) => i === index ? { ...row, description: value } : row))
   }
 
+  function toggleExclude(index: number) {
+    setRows((r) => r.map((row, i) => i === index ? { ...row, excluded: !row.excluded } : row))
+  }
+
   function handleImport() {
-    const txns: Omit<Transaction, 'id' | 'createdAt'>[] = rows.map((r) => ({
+    const included = rows.filter(r => !r.excluded)
+    const txns: Omit<Transaction, 'id' | 'createdAt'>[] = included.map((r) => ({
       date: r.date,
       amount: r.amount,
       type: 'expense' as const,
@@ -83,19 +87,19 @@ export default function CreditCardCSVFlow({ creditCards, onImport }: Props) {
       creditCardId: selectedCardId,
       importBatchId: null,
     }))
-    const totalAmount = rows.reduce((s, r) => s + r.amount, 0)
+    const totalAmount = included.reduce((s, r) => s + r.amount, 0)
     onImport(txns, {
       bankAccountId: null,
       creditCardId: selectedCardId,
       fileName,
-      transactionCount: rows.length,
+      transactionCount: included.length,
       totalAmount,
       importedAt: new Date().toISOString(),
     })
     setShowCardModal(false)
     setStage('idle')
     setRows([])
-    toast.success(`Imported ${rows.length} expenses`)
+    toast.success(`Imported ${included.length} expenses`)
   }
 
   function reset() {
@@ -151,7 +155,8 @@ export default function CreditCardCSVFlow({ creditCards, onImport }: Props) {
   }
 
   // ── Preview stage ────────────────────────────────────────────────────────────
-  const totalAmount = rows.reduce((s, r) => s + r.amount, 0)
+  const included = rows.filter(r => !r.excluded)
+  const totalAmount = included.reduce((s, r) => s + r.amount, 0)
 
   return (
     <>
@@ -160,7 +165,7 @@ export default function CreditCardCSVFlow({ creditCards, onImport }: Props) {
           <div className="flex items-center gap-2">
             <CheckCircle size={16} style={{ color: '#22C55E' }} />
             <span className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>
-              {rows.length} expenses · <span style={{ color: '#EF4444' }}>{formatCurrency(totalAmount)}</span>
+              {included.length} of {rows.length} expenses · <span style={{ color: '#EF4444' }}>{formatCurrency(totalAmount)}</span>
             </span>
           </div>
           <button onClick={reset} style={{ color: 'var(--color-text-secondary)' }}>
@@ -168,12 +173,12 @@ export default function CreditCardCSVFlow({ creditCards, onImport }: Props) {
           </button>
         </div>
 
-        <CSVPreviewTable rows={rows} onCategoryChange={updateCategory} onDescriptionChange={updateDescription} />
+        <CSVPreviewTable rows={rows} onCategoryChange={updateCategory} onDescriptionChange={updateDescription} onToggleExclude={toggleExclude} />
 
         <div className="flex gap-2">
           <Button variant="secondary" className="flex-1" onClick={reset}>Cancel</Button>
-          <Button variant="primary" className="flex-1" onClick={() => setShowCardModal(true)}>
-            Import expenses
+          <Button variant="primary" className="flex-1" onClick={() => setShowCardModal(true)} disabled={included.length === 0}>
+            Import {included.length} expenses
           </Button>
         </div>
       </div>
@@ -182,7 +187,7 @@ export default function CreditCardCSVFlow({ creditCards, onImport }: Props) {
       <Modal open={showCardModal} onClose={() => setShowCardModal(false)} title="Import to Card">
         <div className="flex flex-col gap-4">
           <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-            Choose which credit card to assign these {rows.length} expenses to.
+            Choose which credit card to assign these {included.length} expenses to.
           </p>
 
           <div className="flex flex-col gap-2">
@@ -222,8 +227,8 @@ export default function CreditCardCSVFlow({ creditCards, onImport }: Props) {
             <Button variant="secondary" className="flex-1" onClick={() => setShowCardModal(false)}>
               Back
             </Button>
-            <Button variant="primary" className="flex-1" onClick={handleImport} disabled={!selectedCardId}>
-              Import {rows.length} expenses
+            <Button variant="primary" className="flex-1" onClick={handleImport} disabled={!selectedCardId || included.length === 0}>
+              Import {included.length} expenses
             </Button>
           </div>
         </div>

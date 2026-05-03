@@ -2,11 +2,15 @@ import { useState, useRef } from 'react'
 import { Upload, CheckCircle, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Button from '../ui/Button'
-import CSVPreviewTable from './CSVPreviewTable'
+import CSVPreviewTable, { type PreviewRow } from './CSVPreviewTable'
 import ColumnMapperModal from './ColumnMapperModal'
 import { parseCSVFile, applyMapping } from '../../lib/csvParser'
 import type { ParsedRow, ColumnMapping } from '../../lib/csvParser'
 import type { Transaction, BankAccount, ExpenseCategory } from '../../store/useFinanceStore'
+
+function toPreviewRows(rows: ParsedRow[]): PreviewRow[] {
+  return rows.map(r => ({ ...r, excluded: false }))
+}
 
 interface Props {
   accounts: BankAccount[]
@@ -20,7 +24,7 @@ export default function ImportCSVFlow({ accounts, categoryRules, onImport }: Pro
   const fileRef = useRef<HTMLInputElement>(null)
   const [stage, setStage] = useState<Stage>('idle')
   const [fileName, setFileName] = useState('')
-  const [rows, setRows] = useState<ParsedRow[]>([])
+  const [rows, setRows] = useState<PreviewRow[]>([])
   const [rawHeaders, setRawHeaders] = useState<string[]>([])
   const [rawRows, setRawRows] = useState<Record<string, string>[]>([])
   const [accountId, setAccountId] = useState(accounts[0]?.id ?? '')
@@ -39,7 +43,7 @@ export default function ImportCSVFlow({ accounts, categoryRules, onImport }: Pro
     if (result.needsMapping) {
       setStage('mapping')
     } else {
-      setRows(result.rows)
+      setRows(toPreviewRows(result.rows))
       setStage('preview')
     }
   }
@@ -53,7 +57,7 @@ export default function ImportCSVFlow({ accounts, categoryRules, onImport }: Pro
 
   function handleMappingConfirm(mapping: ColumnMapping) {
     const mapped = applyMapping(rawRows, mapping, categoryRules)
-    setRows(mapped)
+    setRows(toPreviewRows(mapped))
     setStage('preview')
   }
 
