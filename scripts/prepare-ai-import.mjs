@@ -6,18 +6,10 @@ import { createRequire } from 'module'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const PROJECT_ROOT = resolve(__dirname, '..')
 
-// Single source of truth — must match src/lib/agentCategoryMap.json
+// Single source of truth
 const require = createRequire(import.meta.url)
 const AGENT_CATEGORY_MAP = require('../src/lib/agentCategoryMap.json')
-
-// Recurring purchases to exclude (partial match, case-insensitive)
-const RECURRING_EXCLUSIONS = [
-  'קרן מכבי',
-  'חברת פרטנר תקשורת',
-  'פרטנר תקשורת',
-  'מגדל חיים',
-  'הפניקס ביטוח',
-]
+const EXCLUDED_MERCHANTS = require('../src/lib/excludedMerchants.json')
 
 
 function parseCSVLine(line) {
@@ -82,12 +74,10 @@ for (let i = 1; i < lines.length; i++) {
 
   if (!description || isNaN(amount) || amount <= 0) continue
 
-  // Exclude recurring purchases
+  // Exclude merchants from shared list (src/lib/excludedMerchants.json)
   const descLower = description.toLowerCase()
-  const isRecurring = RECURRING_EXCLUSIONS.some(r =>
-    descLower.includes(r.toLowerCase()) || r.toLowerCase().includes(descLower)
-  )
-  if (isRecurring) { excluded++; continue }
+  const isExcluded = EXCLUDED_MERCHANTS.some(m => descLower.includes(m.toLowerCase()))
+  if (isExcluded) { excluded++; continue }
 
   const category = AGENT_CATEGORY_MAP[hebrewCategory] ?? 'other'
 

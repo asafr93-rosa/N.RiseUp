@@ -4,6 +4,8 @@ import type { ParsedRow } from './csvParser'
 // Single source of truth for agent-category → app-category mapping.
 // All CSV import flows must use this mapping exclusively.
 import AGENT_CATEGORY_MAP from './agentCategoryMap.json'
+// Merchants that must always be excluded from import previews, regardless of Claude's output.
+import EXCLUDED_MERCHANTS from './excludedMerchants.json'
 
 let client: Anthropic | null = null
 
@@ -17,6 +19,11 @@ function getClient(): Anthropic {
 }
 
 const HEBREW_TO_APP = AGENT_CATEGORY_MAP as Record<string, ExpenseCategory>
+
+function isExcluded(description: string): boolean {
+  const lower = description.toLowerCase()
+  return (EXCLUDED_MERCHANTS as string[]).some(m => lower.includes(m.toLowerCase()))
+}
 
 const CLASSIFIER_SYSTEM_PROMPT = `You are an expert financial transaction processor for Israeli credit card and bank statements.
 Your task: parse the raw file content, extract all expense transactions, classify each into a Hebrew category, and return ONLY a CSV.
@@ -96,7 +103,8 @@ export async function classifyTransactionsFromFile(fileContent: string): Promise
     messages: [{ role: 'user', content: `Process this file and return the classified CSV:\n\n${fileContent}` }],
   })
   const text = response.content[0].type === 'text' ? response.content[0].text : ''
-  return parseClassifiedCSV(text)
+  // Hard filter: remove excluded merchants regardless of what Claude returned
+  return parseClassifiedCSV(text).filter(row => !isExcluded(row.description))
 }
 
 export interface ChatMessage {
