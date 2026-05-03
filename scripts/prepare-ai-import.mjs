@@ -11,11 +11,7 @@ const RECURRING_EXCLUSIONS = [
   'חברת פרטנר תקשורת',
   'פרטנר תקשורת',
   'מגדל חיים',
-  'spotifyil',
   'הפניקס ביטוח',
-  'openai',
-  'chatgpt',
-  'apple.com/bill',
 ]
 
 // Hebrew agent category → app ExpenseCategory
