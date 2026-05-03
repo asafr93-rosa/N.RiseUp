@@ -57,10 +57,8 @@ function parseClassifiedCSV(csv: string): ParsedRow[] {
   const rows: ParsedRow[] = []
 
   for (const line of lines) {
-    // Skip header row
     if (line.startsWith('תאריך,')) continue
 
-    // Parse quoted CSV fields
     const fields: string[] = []
     let field = ''
     let inQuotes = false
@@ -77,15 +75,19 @@ function parseClassifiedCSV(csv: string): ParsedRow[] {
     }
     fields.push(field.trim())
 
-    if (fields.length < 4) continue
-    // Parse right-to-left: category is always last, amount always second-to-last.
-    // This handles unquoted commas inside merchant names gracefully.
+    if (fields.length < 4) {
+      console.warn('[CSV] skipped (<4 fields):', line)
+      continue
+    }
     const date = fields[0]
     const hebrewCategory = fields[fields.length - 1]
     const rawAmount = fields[fields.length - 2]
     const description = fields.slice(1, fields.length - 2).join(', ')
     const amount = parseFloat(rawAmount.replace(/[,\s₪+]/g, ''))
-    if (!description || isNaN(amount) || amount <= 0) continue
+    if (!description || isNaN(amount) || amount <= 0) {
+      console.warn('[CSV] skipped (bad amount/desc):', { line, description, rawAmount, amount })
+      continue
+    }
 
     rows.push({
       date: date || new Date().toISOString().slice(0, 10),
@@ -95,6 +97,7 @@ function parseClassifiedCSV(csv: string): ParsedRow[] {
       category: HEBREW_TO_APP[hebrewCategory] ?? 'other',
     })
   }
+  console.log(`[CSV] parsed ${rows.length} rows from ${lines.length} lines`)
   return rows
 }
 
