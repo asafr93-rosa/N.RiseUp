@@ -1,6 +1,9 @@
 import Anthropic from '@anthropic-ai/sdk'
 import type { ExpenseCategory } from '../store/useFinanceStore'
 import type { ParsedRow } from './csvParser'
+// Single source of truth for agent-category → app-category mapping.
+// All CSV import flows must use this mapping exclusively.
+import AGENT_CATEGORY_MAP from './agentCategoryMap.json'
 
 let client: Anthropic | null = null
 
@@ -13,16 +16,7 @@ function getClient(): Anthropic {
   return client
 }
 
-const HEBREW_TO_APP: Record<string, ExpenseCategory> = {
-  'מזון': 'food_restaurants',
-  'תחבורה': 'fuel_transportation',
-  'חשבונות': 'household_bills',
-  'מנויים': 'subscriptions',
-  'פנאי': 'entertainment_leisure',
-  'ציוד לבית': 'housing',
-  'בריאות': 'health',
-  'שונות': 'other',
-}
+const HEBREW_TO_APP = AGENT_CATEGORY_MAP as Record<string, ExpenseCategory>
 
 const CLASSIFIER_SYSTEM_PROMPT = `You are an expert financial transaction processor for Israeli credit card and bank statements.
 Your task: parse the raw file content, extract all expense transactions, classify each into a Hebrew category, and return ONLY a CSV.

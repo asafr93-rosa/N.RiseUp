@@ -1,0 +1,10 @@
+{
+  "מזון":       "food_restaurants",
+  "תחבורה":     "fuel_transportation",
+  "חשבונות":    "household_bills",
+  "מנויים":     "subscriptions",
+  "פנאי":       "entertainment_leisure",
+  "ציוד לבית":  "housing",
+  "בריאות":     "health",
+  "שונות":      "other"
+}

@@ -1,9 +1,14 @@
 import { readFileSync, writeFileSync } from 'fs'
 import { resolve, basename, dirname } from 'path'
 import { fileURLToPath } from 'url'
+import { createRequire } from 'module'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const PROJECT_ROOT = resolve(__dirname, '..')
+
+// Single source of truth — must match src/lib/agentCategoryMap.json
+const require = createRequire(import.meta.url)
+const AGENT_CATEGORY_MAP = require('../src/lib/agentCategoryMap.json')
 
 // Recurring purchases to exclude (partial match, case-insensitive)
 const RECURRING_EXCLUSIONS = [
@@ -14,17 +19,6 @@ const RECURRING_EXCLUSIONS = [
   'הפניקס ביטוח',
 ]
 
-// Hebrew agent category → app ExpenseCategory
-const HEBREW_TO_APP_CATEGORY = {
-  'מזון': 'food_restaurants',
-  'תחבורה': 'fuel_transportation',
-  'חשבונות': 'household_bills',
-  'מנויים': 'subscriptions',
-  'פנאי': 'entertainment_leisure',
-  'ציוד לבית': 'housing',
-  'בריאות': 'health',
-  'שונות': 'other',
-}
 
 function parseCSVLine(line) {
   const result = []
@@ -95,7 +89,7 @@ for (let i = 1; i < lines.length; i++) {
   )
   if (isRecurring) { excluded++; continue }
 
-  const category = HEBREW_TO_APP_CATEGORY[hebrewCategory] ?? 'other'
+  const category = AGENT_CATEGORY_MAP[hebrewCategory] ?? 'other'
 
   transactions.push({
     date: statementDate,
