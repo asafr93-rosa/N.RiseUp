@@ -65,19 +65,36 @@ const cardLastFour = cardMatch?.[1] ?? ''
 // Parse transactions (skip header row)
 const transactions = []
 let excluded = 0
+let skipped = 0
 
 for (let i = 1; i < lines.length; i++) {
   const fields = parseCSVLine(lines[i])
   const description = (fields[0] ?? '').trim()
-  const amount = parseFloat((fields[1] ?? '').replace(/,/g, ''))
+  const rawAmount = (fields[1] ?? '').replace(/,/g, '')
+  const parsedAmount = parseFloat(rawAmount)
+  // Use absolute value — some bank exports encode charges as negative numbers
+  const amount = Math.abs(parsedAmount)
   const hebrewCategory = (fields[2] ?? '').trim()
 
-  if (!description || isNaN(amount) || amount <= 0) continue
+  if (!description) {
+    console.log(`  SKIP row ${i}: empty description`)
+    skipped++
+    continue
+  }
+  if (isNaN(parsedAmount) || amount === 0) {
+    console.log(`  SKIP row ${i}: non-numeric or zero amount "${fields[1]}" — "${description}"`)
+    skipped++
+    continue
+  }
 
   // Exclude merchants from shared list (src/lib/excludedMerchants.json)
   const descLower = description.toLowerCase()
-  const isExcluded = EXCLUDED_MERCHANTS.some(m => descLower.includes(m.toLowerCase()))
-  if (isExcluded) { excluded++; continue }
+  const matchedRule = EXCLUDED_MERCHANTS.find(m => descLower.includes(m.toLowerCase()))
+  if (matchedRule) {
+    console.log(`  EXCL row ${i}: matched "${matchedRule}" — "${description}"`)
+    excluded++
+    continue
+  }
 
   const category = AGENT_CATEGORY_MAP[hebrewCategory] ?? 'other'
 
@@ -106,4 +123,7 @@ const outputPath = resolve(PROJECT_ROOT, 'public/pending-import.json')
 writeFileSync(outputPath, JSON.stringify(output, null, 2), 'utf-8')
 
 console.log(`✓ Queued ${transactions.length} transactions → public/pending-import.json`)
-console.log(`  Card: ···· ${cardLastFour || '????'} | Date: ${statementDate} | Excluded (recurring): ${excluded}`)
+console.log(`  Card: ···· ${cardLastFour || '????'} | Date: ${statementDate} | Excluded (recurring): ${excluded} | Skipped (bad data): ${skipped}`)
+if (excluded + skipped > 0) {
+  console.log(`  Total input rows: ${lines.length - 1} | Kept: ${transactions.length} | Dropped: ${excluded + skipped}`)
+}
