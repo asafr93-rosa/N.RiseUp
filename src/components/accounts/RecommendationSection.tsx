@@ -20,47 +20,64 @@ function buildSuggestions(
   priorities: RecommendationResource[]
 ): string[] {
   const suggestions: string[] = []
+  let remaining = Math.abs(deficit)
 
-  const tryAdd = (text: string) => {
-    if (suggestions.length < 3) suggestions.push(text)
+  const consume = (text: string, amount: number) => {
+    suggestions.push(text)
+    remaining -= amount
   }
 
-  // If no priorities configured, generate generic fallback suggestions
   if (priorities.length === 0) {
-    const donor = allAccounts
+    // Fallback: drain donors largest-first, then own deposit, then investments
+    const donors = allAccounts
       .filter((a) => a.id !== negativeAccount.id && (effectiveBalances[a.id] ?? 0) > 0)
-      .sort((a, b) => (effectiveBalances[b.id] ?? 0) - (effectiveBalances[a.id] ?? 0))[0]
-    if (donor) tryAdd(`Transfer funds from ${donor.name} (${formatCurrency(effectiveBalances[donor.id] ?? 0)} available)`)
-    const dep = negativeAccount.depositHistory?.[filterMonthKey] ?? 0
-    if (dep > 0) tryAdd(`Use ${negativeAccount.name} deposit (${formatCurrency(dep)} available)`)
-    if (investments.length > 0) {
-      const inv = investments.sort((a, b) => b.currentValue - a.currentValue)[0]
-      tryAdd(`Consider liquidating part of ${inv.name} (${formatCurrency(inv.currentValue)} available)`)
+      .sort((a, b) => (effectiveBalances[b.id] ?? 0) - (effectiveBalances[a.id] ?? 0))
+    for (const donor of donors) {
+      if (remaining <= 0) break
+      const use = Math.min(effectiveBalances[donor.id] ?? 0, remaining)
+      consume(`Transfer ${formatCurrency(use)} from ${donor.name}`, use)
+    }
+    if (remaining > 0) {
+      const dep = negativeAccount.depositHistory?.[filterMonthKey] ?? 0
+      if (dep > 0) {
+        const use = Math.min(dep, remaining)
+        consume(`Withdraw ${formatCurrency(use)} from ${negativeAccount.name} deposit`, use)
+      }
+    }
+    if (remaining > 0) {
+      const sorted = [...investments].sort((a, b) => b.currentValue - a.currentValue)
+      for (const inv of sorted) {
+        if (remaining <= 0) break
+        const use = Math.min(inv.currentValue, remaining)
+        consume(`Liquidate ${formatCurrency(use)} from ${inv.name}`, use)
+      }
     }
     return suggestions
   }
 
   for (const resource of priorities) {
-    if (suggestions.length >= 3) break
+    if (remaining <= 0) break
 
     if (resource.type === 'account') {
       if (resource.accountId === negativeAccount.id) continue
-      const bal = effectiveBalances[resource.accountId] ?? 0
-      if (bal <= 0) continue
+      const avail = effectiveBalances[resource.accountId] ?? 0
+      if (avail <= 0) continue
       const acc = allAccounts.find((a) => a.id === resource.accountId)
       if (!acc) continue
-      tryAdd(`Transfer from ${acc.name} (${formatCurrency(bal)} available)`)
+      const use = Math.min(avail, remaining)
+      consume(`Transfer ${formatCurrency(use)} from ${acc.name}`, use)
     } else if (resource.type === 'deposit') {
       const acc = allAccounts.find((a) => a.id === resource.accountId)
       if (!acc) continue
       const dep = acc.depositHistory?.[filterMonthKey] ?? 0
       if (dep <= 0) continue
-      const use = Math.min(dep, Math.abs(deficit))
-      tryAdd(`Use ${acc.name} deposit — ${formatCurrency(use)} of ${formatCurrency(dep)} available`)
+      const use = Math.min(dep, remaining)
+      consume(`Withdraw ${formatCurrency(use)} from ${acc.name} deposit`, use)
     } else if (resource.type === 'investment') {
       const inv = investments.find((i) => i.id === resource.investmentId)
       if (!inv) continue
-      tryAdd(`Consider liquidating part of ${inv.name} (${formatCurrency(inv.currentValue)} available)`)
+      const use = Math.min(inv.currentValue, remaining)
+      consume(`Liquidate ${formatCurrency(use)} from ${inv.name}`, use)
     }
   }
 
