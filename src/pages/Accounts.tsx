@@ -109,10 +109,8 @@ export default function Accounts() {
     }
     for (const a of accounts) {
       const rawBalance = a.balanceHistory?.[filterMonthKey] ?? 0
-      const rawDeposit = a.depositHistory?.[filterMonthKey] ?? 0
       const acctCurrency = a.currency ?? 'ILS'
       const balance = convertAmount(rawBalance, acctCurrency, 'ILS', appSettings.exchangeRates)
-      const deposit = convertAmount(rawDeposit, acctCurrency, 'ILS', appSettings.exchangeRates)
       const linkedCardIds = creditCards
         .filter((c) => c.bankAccountId === a.id)
         .map((c) => c.id)
@@ -129,7 +127,7 @@ export default function Accounts() {
         .filter((r) => r.isActive && r.creditCardId != null &&
           creditCards.find((cc) => cc.id === r.creditCardId)?.bankAccountId === a.id)
         .reduce((s, r) => s + r.amount, 0)
-      map[a.id] = balance + deposit - expenses - recurringLinked - recurringViaCc + income
+      map[a.id] = balance - expenses - recurringLinked - recurringViaCc + income
     }
     return map
   }, [accounts, creditCards, transactions, incomeEntries, recurringExpenses, filterMonth, filterMonthKey, appSettings])
