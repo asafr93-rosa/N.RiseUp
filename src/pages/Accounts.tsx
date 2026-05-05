@@ -10,7 +10,7 @@ import BankAccountModal from '../components/accounts/BankAccountModal'
 import TransactionTable from '../components/accounts/TransactionTable'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
 import Button from '../components/ui/Button'
-import { formatCurrency, getMonthLabel, CATEGORY_LABELS, convertAmount } from '../lib/formatters'
+import { formatCurrency, getMonthLabel, CATEGORY_LABELS, CATEGORY_COLORS, convertAmount } from '../lib/formatters'
 import CreditCardCard from '../components/accounts/CreditCardCard'
 import CreditCardModal from '../components/accounts/CreditCardModal'
 import CreditCardCSVFlow from '../components/accounts/CreditCardCSVFlow'
@@ -170,10 +170,24 @@ export default function Accounts() {
     })
   }, [transactions, filterMonth, ccFilterCategory, ccFilterCardId])
 
-  // ── Monthly summary ───────────────────────────────────────────────────────────
-  const ccExpensesTotal = ccTransactions.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
+  // ── Monthly summary — always unfiltered ──────────────────────────────────────
+  const allMonthCCExpenses = useMemo(() => {
+    const from = startOfMonth(filterMonth)
+    const to = endOfMonth(filterMonth)
+    return transactions
+      .filter((t) => {
+        if (!t.creditCardId || t.type !== 'expense') return false
+        try { return isWithinInterval(parseISO(t.date), { start: from, end: to }) }
+        catch { return false }
+      })
+      .reduce((s, t) => s + t.amount, 0)
+  }, [transactions, filterMonth])
   const activeRecurringTotal = recurringExpenses.filter((r) => r.isActive).reduce((s, r) => s + r.amount, 0)
-  const monthlyExpenses = ccExpensesTotal + activeRecurringTotal
+  const monthlyExpenses = allMonthCCExpenses + activeRecurringTotal
+
+  // ── Filtered subtotal (for the subtotal box when a filter is active) ──────────
+  const hasFilter = ccFilterCategory !== 'all' || ccFilterCardId !== 'all'
+  const filteredExpensesSubtotal = ccTransactions.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
 
   const monthIncomeEntries = useMemo(() => {
     const from = startOfMonth(filterMonth)
@@ -483,6 +497,37 @@ export default function Accounts() {
                 )}
               </div>
             </div>
+            {hasFilter && (() => {
+              const accentColor = ccFilterCategory !== 'all'
+                ? (CATEGORY_COLORS[ccFilterCategory] ?? '#4361EE')
+                : '#4361EE'
+              const labelParts = [
+                ccFilterCategory !== 'all' ? CATEGORY_LABELS[ccFilterCategory] : null,
+                ccFilterCardId !== 'all' ? (() => {
+                  const c = creditCards.find((x) => x.id === ccFilterCardId)
+                  return c ? `${c.name}${c.lastFourDigits ? ` ···· ${c.lastFourDigits}` : ''}` : null
+                })() : null,
+              ].filter(Boolean).join(' · ')
+              const count = ccTransactions.filter((t) => t.type === 'expense').length
+              return (
+                <div
+                  className="rounded-xl px-3 py-2.5 mb-3 flex items-center justify-between gap-3"
+                  style={{
+                    background: 'var(--color-card)',
+                    borderTop: '1px solid var(--color-border)',
+                    borderRight: '1px solid var(--color-border)',
+                    borderBottom: '1px solid var(--color-border)',
+                    borderLeft: `3px solid ${accentColor}`,
+                  }}
+                >
+                  <div className="flex flex-col gap-0.5 min-w-0">
+                    <p className="text-xs font-semibold truncate" style={{ color: 'var(--color-text-primary)' }}>{labelParts}</p>
+                    <p className="text-[10px]" style={{ color: 'var(--color-text-secondary)' }}>{count} transaction{count !== 1 ? 's' : ''}</p>
+                  </div>
+                  <p className="text-sm font-bold shrink-0" style={{ color: '#EF4444' }}>{formatCurrency(filteredExpensesSubtotal)}</p>
+                </div>
+              )
+            })()}
             {selectMode && selectedIds.size > 0 && (() => {
               const subtotal = ccTransactions
                 .filter((t) => selectedIds.has(t.id))
