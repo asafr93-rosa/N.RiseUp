@@ -140,16 +140,20 @@ export default function Accounts() {
     const to = endOfMonth(filterMonth)
     const map: Record<string, number> = {}
     for (const c of creditCards) {
-      map[c.id] = transactions
+      const txTotal = transactions
         .filter((t) => {
           if (t.type !== 'expense' || t.creditCardId !== c.id) return false
           try { return isWithinInterval(parseISO(t.date), { start: from, end: to }) }
           catch { return false }
         })
         .reduce((s, t) => s + t.amount, 0)
+      const recurringTotal = recurringExpenses
+        .filter((r) => r.isActive && r.creditCardId === c.id)
+        .reduce((s, r) => s + r.amount, 0)
+      map[c.id] = txTotal + recurringTotal
     }
     return map
-  }, [creditCards, transactions, filterMonth])
+  }, [creditCards, transactions, recurringExpenses, filterMonth])
 
   // ── CC transactions for selected month ────────────────────────────────────────
   const ccTransactions = useMemo(() => {
