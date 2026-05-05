@@ -5,12 +5,13 @@ import { formatCurrency } from '../../lib/formatters'
 interface Props {
   card: CreditCard
   linkedAccountName?: string
-  monthlyTotal: number
+  monthlyExpenses: number
+  monthlyRecurring: number
   onEdit: () => void
   onDelete: () => void
 }
 
-export default function CreditCardCard({ card, linkedAccountName, monthlyTotal, onEdit, onDelete }: Props) {
+export default function CreditCardCard({ card, linkedAccountName, monthlyExpenses, monthlyRecurring, onEdit, onDelete }: Props) {
   return (
     <div className="card p-4 flex flex-col min-h-[140px] animate-fade-in">
       {/* Top: icon + actions */}
@@ -46,14 +47,34 @@ export default function CreditCardCard({ card, linkedAccountName, monthlyTotal, 
               {card.paymentCycleDay ? `Day ${card.paymentCycleDay}` : ''}
             </p>
           )}
-          <div className="mt-1.5 mb-1">
-            <p
-              className="text-sm font-bold"
-              style={{ color: monthlyTotal > 0 ? 'var(--color-expense)' : 'var(--color-text-secondary)' }}
-            >
-              {formatCurrency(monthlyTotal)}
-            </p>
-            <p className="text-[10px]" style={{ color: 'var(--color-text-secondary)' }}>this month</p>
+          <div className="mt-1.5 mb-1 flex flex-col gap-0.5">
+            <div className="flex items-center justify-between">
+              <p className="text-[10px]" style={{ color: 'var(--color-text-secondary)' }}>Expenses</p>
+              <p
+                className="text-xs font-semibold"
+                style={{ color: monthlyExpenses > 0 ? 'var(--color-expense)' : 'var(--color-text-secondary)' }}
+              >
+                {formatCurrency(monthlyExpenses)}
+              </p>
+            </div>
+            <div className="flex items-center justify-between">
+              <p className="text-[10px]" style={{ color: 'var(--color-text-secondary)' }}>Fixed</p>
+              <p
+                className="text-xs font-semibold"
+                style={{ color: monthlyRecurring > 0 ? 'var(--color-expense)' : 'var(--color-text-secondary)' }}
+              >
+                {formatCurrency(monthlyRecurring)}
+              </p>
+            </div>
+            <div className="flex items-center justify-between border-t pt-0.5" style={{ borderColor: 'var(--color-border)' }}>
+              <p className="text-[10px] font-medium" style={{ color: 'var(--color-text-secondary)' }}>Total</p>
+              <p
+                className="text-xs font-bold"
+                style={{ color: (monthlyExpenses + monthlyRecurring) > 0 ? 'var(--color-expense)' : 'var(--color-text-secondary)' }}
+              >
+                {formatCurrency(monthlyExpenses + monthlyRecurring)}
+              </p>
+            </div>
           </div>
           {linkedAccountName ? (
             <div className="flex items-center gap-1">

@@ -138,19 +138,19 @@ export default function Accounts() {
   const cardMonthlyTotals = useMemo(() => {
     const from = startOfMonth(filterMonth)
     const to = endOfMonth(filterMonth)
-    const map: Record<string, number> = {}
+    const map: Record<string, { expenses: number; recurring: number }> = {}
     for (const c of creditCards) {
-      const txTotal = transactions
+      const expenses = transactions
         .filter((t) => {
           if (t.type !== 'expense' || t.creditCardId !== c.id) return false
           try { return isWithinInterval(parseISO(t.date), { start: from, end: to }) }
           catch { return false }
         })
         .reduce((s, t) => s + t.amount, 0)
-      const recurringTotal = recurringExpenses
+      const recurring = recurringExpenses
         .filter((r) => r.isActive && r.creditCardId === c.id)
         .reduce((s, r) => s + r.amount, 0)
-      map[c.id] = txTotal + recurringTotal
+      map[c.id] = { expenses, recurring }
     }
     return map
   }, [creditCards, transactions, recurringExpenses, filterMonth])
@@ -329,7 +329,8 @@ export default function Accounts() {
                   key={c.id}
                   card={c}
                   linkedAccountName={accName}
-                  monthlyTotal={cardMonthlyTotals[c.id] ?? 0}
+                  monthlyExpenses={cardMonthlyTotals[c.id]?.expenses ?? 0}
+                  monthlyRecurring={cardMonthlyTotals[c.id]?.recurring ?? 0}
                   onEdit={() => setEditingCard(c)}
                   onDelete={() => setDeletingCard(c)}
                 />
