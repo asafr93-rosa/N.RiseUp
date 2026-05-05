@@ -134,6 +134,23 @@ export default function Accounts() {
 
   const totalBalance = Object.values(accountEffectiveBalances).reduce((s, v) => s + v, 0)
 
+  // ── Monthly expense total per credit card ─────────────────────────────────────
+  const cardMonthlyTotals = useMemo(() => {
+    const from = startOfMonth(filterMonth)
+    const to = endOfMonth(filterMonth)
+    const map: Record<string, number> = {}
+    for (const c of creditCards) {
+      map[c.id] = transactions
+        .filter((t) => {
+          if (t.type !== 'expense' || t.creditCardId !== c.id) return false
+          try { return isWithinInterval(parseISO(t.date), { start: from, end: to }) }
+          catch { return false }
+        })
+        .reduce((s, t) => s + t.amount, 0)
+    }
+    return map
+  }, [creditCards, transactions, filterMonth])
+
   // ── CC transactions for selected month ────────────────────────────────────────
   const ccTransactions = useMemo(() => {
     const from = startOfMonth(filterMonth)
@@ -308,6 +325,7 @@ export default function Accounts() {
                   key={c.id}
                   card={c}
                   linkedAccountName={accName}
+                  monthlyTotal={cardMonthlyTotals[c.id] ?? 0}
                   onEdit={() => setEditingCard(c)}
                   onDelete={() => setDeletingCard(c)}
                 />

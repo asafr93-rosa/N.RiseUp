@@ -1,14 +1,16 @@
 import { Pencil, Trash2, CreditCard as CreditCardIcon, Link } from 'lucide-react'
 import type { CreditCard } from '../../store/useFinanceStore'
+import { formatCurrency } from '../../lib/formatters'
 
 interface Props {
   card: CreditCard
   linkedAccountName?: string
+  monthlyTotal: number
   onEdit: () => void
   onDelete: () => void
 }
 
-export default function CreditCardCard({ card, linkedAccountName, onEdit, onDelete }: Props) {
+export default function CreditCardCard({ card, linkedAccountName, monthlyTotal, onEdit, onDelete }: Props) {
   return (
     <div className="card p-4 flex flex-col min-h-[140px] animate-fade-in">
       {/* Top: icon + actions */}
@@ -44,6 +46,15 @@ export default function CreditCardCard({ card, linkedAccountName, onEdit, onDele
               {card.paymentCycleDay ? `Day ${card.paymentCycleDay}` : ''}
             </p>
           )}
+          <div className="mt-1.5 mb-1">
+            <p
+              className="text-sm font-bold"
+              style={{ color: monthlyTotal > 0 ? 'var(--color-expense)' : 'var(--color-text-secondary)' }}
+            >
+              {formatCurrency(monthlyTotal)}
+            </p>
+            <p className="text-[10px]" style={{ color: 'var(--color-text-secondary)' }}>this month</p>
+          </div>
           {linkedAccountName ? (
             <div className="flex items-center gap-1">
               <Link size={10} style={{ color: '#4361EE' }} />
