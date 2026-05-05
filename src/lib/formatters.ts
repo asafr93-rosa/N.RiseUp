@@ -115,6 +115,7 @@ export function toMonthPrefix(date: Date): string {
 
 export const CATEGORY_LABELS: Record<ExpenseCategory, string> = {
   food_restaurants: 'Food & Restaurants',
+  grocery: 'Grocery',
   fuel_transportation: 'Fuel & Transport',
   insurance: 'Insurance',
   shopping_fashion: 'Shopping & Fashion',
@@ -151,6 +152,7 @@ export const ASSET_TYPE_LABELS: Record<AssetType, string> = {
 
 export const CATEGORY_COLORS: Record<ExpenseCategory, string> = {
   food_restaurants: '#f97316',
+  grocery: '#84cc16',
   fuel_transportation: '#3b82f6',
   insurance: '#8b5cf6',
   shopping_fashion: '#ec4899',

@@ -5,6 +5,7 @@ import { persist } from 'zustand/middleware'
 
 export type ExpenseCategory =
   | 'food_restaurants'
+  | 'grocery'
   | 'fuel_transportation'
   | 'insurance'
   | 'shopping_fashion'

@@ -1,7 +1,7 @@
 import {
   ShoppingCart, Fuel, Shield, ShoppingBag, Heart,
   GraduationCap, Music, Home, Zap, Receipt, MoreHorizontal,
-  PawPrint, RefreshCw,
+  PawPrint, RefreshCw, ShoppingBasket,
   TrendingUp, TrendingDown, Minus,
 } from 'lucide-react'
 import { formatCurrency } from '../../lib/formatters'
@@ -10,6 +10,7 @@ import type { CategorySummary } from '../../lib/chartHelpers'
 
 const CATEGORY_ICONS: Record<ExpenseCategory, React.ElementType> = {
   food_restaurants: ShoppingCart,
+  grocery: ShoppingBasket,
   fuel_transportation: Fuel,
   insurance: Shield,
   shopping_fashion: ShoppingBag,

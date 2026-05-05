@@ -483,6 +483,18 @@ export default function Accounts() {
                 )}
               </div>
             </div>
+            {selectMode && selectedIds.size > 0 && (() => {
+              const subtotal = ccTransactions
+                .filter((t) => selectedIds.has(t.id))
+                .reduce((s, t) => s + t.amount, 0)
+              return (
+                <div className="flex items-center justify-between px-3 py-2 rounded-xl mb-2 text-xs font-medium"
+                  style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)' }}>
+                  <span style={{ color: 'var(--color-text-secondary)' }}>{selectedIds.size} selected</span>
+                  <span style={{ color: 'var(--color-expense)' }}>{formatCurrency(subtotal)}</span>
+                </div>
+              )
+            })()}
             <TransactionTable
               transactions={ccTransactions}
               accounts={accounts}
