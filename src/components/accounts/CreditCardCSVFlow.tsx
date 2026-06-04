@@ -33,7 +33,24 @@ export default function CreditCardCSVFlow({ creditCards, onImport }: Props) {
     setStage('loading')
     setFileName(file.name)
     try {
-      const text = await file.text()
+      let text: string
+      const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls')
+      if (isExcel) {
+        const XLSX = await import('xlsx')
+        const buffer = await file.arrayBuffer()
+        const wb = XLSX.read(buffer, { type: 'array', cellDates: true })
+        const parts: string[] = []
+        for (const sheetName of wb.SheetNames) {
+          parts.push(XLSX.utils.sheet_to_csv(wb.Sheets[sheetName]))
+        }
+        text = parts.join('\n---\n')
+      } else {
+        text = await file.text()
+        if (text.includes('�')) {
+          const buf = await file.arrayBuffer()
+          try { text = new TextDecoder('windows-1255').decode(buf) } catch { /* keep utf-8 */ }
+        }
+      }
       const parsed = await classifyTransactionsFromFile(text)
       if (parsed.length === 0) {
         toast.error('No expense transactions found in the file.')
