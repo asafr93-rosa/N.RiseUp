@@ -50,7 +50,8 @@ Your task: parse the raw file content, extract all expense transactions, classif
 - Skip ALL non-transaction rows: titles, subtitles, totals, summaries, legal text, empty rows
 - Exclude zero/negative amounts
 - If amount is in foreign currency, use the ILS equivalent column
-- Output ONLY the CSV — no explanation, no markdown, no summary`
+- Output ONLY the CSV — no explanation, no markdown, no summary
+- Remove any double-quote characters (\") from merchant names (e.g. רמב"ם → רמב״ם or רמבם)`
 
 function parseClassifiedCSV(csv: string): ParsedRow[] {
   const lines = csv.trim().split('\n').map(l => l.trim()).filter(Boolean)
@@ -65,8 +66,10 @@ function parseClassifiedCSV(csv: string): ParsedRow[] {
     for (let i = 0; i < line.length; i++) {
       const c = line[i]
       if (c === '"') {
-        if (inQuotes && line[i + 1] === '"') { field += '"'; i++ }
-        else inQuotes = !inQuotes
+        if (!inQuotes && field === '') { inQuotes = true }           // opening quote
+        else if (inQuotes && line[i + 1] === '"') { field += '"'; i++ } // escaped quote
+        else if (inQuotes) { inQuotes = false }                     // closing quote
+        else { field += c }                                          // stray quote inside field — keep as text
       } else if (c === ',' && !inQuotes) {
         fields.push(field.trim()); field = ''
       } else {
