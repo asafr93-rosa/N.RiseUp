@@ -1,11 +1,12 @@
 import { useState, useRef } from 'react'
-import { Upload, CheckCircle, X } from 'lucide-react'
+import { Upload, CheckCircle, X, Sparkles } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Button from '../ui/Button'
 import CSVPreviewTable, { type PreviewRow } from './CSVPreviewTable'
 import ColumnMapperModal from './ColumnMapperModal'
 import { parseCSVFile, applyMapping } from '../../lib/csvParser'
 import type { ParsedRow, ColumnMapping } from '../../lib/csvParser'
+import { aiClassifyTransactions } from '../../lib/aiClassifier'
 import type { Transaction, BankAccount, ExpenseCategory } from '../../store/useFinanceStore'
 
 function toPreviewRows(rows: ParsedRow[]): PreviewRow[] {
@@ -18,7 +19,7 @@ interface Props {
   onImport: (txns: Omit<Transaction, 'id' | 'createdAt'>[], batchMeta: { bankAccountId: string | null; creditCardId: string | null; fileName: string; transactionCount: number; totalAmount: number; importedAt: string }) => void
 }
 
-type Stage = 'idle' | 'preview' | 'mapping'
+type Stage = 'idle' | 'parsing' | 'preview' | 'mapping'
 
 export default function ImportCSVFlow({ accounts, categoryRules, onImport }: Props) {
   const fileRef = useRef<HTMLInputElement>(null)
@@ -29,22 +30,56 @@ export default function ImportCSVFlow({ accounts, categoryRules, onImport }: Pro
   const [rawRows, setRawRows] = useState<Record<string, string>[]>([])
   const [accountId, setAccountId] = useState(accounts[0]?.id ?? '')
   const [isDragging, setIsDragging] = useState(false)
+  const [aiClassifying, setAiClassifying] = useState(false)
+
+  const ACCEPTED_TYPES = '.csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel'
+
+  function isAccepted(file: File) {
+    return file.name.endsWith('.csv') || file.name.endsWith('.xlsx') || file.name.endsWith('.xls') ||
+      file.type === 'text/csv' ||
+      file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+      file.type === 'application/vnd.ms-excel'
+  }
 
   async function handleFile(file: File) {
-    if (!file.name.endsWith('.csv') && file.type !== 'text/csv') {
-      toast.error('Please select a CSV file')
+    if (!isAccepted(file)) {
+      toast.error('Please select a CSV or Excel file')
       return
     }
     setFileName(file.name)
-    const result = await parseCSVFile(file, categoryRules)
-    setRawHeaders(result.rawHeaders)
-    setRawRows(result.rawRows)
+    setStage('parsing')
+    try {
+      const result = await parseCSVFile(file, categoryRules)
+      setRawHeaders(result.rawHeaders)
+      setRawRows(result.rawRows)
 
-    if (result.needsMapping) {
-      setStage('mapping')
-    } else {
-      setRows(toPreviewRows(result.rows))
-      setStage('preview')
+      if (result.needsMapping) {
+        setStage('mapping')
+        return
+      }
+
+      const parsed = result.rows
+      // Run AI classification if API key is available
+      if (import.meta.env.VITE_ANTHROPIC_API_KEY && parsed.length > 0) {
+        setAiClassifying(true)
+        setRows(toPreviewRows(parsed))
+        setStage('preview')
+        try {
+          const descriptions = parsed.map((r) => r.description)
+          const categories = await aiClassifyTransactions(descriptions)
+          setRows(parsed.map((r, i) => ({ ...r, category: categories[i] ?? r.category, excluded: false })))
+        } catch {
+          // fall back to keyword-classified rows already shown
+        } finally {
+          setAiClassifying(false)
+        }
+      } else {
+        setRows(toPreviewRows(parsed))
+        setStage('preview')
+      }
+    } catch (err) {
+      toast.error('Failed to parse file')
+      setStage('idle')
     }
   }
 
@@ -55,10 +90,24 @@ export default function ImportCSVFlow({ accounts, categoryRules, onImport }: Pro
     if (file) handleFile(file)
   }
 
-  function handleMappingConfirm(mapping: ColumnMapping) {
+  async function handleMappingConfirm(mapping: ColumnMapping) {
     const mapped = applyMapping(rawRows, mapping, categoryRules)
-    setRows(toPreviewRows(mapped))
-    setStage('preview')
+    if (import.meta.env.VITE_ANTHROPIC_API_KEY && mapped.length > 0) {
+      setAiClassifying(true)
+      setRows(toPreviewRows(mapped))
+      setStage('preview')
+      try {
+        const categories = await aiClassifyTransactions(mapped.map((r) => r.description))
+        setRows(mapped.map((r, i) => ({ ...r, category: categories[i] ?? r.category, excluded: false })))
+      } catch {
+        // keep keyword-classified rows
+      } finally {
+        setAiClassifying(false)
+      }
+    } else {
+      setRows(toPreviewRows(mapped))
+      setStage('preview')
+    }
   }
 
   function updateCategory(index: number, category: ExpenseCategory) {
@@ -85,20 +134,40 @@ export default function ImportCSVFlow({ accounts, categoryRules, onImport }: Pro
     toast.success(`Imported ${rows.length} transactions`)
   }
 
-  if (stage === 'idle') {
+  if (stage === 'idle' || stage === 'parsing') {
     return (
       <div
         onDragOver={(e) => { e.preventDefault(); setIsDragging(true) }}
         onDragLeave={() => setIsDragging(false)}
         onDrop={handleDrop}
-        onClick={() => fileRef.current?.click()}
-        className="border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-colors"
-        style={{ borderColor: isDragging ? '#4361EE' : 'var(--color-border)', background: isDragging ? '#4361EE10' : 'transparent' }}
+        onClick={() => stage === 'idle' && fileRef.current?.click()}
+        className="border-2 border-dashed rounded-xl p-6 text-center transition-colors"
+        style={{
+          borderColor: isDragging ? '#4361EE' : 'var(--color-border)',
+          background: isDragging ? '#4361EE10' : 'transparent',
+          cursor: stage === 'parsing' ? 'default' : 'pointer',
+        }}
       >
-        <Upload size={24} className="mx-auto mb-2" style={{ color: 'var(--color-text-secondary)' }} />
-        <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>Drop CSV file here</p>
-        <p className="text-xs mt-1" style={{ color: 'var(--color-text-secondary)' }}>or click to browse · supports Hebrew bank exports</p>
-        <input ref={fileRef} type="file" accept=".csv,text/csv" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f) }} />
+        {stage === 'parsing' ? (
+          <>
+            <div className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin mx-auto mb-2" style={{ borderColor: '#4361EE', borderTopColor: 'transparent' }} />
+            <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>Reading file…</p>
+          </>
+        ) : (
+          <>
+            <Upload size={24} className="mx-auto mb-2" style={{ color: 'var(--color-text-secondary)' }} />
+            <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>Drop CSV or Excel file here</p>
+            <p className="text-xs mt-1" style={{ color: 'var(--color-text-secondary)' }}>
+              or click to browse · .csv, .xlsx · Hebrew bank exports supported
+            </p>
+            {import.meta.env.VITE_ANTHROPIC_API_KEY && (
+              <p className="text-xs mt-1 flex items-center justify-center gap-1" style={{ color: '#4361EE' }}>
+                <Sparkles size={11} /> AI-powered classification
+              </p>
+            )}
+          </>
+        )}
+        <input ref={fileRef} type="file" accept={ACCEPTED_TYPES} className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f) }} />
       </div>
     )
   }
@@ -125,6 +194,13 @@ export default function ImportCSVFlow({ accounts, categoryRules, onImport }: Pro
           </div>
         )}
 
+        {aiClassifying && (
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs" style={{ background: '#4361EE15', color: '#4361EE' }}>
+            <div className="w-3 h-3 border border-t-transparent rounded-full animate-spin" style={{ borderColor: '#4361EE', borderTopColor: 'transparent' }} />
+            <Sparkles size={12} />
+            AI is classifying transactions…
+          </div>
+        )}
         <CSVPreviewTable rows={rows} onCategoryChange={updateCategory} />
 
         <div className="flex gap-2">

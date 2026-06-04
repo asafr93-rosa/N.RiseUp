@@ -1,4 +1,5 @@
 import Papa from 'papaparse'
+import * as XLSX from 'xlsx'
 import { categorizeByKeyword } from './categorizer'
 import type { ExpenseCategory, CategoryRules } from '../store/useFinanceStore'
 
@@ -157,16 +158,26 @@ export async function parseCSVFile(
   file: File,
   userRules: CategoryRules = {}
 ): Promise<ParseResult> {
-  // Try UTF-8 first, fall back to Windows-1255 for Hebrew bank exports
-  const text = await tryDecode(file)
+  const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls') ||
+    file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+    file.type === 'application/vnd.ms-excel'
 
-  const result = Papa.parse<Record<string, string>>(text, {
-    header: true,
-    skipEmptyLines: true,
-  })
+  let rawHeaders: string[]
+  let rawRows: Record<string, string>[]
 
-  const rawHeaders = result.meta.fields ?? []
-  const rawRows = result.data
+  if (isExcel) {
+    const parsed = await parseExcelFile(file)
+    rawHeaders = parsed.rawHeaders
+    rawRows = parsed.rawRows
+  } else {
+    const text = await tryDecode(file)
+    const result = Papa.parse<Record<string, string>>(text, {
+      header: true,
+      skipEmptyLines: true,
+    })
+    rawHeaders = result.meta.fields ?? []
+    rawRows = result.data
+  }
 
   const mapping = autoDetectMapping(rawHeaders)
 
@@ -189,6 +200,32 @@ export function applyMapping(
   return rawRows
     .map((r) => buildRow(r, mapping, userRules))
     .filter((r): r is ParsedRow => r !== null)
+}
+
+// ── Excel parser ──────────────────────────────────────────────────────────────
+
+async function parseExcelFile(file: File): Promise<{ rawHeaders: string[]; rawRows: Record<string, string>[] }> {
+  const buffer = await file.arrayBuffer()
+  const workbook = XLSX.read(buffer, { type: 'array', cellDates: true })
+  const sheet = workbook.Sheets[workbook.SheetNames[0]]
+  const data = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: '' })
+
+  if (data.length === 0) return { rawHeaders: [], rawRows: [] }
+
+  const rawHeaders = Object.keys(data[0])
+  const rawRows = data.map((row) =>
+    Object.fromEntries(
+      Object.entries(row).map(([k, v]) => {
+        if (v instanceof Date) {
+          const iso = v.toISOString().slice(0, 10)
+          return [k, iso]
+        }
+        return [k, String(v)]
+      })
+    ) as Record<string, string>
+  )
+
+  return { rawHeaders, rawRows }
 }
 
 // ── Encoding helper ───────────────────────────────────────────────────────────
