@@ -47,6 +47,16 @@ export function parseDate(raw: string): string {
   // YYYY-MM-DD
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s
 
+  // ISO datetime (e.g. from Excel cellDates: "2026-06-02T20:59:20.000Z")
+  // Use local date components to avoid UTC timezone shift
+  if (/^\d{4}-\d{2}-\d{2}T/.test(s)) {
+    const d = new Date(s)
+    const y = d.getFullYear()
+    const mo = String(d.getMonth() + 1).padStart(2, '0')
+    const dy = String(d.getDate()).padStart(2, '0')
+    return `${y}-${mo}-${dy}`
+  }
+
   // DD/MM/YYYY or DD.MM.YYYY
   const dmy = s.match(/^(\d{1,2})[/.\-](\d{1,2})[/.\-](\d{2,4})$/)
   if (dmy) {
@@ -212,15 +222,24 @@ async function parseExcelFile(file: File): Promise<{ rawHeaders: string[]; rawRo
 
   if (data.length === 0) return { rawHeaders: [], rawRows: [] }
 
-  const rawHeaders = Object.keys(data[0])
+  // Normalize header keys: strip \r\n and extra whitespace
+  const originalKeys = Object.keys(data[0])
+  const normalizedKeys = originalKeys.map((k) => k.replace(/[\r\n]+/g, ' ').trim())
+
+  const rawHeaders = normalizedKeys
   const rawRows = data.map((row) =>
     Object.fromEntries(
-      Object.entries(row).map(([k, v]) => {
+      originalKeys.map((origKey, i) => {
+        const normKey = normalizedKeys[i]
+        const v = row[origKey]
         if (v instanceof Date) {
-          const iso = v.toISOString().slice(0, 10)
-          return [k, iso]
+          // Use local date components to avoid UTC timezone shift
+          const y = v.getFullYear()
+          const mo = String(v.getMonth() + 1).padStart(2, '0')
+          const dy = String(v.getDate()).padStart(2, '0')
+          return [normKey, `${y}-${mo}-${dy}`]
         }
-        return [k, String(v)]
+        return [normKey, String(v)]
       })
     ) as Record<string, string>
   )
