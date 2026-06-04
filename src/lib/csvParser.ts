@@ -33,7 +33,7 @@ export interface ColumnMapping {
 // ── Known Hebrew/English header patterns ─────────────────────────────────────
 
 const DATE_HEADERS = ['תאריך', 'date', 'תאריך עסקה', 'תאריך חיוב', 'transaction date']
-const DESC_HEADERS = ['תיאור', 'description', 'שם בית עסק', 'פירוט', 'עסק', 'business', 'name', 'מוטב']
+const DESC_HEADERS = ['תיאור', 'description', 'שם בית עסק', 'שם בית העסק', 'פירוט', 'עסק', 'business', 'name', 'מוטב']
 const AMOUNT_HEADERS = ['סכום', 'amount', 'סכום חיוב', 'סכום עסקה', 'חיוב', 'sum']
 const CREDIT_HEADERS = ['זכות', 'credit', 'הכנסה', 'income']
 const DEBIT_HEADERS = ['חובה', 'debit', 'הוצאה', 'expense', 'חיוב']
@@ -214,37 +214,83 @@ export function applyMapping(
 
 // ── Excel parser ──────────────────────────────────────────────────────────────
 
+// Convert an Excel cell value to a clean string
+function cellToString(v: unknown): string {
+  if (v instanceof Date) {
+    const y = v.getFullYear()
+    const mo = String(v.getMonth() + 1).padStart(2, '0')
+    const dy = String(v.getDate()).padStart(2, '0')
+    return `${y}-${mo}-${dy}`
+  }
+  return String(v ?? '')
+}
+
+// Normalize a header string: strip \r\n, trim, collapse spaces
+function normalizeHeader(h: string): string {
+  return h.replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim()
+}
+
+// Score how "header-like" a row is by counting cells that match known column names
+function headerScore(row: unknown[]): number {
+  const allPatterns = [...DATE_HEADERS, ...DESC_HEADERS, ...AMOUNT_HEADERS,
+    ...CREDIT_HEADERS, ...DEBIT_HEADERS]
+  let score = 0
+  for (const cell of row) {
+    const s = normalizeHeader(String(cell ?? '')).toLowerCase()
+    if (s && allPatterns.some((p) => s.includes(p.toLowerCase()))) score++
+  }
+  return score
+}
+
 async function parseExcelFile(file: File): Promise<{ rawHeaders: string[]; rawRows: Record<string, string>[] }> {
   const buffer = await file.arrayBuffer()
   const workbook = XLSX.read(buffer, { type: 'array', cellDates: true })
-  const sheet = workbook.Sheets[workbook.SheetNames[0]]
-  const data = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: '' })
 
-  if (data.length === 0) return { rawHeaders: [], rawRows: [] }
+  // Collect data rows from ALL sheets, finding the real header in each
+  const allRawRows: Record<string, string>[] = []
+  let sharedHeaders: string[] | null = null
 
-  // Normalize header keys: strip \r\n and extra whitespace
-  const originalKeys = Object.keys(data[0])
-  const normalizedKeys = originalKeys.map((k) => k.replace(/[\r\n]+/g, ' ').trim())
+  for (const sheetName of workbook.SheetNames) {
+    const sheet = workbook.Sheets[sheetName]
+    // Use header:1 to get raw arrays so we can find the real header row
+    const rawRows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: '' })
+    if (rawRows.length === 0) continue
 
-  const rawHeaders = normalizedKeys
-  const rawRows = data.map((row) =>
-    Object.fromEntries(
-      originalKeys.map((origKey, i) => {
-        const normKey = normalizedKeys[i]
-        const v = row[origKey]
-        if (v instanceof Date) {
-          // Use local date components to avoid UTC timezone shift
-          const y = v.getFullYear()
-          const mo = String(v.getMonth() + 1).padStart(2, '0')
-          const dy = String(v.getDate()).padStart(2, '0')
-          return [normKey, `${y}-${mo}-${dy}`]
-        }
-        return [normKey, String(v)]
+    // Find the row with the best header match (scan first 10 rows)
+    let headerRowIdx = 0
+    let bestScore = 0
+    for (let i = 0; i < Math.min(10, rawRows.length); i++) {
+      const score = headerScore(rawRows[i])
+      if (score > bestScore) { bestScore = score; headerRowIdx = i }
+    }
+
+    // Require at least 2 matching header cells
+    if (bestScore < 2) continue
+
+    const headerRow = rawRows[headerRowIdx] as unknown[]
+    const headers = headerRow.map((h) => normalizeHeader(String(h ?? '')))
+
+    // Use header from first valid sheet; subsequent sheets must share same structure
+    if (!sharedHeaders) sharedHeaders = headers
+
+    // Parse data rows after the header
+    for (let i = headerRowIdx + 1; i < rawRows.length; i++) {
+      const dataRow = rawRows[i] as unknown[]
+      // Skip fully empty rows and summary/total rows
+      const nonEmpty = dataRow.filter((v) => String(v ?? '').trim() !== '')
+      if (nonEmpty.length === 0) continue
+
+      const rowObj: Record<string, string> = {}
+      headers.forEach((h, ci) => {
+        if (h) rowObj[h] = cellToString(dataRow[ci])
       })
-    ) as Record<string, string>
-  )
+      allRawRows.push(rowObj)
+    }
+  }
 
-  return { rawHeaders, rawRows }
+  if (!sharedHeaders || allRawRows.length === 0) return { rawHeaders: [], rawRows: [] }
+
+  return { rawHeaders: sharedHeaders, rawRows: allRawRows }
 }
 
 // ── Encoding helper ───────────────────────────────────────────────────────────
