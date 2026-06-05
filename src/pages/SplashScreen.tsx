@@ -1,9 +1,17 @@
 import { useState, useEffect } from 'react'
-import { TrendingUp } from 'lucide-react'
 
 interface Props {
   onDone: () => void
 }
+
+const ArcIcon = ({ size }: { size: number }) => (
+  <svg width={size} height={size} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M32,20 A12,12 0 1,1 27.5,29.5"
+          stroke="white" strokeWidth="4" strokeLinecap="round"/>
+    <path d="M27.5,29.5 L30.5,23.5" stroke="white" strokeWidth="4" strokeLinecap="round"/>
+    <path d="M27.5,29.5 L33.5,27.5" stroke="white" strokeWidth="4" strokeLinecap="round"/>
+  </svg>
+)
 
 export default function SplashScreen({ onDone }: Props) {
   const [visible, setVisible] = useState(true)
@@ -30,7 +38,7 @@ export default function SplashScreen({ onDone }: Props) {
         className="flex items-center justify-center rounded-2xl"
         style={{ width: 72, height: 72, background: '#2dd4bf' }}
       >
-        <TrendingUp size={36} color="#fff" />
+        <ArcIcon size={40} />
       </div>
       <div className="text-center">
         <h1 className="text-3xl font-bold" style={{ color: 'var(--color-text-primary)' }}>

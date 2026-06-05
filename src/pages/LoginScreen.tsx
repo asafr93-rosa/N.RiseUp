@@ -1,5 +1,13 @@
 import { useState } from 'react'
-import { TrendingUp } from 'lucide-react'
+
+const ArcIcon = ({ size }: { size: number }) => (
+  <svg width={size} height={size} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M32,20 A12,12 0 1,1 27.5,29.5"
+          stroke="white" strokeWidth="4" strokeLinecap="round"/>
+    <path d="M27.5,29.5 L30.5,23.5" stroke="white" strokeWidth="4" strokeLinecap="round"/>
+    <path d="M27.5,29.5 L33.5,27.5" stroke="white" strokeWidth="4" strokeLinecap="round"/>
+  </svg>
+)
 import Input from '../components/ui/Input'
 import Button from '../components/ui/Button'
 import { useAuthStore } from '../store/useAuthStore'
@@ -50,7 +58,7 @@ export default function LoginScreen() {
             className="flex items-center justify-center rounded-2xl mb-3"
             style={{ width: 60, height: 60, background: '#2dd4bf' }}
           >
-            <TrendingUp size={28} color="#fff" />
+            <ArcIcon size={32} />
           </div>
           <h1 className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>N.RiseUp</h1>
           <p className="text-sm mt-1" style={{ color: 'var(--color-text-secondary)' }}>Your personal finance tracker</p>
