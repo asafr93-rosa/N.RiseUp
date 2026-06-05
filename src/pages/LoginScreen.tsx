@@ -1,11 +1,9 @@
 import { useState } from 'react'
 
-const ArcIcon = ({ size }: { size: number }) => (
-  <svg width={size} height={size} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M32,20 A12,12 0 1,1 27.5,29.5"
-          stroke="white" strokeWidth="4" strokeLinecap="round"/>
-    <path d="M27.5,29.5 L30.5,23.5" stroke="white" strokeWidth="4" strokeLinecap="round"/>
-    <path d="M27.5,29.5 L33.5,27.5" stroke="white" strokeWidth="4" strokeLinecap="round"/>
+const HalfCircleDot = ({ size }: { size: number }) => (
+  <svg width={size} height={size} viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="30" cy="14" r="5" fill="#0A0A0A"/>
+    <path d="M6,40 A24,24 0 0,1 54,40 Z" fill="#0A0A0A"/>
   </svg>
 )
 import Input from '../components/ui/Input'
@@ -54,11 +52,8 @@ export default function LoginScreen() {
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
-          <div
-            className="flex items-center justify-center rounded-2xl mb-3"
-            style={{ width: 60, height: 60, background: '#2dd4bf' }}
-          >
-            <ArcIcon size={32} />
+          <div className="mb-3">
+            <HalfCircleDot size={60} />
           </div>
           <h1 className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>N.RiseUp</h1>
           <p className="text-sm mt-1" style={{ color: 'var(--color-text-secondary)' }}>Your personal finance tracker</p>
