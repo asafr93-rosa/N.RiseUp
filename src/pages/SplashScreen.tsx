@@ -28,7 +28,7 @@ export default function SplashScreen({ onDone }: Props) {
     >
       <div
         className="flex items-center justify-center rounded-2xl"
-        style={{ width: 72, height: 72, background: '#6366f1' }}
+        style={{ width: 72, height: 72, background: '#2dd4bf' }}
       >
         <TrendingUp size={36} color="#fff" />
       </div>

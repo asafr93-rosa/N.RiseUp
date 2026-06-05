@@ -32,7 +32,7 @@ export default function InvestmentSummary({ investments }: Props) {
       <AnimatedCounter value={total} alreadyConverted className="text-3xl font-bold block mt-1" />
 
       {totalAnnualFee > 0 && (
-        <p className="text-sm mt-1" style={{ color: '#f43f5e' }}>
+        <p className="text-sm mt-1" style={{ color: '#f87171' }}>
           ~{formatCurrencyIn(totalAnnualFee, displayCurrency)} estimated annual fees
         </p>
       )}

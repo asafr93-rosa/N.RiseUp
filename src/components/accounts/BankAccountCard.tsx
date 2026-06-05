@@ -55,7 +55,7 @@ export default function BankAccountCard({ account, filterMonthKey, effectiveBala
     return (
       <div className="card p-3 flex flex-col gap-2.5 animate-fade-in">
         <div className="flex items-center gap-1.5 mb-0.5">
-          <div className="w-6 h-6 rounded-md flex items-center justify-center shrink-0" style={{ background: 'var(--color-accent-light)', color: '#6366f1' }}>
+          <div className="w-6 h-6 rounded-md flex items-center justify-center shrink-0" style={{ background: 'var(--color-accent-light)', color: '#2dd4bf' }}>
             <CreditCard size={12} />
           </div>
           <span className="text-xs font-semibold" style={{ color: 'var(--color-text-secondary)' }}>Editing</span>
@@ -93,7 +93,7 @@ export default function BankAccountCard({ account, filterMonthKey, effectiveBala
           <button onClick={handleCancel} className="flex-1 flex items-center justify-center gap-1 text-xs py-1.5 rounded-lg font-medium" style={{ background: 'var(--color-surface)', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)' }}>
             <X size={12} /> Cancel
           </button>
-          <button onClick={handleSave} className="flex-1 flex items-center justify-center gap-1 text-xs py-1.5 rounded-lg font-medium" style={{ background: '#6366f120', color: '#6366f1', border: '1px solid #6366f140' }}>
+          <button onClick={handleSave} className="flex-1 flex items-center justify-center gap-1 text-xs py-1.5 rounded-lg font-medium" style={{ background: '#2dd4bf20', color: '#2dd4bf', border: '1px solid #2dd4bf40' }}>
             <Check size={12} /> Save
           </button>
         </div>
@@ -105,7 +105,7 @@ export default function BankAccountCard({ account, filterMonthKey, effectiveBala
     <div className="card p-3 flex flex-col gap-3 animate-fade-in">
       <div className="flex items-start justify-between gap-1">
         <div className="flex items-center gap-2 min-w-0">
-          <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'var(--color-accent-light)', color: '#6366f1' }}>
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'var(--color-accent-light)', color: '#2dd4bf' }}>
             <CreditCard size={13} />
           </div>
           <div className="min-w-0">
@@ -117,7 +117,7 @@ export default function BankAccountCard({ account, filterMonthKey, effectiveBala
         </div>
         <div className="flex gap-0.5 shrink-0">
           <button onClick={startEdit} className="p-1 rounded" style={{ color: 'var(--color-text-secondary)' }}><Pencil size={11} /></button>
-          <button onClick={onDelete} className="p-1 rounded" style={{ color: '#f43f5e' }}><Trash2 size={11} /></button>
+          <button onClick={onDelete} className="p-1 rounded" style={{ color: '#f87171' }}><Trash2 size={11} /></button>
         </div>
       </div>
 
@@ -138,9 +138,9 @@ export default function BankAccountCard({ account, filterMonthKey, effectiveBala
         </div>
         <div className="border-t" style={{ borderColor: 'var(--color-border)' }} />
         <div className="flex items-center justify-between">
-          <span className="text-xs font-medium" style={{ color: '#6366f1' }}>Effective</span>
+          <span className="text-xs font-medium" style={{ color: '#2dd4bf' }}>Effective</span>
           <div className="flex flex-col items-end">
-            <span className="text-sm font-bold" style={{ color: effectiveBalance >= 0 ? '#6366f1' : '#f43f5e' }}>
+            <span className="text-sm font-bold" style={{ color: effectiveBalance >= 0 ? '#2dd4bf' : '#f87171' }}>
               {format(effectiveBalance, acctCurrency)}
             </span>
             {acctCurrency !== displayCurrency && <span className="text-[10px]" style={{ color: 'var(--color-text-secondary)' }}>{formatCurrencyIn(effectiveBalance, acctCurrency)}</span>}

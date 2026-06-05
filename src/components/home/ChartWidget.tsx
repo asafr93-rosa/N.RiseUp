@@ -124,16 +124,16 @@ export default function ChartWidget({ widget, onDelete, selectedMonth }: Props) 
               <XAxis dataKey="month" tick={{ fontSize: 10 }} />
               <YAxis tickFormatter={(v) => `₪${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 10 }} width={40} />
               <Tooltip formatter={(v, name) => [formatCurrency(Number(v)), String(name)]} contentStyle={tooltipStyle} />
-              <Line type="monotone" dataKey="expenses" stroke="#f43f5e" dot={false} strokeWidth={2} />
-              <Line type="monotone" dataKey="income" stroke="#10b981" dot={false} strokeWidth={2} />
+              <Line type="monotone" dataKey="expenses" stroke="#f87171" dot={false} strokeWidth={2} />
+              <Line type="monotone" dataKey="income" stroke="#34d399" dot={false} strokeWidth={2} />
             </LineChart>
           ) : (
             <BarChart data={d}>
               <XAxis dataKey="month" tick={{ fontSize: 10 }} />
               <YAxis tickFormatter={(v) => `₪${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 10 }} width={40} />
               <Tooltip formatter={(v, name) => [formatCurrency(Number(v)), String(name)]} contentStyle={tooltipStyle} />
-              <Bar dataKey="expenses" fill="#f43f5e" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="income" fill="#10b981" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="expenses" fill="#f87171" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="income" fill="#34d399" radius={[4, 4, 0, 0]} />
             </BarChart>
           )}
         </ResponsiveContainer>
@@ -148,7 +148,7 @@ export default function ChartWidget({ widget, onDelete, selectedMonth }: Props) 
             <XAxis dataKey="date" tick={{ fontSize: 10 }} />
             <YAxis tickFormatter={(v) => `₪${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 10 }} width={40} />
             <Tooltip formatter={(v) => [formatCurrency(Number(v)), 'Balance']} contentStyle={tooltipStyle} />
-            <Line type="monotone" dataKey="balance" stroke="#6366f1" dot={false} strokeWidth={2} />
+            <Line type="monotone" dataKey="balance" stroke="#2dd4bf" dot={false} strokeWidth={2} />
           </LineChart>
         </ResponsiveContainer>
       )
@@ -157,7 +157,7 @@ export default function ChartWidget({ widget, onDelete, selectedMonth }: Props) 
     if (widget.dataSource === 'category_comparison') {
       const d = data as ReturnType<typeof getCategoryComparison>
       const monthKeys = d.length > 0 ? Object.keys(d[0]).filter((k) => k !== 'category') : []
-      const colors = ['#6366f1', '#f43f5e', '#10b981', '#f59e0b', '#8b5cf6']
+      const colors = ['#2dd4bf', '#f87171', '#34d399', '#f59e0b', '#0d9488']
       return (
         <ResponsiveContainer width="100%" height={180}>
           <BarChart data={d}>

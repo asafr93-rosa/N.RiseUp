@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useAutoAnimate } from '@formkit/auto-animate/react'
 import toast from 'react-hot-toast'
-import { Plus, CreditCard as CreditCardIcon, Upload, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, CheckSquare } from 'lucide-react'
+import { Plus, CreditCard as CreditCardIcon, Upload, ChevronLeft, ChevronRight, CheckSquare } from 'lucide-react'
 import { startOfMonth, endOfMonth, parseISO, isWithinInterval, addMonths, subMonths } from 'date-fns'
 import { useFinanceStore } from '../store/useFinanceStore'
 import type { CreditCard, RecurringExpense, ExpenseCategory, Transaction, IncomeEntry } from '../store/useFinanceStore'
@@ -282,14 +282,17 @@ export default function Accounts() {
       {/* ── Section 1: Bank Accounts ── */}
       <section>
         <div className="flex items-center justify-between mb-3">
-          <div>
-            <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>Total Balance</p>
-            <p className="text-xl font-bold" style={{ color: 'var(--color-text-primary)' }}>{formatCurrency(totalBalance)}</p>
-          </div>
-          <Button size="sm" onClick={() => setAddAccountOpen(true)}>
-            <Plus size={14} /> Add Account
+          <p className="section-label flex-1">Bank Accounts</p>
+          <Button size="sm" onClick={() => setAddAccountOpen(true)} style={{ marginLeft: 8 }}>
+            <Plus size={12} /> Add
           </Button>
         </div>
+        {accounts.length > 0 && (
+          <div className="flex items-baseline gap-2 mb-3">
+            <span style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--color-text-secondary)' }}>Total Cash</span>
+            <span style={{ fontSize: '1.1rem', fontWeight: 700, fontFamily: '"DM Mono", monospace', color: 'var(--color-text-primary)' }}>{formatCurrency(totalBalance)}</span>
+          </div>
+        )}
 
         {accounts.length === 0 ? (
           <div className="flex flex-col items-center py-8 gap-3">
@@ -322,9 +325,9 @@ export default function Accounts() {
       {/* ── Section 2: Credit Cards ── */}
       <section>
         <div className="flex items-center justify-between mb-3">
-          <p className="text-base font-semibold" style={{ color: 'var(--color-text-primary)' }}>Credit Cards</p>
-          <Button size="sm" onClick={() => setAddCardOpen(true)}>
-            <Plus size={14} /> Add Card
+          <p className="section-label flex-1">Credit Cards</p>
+          <Button size="sm" onClick={() => setAddCardOpen(true)} style={{ marginLeft: 8 }}>
+            <Plus size={12} /> Add
           </Button>
         </div>
 
@@ -394,18 +397,20 @@ export default function Accounts() {
             )}
           </div>
 
-          {/* Action buttons */}
-          <div className="flex gap-2">
-            <Button variant="secondary" size="sm" className="flex-1" onClick={() => setShowCCImport((v) => !v)}>
-              <Upload size={14} /> Import CSV
-              {showCCImport ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-            </Button>
-            <Button variant="secondary" size="sm" className="flex-1" onClick={() => setAddExpenseOpen(true)}>
-              <Plus size={14} /> Add Expense
-            </Button>
-            <Button variant="secondary" size="sm" className="flex-1" onClick={() => setAddIncomeOpen(true)}>
-              <Plus size={14} /> Add Income
-            </Button>
+          {/* Quick Actions dock */}
+          <div className="quick-actions-dock flex flex-col gap-2">
+            <p className="section-label">Quick Actions</p>
+            <div className="flex gap-2">
+              <Button size="sm" className="flex-1" onClick={() => setShowCCImport((v) => !v)}>
+                <Upload size={13} /> Import
+              </Button>
+              <Button variant="secondary" size="sm" className="flex-1" onClick={() => setAddExpenseOpen(true)}>
+                <Plus size={13} /> Expense
+              </Button>
+              <Button variant="secondary" size="sm" className="flex-1" onClick={() => setAddIncomeOpen(true)}>
+                <Plus size={13} /> Income
+              </Button>
+            </div>
           </div>
 
           {/* CSV import */}
@@ -421,15 +426,15 @@ export default function Accounts() {
           <div className="grid grid-cols-3 gap-2">
             <div className="card p-3 flex flex-col gap-1">
               <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>Expenses</p>
-              <p className="text-sm font-bold" style={{ color: '#f43f5e' }}>{formatCurrency(monthlyExpenses)}</p>
+              <p className="text-sm font-bold" style={{ color: '#f87171' }}>{formatCurrency(monthlyExpenses)}</p>
             </div>
             <div className="card p-3 flex flex-col gap-1">
               <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>Income</p>
-              <p className="text-sm font-bold" style={{ color: '#10b981' }}>{formatCurrency(monthlyIncome)}</p>
+              <p className="text-sm font-bold" style={{ color: '#34d399' }}>{formatCurrency(monthlyIncome)}</p>
             </div>
             <div className="card p-3 flex flex-col gap-1">
               <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>Net</p>
-              <p className="text-sm font-bold" style={{ color: netBalance >= 0 ? '#10b981' : '#f43f5e' }}>
+              <p className="text-sm font-bold" style={{ color: netBalance >= 0 ? '#34d399' : '#f87171' }}>
                 {netBalance < 0 ? '-' : ''}{formatCurrency(Math.abs(netBalance))}
               </p>
             </div>
@@ -438,7 +443,7 @@ export default function Accounts() {
           {/* Expenses list */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <p className="text-base font-semibold" style={{ color: 'var(--color-text-primary)' }}>Expenses</p>
+              <p className="section-label">Transactions</p>
               <div className="flex gap-1.5">
                 {selectMode ? (
                   <>
@@ -453,7 +458,7 @@ export default function Accounts() {
                       disabled={selectedIds.size === 0}
                       onClick={() => setDeletingBulk([...selectedIds])}
                       className="text-xs px-2 py-1 rounded-lg font-medium"
-                      style={{ background: selectedIds.size > 0 ? '#f43f5e20' : 'var(--color-surface)', color: selectedIds.size > 0 ? '#f43f5e' : 'var(--color-text-secondary)', border: `1px solid ${selectedIds.size > 0 ? '#f43f5e40' : 'var(--color-border)'}` }}
+                      style={{ background: selectedIds.size > 0 ? '#f8717120' : 'var(--color-surface)', color: selectedIds.size > 0 ? '#f87171' : 'var(--color-text-secondary)', border: `1px solid ${selectedIds.size > 0 ? '#f8717140' : 'var(--color-border)'}` }}
                     >
                       Delete ({selectedIds.size})
                     </button>
@@ -461,7 +466,7 @@ export default function Accounts() {
                       disabled={ccTransactions.length === 0}
                       onClick={() => setDeletingBulk(ccTransactions.map((t) => t.id))}
                       className="text-xs px-2 py-1 rounded-lg font-medium"
-                      style={{ background: '#f43f5e20', color: '#f43f5e', border: '1px solid #f43f5e40' }}
+                      style={{ background: '#f8717120', color: '#f87171', border: '1px solid #f8717140' }}
                     >
                       Delete All
                     </button>
@@ -499,8 +504,8 @@ export default function Accounts() {
             </div>
             {hasFilter && (() => {
               const accentColor = ccFilterCategory !== 'all'
-                ? (CATEGORY_COLORS[ccFilterCategory] ?? '#6366f1')
-                : '#6366f1'
+                ? (CATEGORY_COLORS[ccFilterCategory] ?? '#2dd4bf')
+                : '#2dd4bf'
               const labelParts = [
                 ccFilterCategory !== 'all' ? CATEGORY_LABELS[ccFilterCategory] : null,
                 ccFilterCardId !== 'all' ? (() => {
@@ -524,7 +529,7 @@ export default function Accounts() {
                     <p className="text-xs font-semibold truncate" style={{ color: 'var(--color-text-primary)' }}>{labelParts}</p>
                     <p className="text-[10px]" style={{ color: 'var(--color-text-secondary)' }}>{count} transaction{count !== 1 ? 's' : ''}</p>
                   </div>
-                  <p className="text-sm font-bold shrink-0" style={{ color: '#f43f5e' }}>{formatCurrency(filteredExpensesSubtotal)}</p>
+                  <p className="text-sm font-bold shrink-0" style={{ color: '#f87171' }}>{formatCurrency(filteredExpensesSubtotal)}</p>
                 </div>
               )
             })()}

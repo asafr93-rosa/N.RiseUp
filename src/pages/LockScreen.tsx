@@ -126,8 +126,8 @@ export default function LockScreen({ onUnlock }: Props) {
             key={i}
             className="w-4 h-4 rounded-full transition-all duration-150"
             style={{
-              background: i < pin.length ? '#6366f1' : 'transparent',
-              border: `2px solid ${i < pin.length ? '#6366f1' : 'var(--color-border)'}`,
+              background: i < pin.length ? '#2dd4bf' : 'transparent',
+              border: `2px solid ${i < pin.length ? '#2dd4bf' : 'var(--color-border)'}`,
             }}
           />
         ))}
@@ -142,7 +142,7 @@ export default function LockScreen({ onUnlock }: Props) {
                 key="biometric"
                 onClick={() => void tryBiometric()}
                 className="flex items-center justify-center h-16 rounded-2xl text-lg font-semibold active:scale-95 transition-transform"
-                style={{ background: 'var(--color-card)', color: '#6366f1', border: '1px solid var(--color-border)' }}
+                style={{ background: 'var(--color-card)', color: '#2dd4bf', border: '1px solid var(--color-border)' }}
               >
                 <ScanFace size={28} />
               </button>

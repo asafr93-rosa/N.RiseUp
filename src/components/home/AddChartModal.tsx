@@ -72,9 +72,9 @@ export default function AddChartModal({ open, onClose, onAdd }: Props) {
                 onClick={() => set('chartType', value)}
                 className="flex flex-col items-center gap-1.5 py-3 rounded-xl border transition-colors"
                 style={{
-                  borderColor: form.chartType === value ? '#6366f1' : 'var(--color-border)',
-                  background: form.chartType === value ? '#6366f110' : 'var(--color-card)',
-                  color: form.chartType === value ? '#6366f1' : 'var(--color-text-secondary)',
+                  borderColor: form.chartType === value ? '#2dd4bf' : 'var(--color-border)',
+                  background: form.chartType === value ? '#2dd4bf10' : 'var(--color-card)',
+                  color: form.chartType === value ? '#2dd4bf' : 'var(--color-text-secondary)',
                 }}
               >
                 <Icon size={20} />
@@ -94,11 +94,11 @@ export default function AddChartModal({ open, onClose, onAdd }: Props) {
                 onClick={() => set('dataSource', ds.value)}
                 className="flex flex-col items-start px-3 py-2.5 rounded-xl border transition-colors text-left"
                 style={{
-                  borderColor: form.dataSource === ds.value ? '#6366f1' : 'var(--color-border)',
-                  background: form.dataSource === ds.value ? '#6366f110' : 'var(--color-card)',
+                  borderColor: form.dataSource === ds.value ? '#2dd4bf' : 'var(--color-border)',
+                  background: form.dataSource === ds.value ? '#2dd4bf10' : 'var(--color-card)',
                 }}
               >
-                <span className="text-sm font-medium" style={{ color: form.dataSource === ds.value ? '#6366f1' : 'var(--color-text-primary)' }}>{ds.label}</span>
+                <span className="text-sm font-medium" style={{ color: form.dataSource === ds.value ? '#2dd4bf' : 'var(--color-text-primary)' }}>{ds.label}</span>
                 <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>{ds.desc}</span>
               </button>
             ))}
@@ -126,8 +126,8 @@ export default function AddChartModal({ open, onClose, onAdd }: Props) {
                 onClick={() => set('timeRange', value)}
                 className="px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors"
                 style={{
-                  borderColor: form.timeRange === value ? '#6366f1' : 'var(--color-border)',
-                  background: form.timeRange === value ? '#6366f1' : 'var(--color-card)',
+                  borderColor: form.timeRange === value ? '#2dd4bf' : 'var(--color-border)',
+                  background: form.timeRange === value ? '#2dd4bf' : 'var(--color-card)',
                   color: form.timeRange === value ? '#fff' : 'var(--color-text-secondary)',
                 }}
               >

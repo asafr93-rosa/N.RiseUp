@@ -23,7 +23,7 @@ export default function Modal({ open, onClose, title, children, maxWidth = 'max-
   return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
-      style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
+      style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)' }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
       <div
@@ -31,27 +31,23 @@ export default function Modal({ open, onClose, title, children, maxWidth = 'max-
         style={{
           background: 'var(--color-surface)',
           border: '1px solid var(--color-border)',
-          boxShadow: '0 -8px 40px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.04)',
         }}
       >
-        {/* Drag handle */}
+        {/* Drag handle on mobile */}
         <div className="flex justify-center pt-3 pb-1 sm:hidden shrink-0">
-          <div className="w-10 h-1 rounded-full" style={{ background: 'var(--color-border)' }} />
+          <div className="w-8 h-1 rounded-full" style={{ background: 'var(--color-border)' }} />
         </div>
         {/* Header */}
-        <div
-          className="flex items-center justify-between px-5 py-3 shrink-0"
-          style={{ borderBottom: '1px solid var(--color-border)' }}
-        >
-          <h2 className="text-base font-semibold" style={{ color: 'var(--color-text-primary)', letterSpacing: '-0.01em' }}>
+        <div className="flex items-center justify-between px-5 py-3 shrink-0" style={{ borderBottom: '1px solid var(--color-border)' }}>
+          <h2 className="text-base font-bold" style={{ color: 'var(--color-text-primary)', letterSpacing: '-0.02em' }}>
             {title}
           </h2>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-xl transition-colors"
+            className="p-1.5 rounded-xl transition-all"
             style={{ color: 'var(--color-text-secondary)', background: 'var(--color-card)' }}
           >
-            <X size={16} />
+            <X size={15} />
           </button>
         </div>
         {/* Body */}

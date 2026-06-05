@@ -143,14 +143,14 @@ export default function ImportCSVFlow({ accounts, categoryRules, onImport }: Pro
         onClick={() => stage === 'idle' && fileRef.current?.click()}
         className="border-2 border-dashed rounded-xl p-6 text-center transition-colors"
         style={{
-          borderColor: isDragging ? '#6366f1' : 'var(--color-border)',
-          background: isDragging ? '#6366f110' : 'transparent',
+          borderColor: isDragging ? '#2dd4bf' : 'var(--color-border)',
+          background: isDragging ? '#2dd4bf10' : 'transparent',
           cursor: stage === 'parsing' ? 'default' : 'pointer',
         }}
       >
         {stage === 'parsing' ? (
           <>
-            <div className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin mx-auto mb-2" style={{ borderColor: '#6366f1', borderTopColor: 'transparent' }} />
+            <div className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin mx-auto mb-2" style={{ borderColor: '#2dd4bf', borderTopColor: 'transparent' }} />
             <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>Reading file…</p>
           </>
         ) : (
@@ -161,7 +161,7 @@ export default function ImportCSVFlow({ accounts, categoryRules, onImport }: Pro
               or click to browse · .csv, .xlsx · Hebrew bank exports supported
             </p>
             {import.meta.env.VITE_ANTHROPIC_API_KEY && (
-              <p className="text-xs mt-1 flex items-center justify-center gap-1" style={{ color: '#6366f1' }}>
+              <p className="text-xs mt-1 flex items-center justify-center gap-1" style={{ color: '#2dd4bf' }}>
                 <Sparkles size={11} /> AI-powered classification
               </p>
             )}
@@ -177,7 +177,7 @@ export default function ImportCSVFlow({ accounts, categoryRules, onImport }: Pro
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <CheckCircle size={16} style={{ color: '#10b981' }} />
+            <CheckCircle size={16} style={{ color: '#34d399' }} />
             <span className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>
               {rows.length} transactions from <span className="font-semibold">{fileName}</span>
             </span>
@@ -195,8 +195,8 @@ export default function ImportCSVFlow({ accounts, categoryRules, onImport }: Pro
         )}
 
         {aiClassifying && (
-          <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs" style={{ background: '#6366f115', color: '#6366f1' }}>
-            <div className="w-3 h-3 border border-t-transparent rounded-full animate-spin" style={{ borderColor: '#6366f1', borderTopColor: 'transparent' }} />
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs" style={{ background: '#2dd4bf15', color: '#2dd4bf' }}>
+            <div className="w-3 h-3 border border-t-transparent rounded-full animate-spin" style={{ borderColor: '#2dd4bf', borderTopColor: 'transparent' }} />
             <Sparkles size={12} />
             AI is classifying transactions…
           </div>

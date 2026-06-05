@@ -107,7 +107,7 @@ export default function InvestmentCard({ investment: inv, onEdit, onDelete }: Pr
           <button onClick={onEdit} className="p-2 rounded-lg" style={{ color: 'var(--color-text-secondary)', background: 'var(--color-card)' }}>
             <Pencil size={15} />
           </button>
-          <button onClick={onDelete} className="p-2 rounded-lg" style={{ color: '#f43f5e', background: 'var(--color-card)' }}>
+          <button onClick={onDelete} className="p-2 rounded-lg" style={{ color: '#f87171', background: 'var(--color-card)' }}>
             <Trash2 size={15} />
           </button>
         </div>
@@ -126,10 +126,10 @@ export default function InvestmentCard({ investment: inv, onEdit, onDelete }: Pr
         {monthlyDiff !== null && monthlyPct !== null && (
           <div className="flex items-center gap-2 mt-0.5">
             <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>vs last month</span>
-            <span className="text-xs font-semibold" style={{ color: monthlyDiff >= 0 ? '#10b981' : '#f43f5e' }}>
+            <span className="text-xs font-semibold" style={{ color: monthlyDiff >= 0 ? '#34d399' : '#f87171' }}>
               {monthlyDiff >= 0 ? '+' : ''}{format(monthlyDiff ?? 0, invCurrency)}
             </span>
-            <span className="text-xs" style={{ color: monthlyDiff >= 0 ? '#10b981' : '#f43f5e' }}>
+            <span className="text-xs" style={{ color: monthlyDiff >= 0 ? '#34d399' : '#f87171' }}>
               ({formatPercent(monthlyPct)})
             </span>
           </div>
@@ -157,7 +157,7 @@ export default function InvestmentCard({ investment: inv, onEdit, onDelete }: Pr
                 }}
                 cursor={{ fill: 'var(--color-border)', opacity: 0.4 }}
               />
-              <Bar dataKey="value" fill="#6366f1" radius={[3, 3, 0, 0]} />
+              <Bar dataKey="value" fill="#2dd4bf" radius={[3, 3, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -180,7 +180,7 @@ export default function InvestmentCard({ investment: inv, onEdit, onDelete }: Pr
         {inv.managementFeeAccumulationPct > 0 && (
           <div className="rounded-lg px-3 py-2" style={{ background: 'var(--color-surface)' }}>
             <p style={{ color: 'var(--color-text-secondary)' }}>Balance fee / yr</p>
-            <p className="font-medium" style={{ color: '#f43f5e' }}>
+            <p className="font-medium" style={{ color: '#f87171' }}>
               {formatCurrencyIn(accFee, displayCurrency)}
             </p>
             <p className="text-[10px]" style={{ color: 'var(--color-text-secondary)' }}>
@@ -191,7 +191,7 @@ export default function InvestmentCard({ investment: inv, onEdit, onDelete }: Pr
         {inv.managementFeeContributionPct > 0 && (
           <div className="rounded-lg px-3 py-2" style={{ background: 'var(--color-surface)' }}>
             <p style={{ color: 'var(--color-text-secondary)' }}>Contribution fee / yr</p>
-            <p className="font-medium" style={{ color: '#f43f5e' }}>
+            <p className="font-medium" style={{ color: '#f87171' }}>
               {formatCurrencyIn(contribFee, displayCurrency)}
             </p>
             <p className="text-[10px]" style={{ color: 'var(--color-text-secondary)' }}>
@@ -237,7 +237,7 @@ export default function InvestmentCard({ investment: inv, onEdit, onDelete }: Pr
               onClick={saveHistory}
               disabled={!histMonth || histValue <= 0}
               className="flex-1 text-xs py-1.5 rounded-lg font-medium"
-              style={{ background: '#6366f120', color: '#6366f1', border: '1px solid #6366f140' }}
+              style={{ background: '#2dd4bf20', color: '#2dd4bf', border: '1px solid #2dd4bf40' }}
             >
               Save
             </button>
@@ -291,7 +291,7 @@ export default function InvestmentCard({ investment: inv, onEdit, onDelete }: Pr
                           onClick={saveEditEntry}
                           disabled={editValue <= 0}
                           className="flex-1 text-xs py-1 rounded-lg font-medium"
-                          style={{ background: '#6366f120', color: '#6366f1', border: '1px solid #6366f140' }}
+                          style={{ background: '#2dd4bf20', color: '#2dd4bf', border: '1px solid #2dd4bf40' }}
                         >
                           Save
                         </button>
@@ -307,7 +307,7 @@ export default function InvestmentCard({ investment: inv, onEdit, onDelete }: Pr
                         <button onClick={() => startEditEntry(entry.month, entry.value)} className="p-0.5 rounded" style={{ color: 'var(--color-text-secondary)' }}>
                           <Pencil size={11} />
                         </button>
-                        <button onClick={() => removeInvestmentHistoryEntry(inv.id, entry.month)} className="p-0.5 rounded" style={{ color: '#f43f5e' }}>
+                        <button onClick={() => removeInvestmentHistoryEntry(inv.id, entry.month)} className="p-0.5 rounded" style={{ color: '#f87171' }}>
                           <Trash2 size={11} />
                         </button>
                       </div>

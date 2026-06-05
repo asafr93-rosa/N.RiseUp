@@ -4,39 +4,39 @@
   --font-sans: "Sora", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "DM Mono", ui-monospace, monospace;
 
-  /* Velvet — light mode */
-  --color-surface: #fafbff;
-  --color-card: #f1f4fb;
-  --color-card-elevated: #e8edf8;
-  --color-border: rgba(99, 102, 241, 0.12);
-  --color-text-primary: #0f1229;
-  --color-text-secondary: #5a6483;
-  --color-accent: #6366f1;
-  --color-accent-2: #8b5cf6;
-  --color-accent-light: #eef0ff;
-  --color-income: #10b981;
-  --color-expense: #f43f5e;
+  /* Obsidian — light mode */
+  --color-surface: #fefefe;
+  --color-card: #f4f4f5;
+  --color-card-elevated: #e4e4e7;
+  --color-border: rgba(0, 0, 0, 0.08);
+  --color-text-primary: #09090b;
+  --color-text-secondary: #71717a;
+  --color-accent: #0d9488;
+  --color-accent-2: #0f766e;
+  --color-accent-light: rgba(13, 148, 136, 0.1);
+  --color-income: #059669;
+  --color-expense: #dc2626;
   --color-income-light: #ecfdf5;
-  --color-expense-light: #fff1f3;
-  --color-glow: rgba(99, 102, 241, 0.08);
+  --color-expense-light: #fef2f2;
+  --color-glow: rgba(13, 148, 136, 0.08);
 }
 
-/* Velvet Dark — toggled via data-theme="dark" on <html> */
+/* Obsidian Dark — toggled via data-theme="dark" on <html> */
 html[data-theme="dark"] {
-  --color-surface: #080c17;
-  --color-card: #0f1623;
-  --color-card-elevated: #182036;
-  --color-border: rgba(255, 255, 255, 0.07);
-  --color-text-primary: #f0f4ff;
-  --color-text-secondary: #6b7a9e;
-  --color-accent: #6366f1;
-  --color-accent-2: #8b5cf6;
-  --color-accent-light: #1e2048;
-  --color-income: #10b981;
-  --color-expense: #f43f5e;
-  --color-income-light: #052e1c;
-  --color-expense-light: #2d0a14;
-  --color-glow: rgba(99, 102, 241, 0.15);
+  --color-surface: #09090b;
+  --color-card: #18181b;
+  --color-card-elevated: #27272a;
+  --color-border: rgba(255, 255, 255, 0.09);
+  --color-text-primary: #fafafa;
+  --color-text-secondary: #a1a1aa;
+  --color-accent: #2dd4bf;
+  --color-accent-2: #0d9488;
+  --color-accent-light: rgba(45, 212, 191, 0.12);
+  --color-income: #34d399;
+  --color-expense: #f87171;
+  --color-income-light: rgba(52, 211, 153, 0.1);
+  --color-expense-light: rgba(248, 113, 113, 0.1);
+  --color-glow: rgba(45, 212, 191, 0.12);
 }
 
 * {
@@ -62,7 +62,7 @@ body {
   color: var(--color-text-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  transition: background-color 0.25s ease, color 0.25s ease;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 #root {
@@ -72,70 +72,60 @@ body {
 }
 
 /* Scrollbar */
-::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: var(--color-border);
-  border-radius: 2px;
-}
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 2px; }
 
-/* Card utility — Velvet style */
+/* ── Design system utilities ─────────────────────────────────── */
+
+/* Standard card */
 .card {
-  background: var(--color-card);
+  background-color: var(--color-card);
   border: 1px solid var(--color-border);
-  border-radius: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border-radius: 16px;
 }
 
-html[data-theme="dark"] .card {
-  background: linear-gradient(145deg, #0f1623 0%, #121a2e 100%);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.04);
-}
-
-/* Hero card — with accent glow */
+/* Hero card — teal left accent stripe + subtle glow */
 .hero-card {
-  border-radius: 24px;
-  border: 1px solid rgba(99, 102, 241, 0.2);
-  background: linear-gradient(135deg, #eef0ff 0%, #fafbff 60%);
-  box-shadow: 0 0 40px rgba(99, 102, 241, 0.08);
+  background-color: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-accent);
+  border-radius: 16px;
+  box-shadow: 0 0 32px var(--color-glow);
 }
 
-html[data-theme="dark"] .hero-card {
-  background: linear-gradient(135deg, #0f1a3a 0%, #0f1623 60%);
-  box-shadow: 0 0 40px rgba(99, 102, 241, 0.12);
-}
-
-/* Section label utility */
+/* Section divider label */
 .section-label {
   font-size: 0.65rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
+  font-weight: 700;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.section-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
 }
 
-/* Safe area bottom padding for iOS */
-.pb-safe {
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+/* Quick actions dock */
+.quick-actions-dock {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  padding: 12px;
 }
 
-/* Fade-in animation for list items */
+/* Safe area */
+.pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
+
+/* Fade-in animation */
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
-
-.animate-fade-in {
-  animation: fadeIn 0.2s ease-out both;
-}
+.animate-fade-in { animation: fadeIn 0.2s ease-out both; }

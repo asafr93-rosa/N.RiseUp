@@ -53,7 +53,7 @@ export default function PaymentCycleSummary({ creditCards, transactions }: Props
         <p className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--color-text-secondary)' }}>
           Next Payment Cycle
         </p>
-        <p className="text-base font-bold" style={{ color: '#f43f5e' }}>
+        <p className="text-base font-bold" style={{ color: '#f87171' }}>
           {formatCurrency(combinedTotal)}
         </p>
       </div>
@@ -69,7 +69,7 @@ export default function PaymentCycleSummary({ creditCards, transactions }: Props
                 Due {formatDate(nextPaymentDate)} · {count} transactions
               </p>
             </div>
-            <p className="text-sm font-bold" style={{ color: total > 0 ? '#f43f5e' : 'var(--color-text-secondary)' }}>
+            <p className="text-sm font-bold" style={{ color: total > 0 ? '#f87171' : 'var(--color-text-secondary)' }}>
               {formatCurrency(total)}
             </p>
           </div>

@@ -128,7 +128,7 @@ export default function RecurringExpenseModal({ open, onClose, onSave, initial, 
           <button
             onClick={() => set('isActive', !form.isActive)}
             className="relative w-11 h-6 rounded-full transition-colors"
-            style={{ background: form.isActive ? '#6366f1' : 'var(--color-border)' }}
+            style={{ background: form.isActive ? '#2dd4bf' : 'var(--color-border)' }}
           >
             <span
               className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform"
@@ -146,7 +146,7 @@ export default function RecurringExpenseModal({ open, onClose, onSave, initial, 
                   onClick={() => switchPayVia('account')}
                   className="flex-1 text-xs py-1.5 font-medium transition-colors"
                   style={{
-                    background: payVia === 'account' ? '#6366f1' : 'var(--color-surface)',
+                    background: payVia === 'account' ? '#2dd4bf' : 'var(--color-surface)',
                     color: payVia === 'account' ? '#fff' : 'var(--color-text-secondary)',
                   }}
                 >
@@ -156,7 +156,7 @@ export default function RecurringExpenseModal({ open, onClose, onSave, initial, 
                   onClick={() => switchPayVia('card')}
                   className="flex-1 text-xs py-1.5 font-medium transition-colors"
                   style={{
-                    background: payVia === 'card' ? '#6366f1' : 'var(--color-surface)',
+                    background: payVia === 'card' ? '#2dd4bf' : 'var(--color-surface)',
                     color: payVia === 'card' ? '#fff' : 'var(--color-text-secondary)',
                   }}
                 >

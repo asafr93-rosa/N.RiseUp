@@ -19,34 +19,43 @@ export default function NetWorthHeader() {
   }, [accounts, displayCurrency, exchangeRates])
 
   const assetTotal = useMemo(() =>
-    assets.reduce((s, a) =>
-      s + convertAmount(a.estimatedValue, a.currency ?? 'ILS', displayCurrency, exchangeRates), 0),
+    assets.reduce((s, a) => s + convertAmount(a.estimatedValue, a.currency ?? 'ILS', displayCurrency, exchangeRates), 0),
   [assets, displayCurrency, exchangeRates])
 
   const investTotal = useMemo(() =>
-    investments.reduce((s, i) =>
-      s + convertAmount(i.currentValue, i.currency ?? 'ILS', displayCurrency, exchangeRates), 0),
+    investments.reduce((s, i) => s + convertAmount(i.currentValue, i.currency ?? 'ILS', displayCurrency, exchangeRates), 0),
   [investments, displayCurrency, exchangeRates])
 
   const netWorth = bankTotal + assetTotal + investTotal
 
   return (
-    <div
-      className="p-5 text-center rounded-2xl mb-4"
-      style={{ background: 'linear-gradient(135deg, #6366f1 0%, #7B5EA7 100%)', color: '#fff' }}
-    >
-      <p className="text-xs font-medium opacity-80 uppercase tracking-wide mb-1">Total Net Worth</p>
-      <AnimatedCounter value={netWorth} alreadyConverted className="text-4xl font-bold block" />
+    <div className="hero-card p-5 mb-4">
+      {/* Label */}
+      <p style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--color-accent)' }}>
+        Net Worth
+      </p>
 
-      <div className="grid grid-cols-3 gap-2 mt-4">
+      {/* Hero number */}
+      <span style={{ fontSize: '2.75rem', fontWeight: 800, letterSpacing: '-0.04em', fontFamily: '"DM Mono", monospace', color: 'var(--color-text-primary)', display: 'block', marginTop: '4px', marginBottom: '16px' }}>
+        <AnimatedCounter value={netWorth} alreadyConverted className="" />
+      </span>
+
+      {/* Sub-pills */}
+      <div className="flex gap-2">
         {[
-          { label: 'Bank Accounts', value: bankTotal },
+          { label: 'Bank', value: bankTotal },
           { label: 'Assets', value: assetTotal },
-          { label: 'Investments', value: investTotal },
+          { label: 'Invest', value: investTotal },
         ].map(({ label, value }) => (
-          <div key={label} className="rounded-xl py-2 px-1" style={{ background: 'rgba(255,255,255,0.15)' }}>
-            <p className="text-xs opacity-75">{label}</p>
-            <AnimatedCounter value={value} alreadyConverted className="text-sm font-semibold block mt-0.5" />
+          <div
+            key={label}
+            className="flex-1 rounded-xl px-2 py-2"
+            style={{ background: 'var(--color-card-elevated)' }}
+          >
+            <p style={{ fontSize: '0.65rem', color: 'var(--color-text-secondary)', fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase' }}>{label}</p>
+            <span style={{ fontSize: '0.8rem', fontWeight: 700, fontFamily: '"DM Mono", monospace', color: 'var(--color-text-primary)', display: 'block', marginTop: '2px' }}>
+              <AnimatedCounter value={value} alreadyConverted className="" />
+            </span>
           </div>
         ))}
       </div>

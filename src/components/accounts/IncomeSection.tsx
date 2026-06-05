@@ -26,13 +26,13 @@ export default function IncomeSection({ incomeEntries, onAdd, onEdit, onDelete }
       >
         <div>
           <p className="text-sm font-semibold text-left" style={{ color: 'var(--color-text-primary)' }}>Income</p>
-          <p className="text-xs text-left" style={{ color: '#10b981' }}>{formatCurrency(total)} total</p>
+          <p className="text-xs text-left" style={{ color: '#34d399' }}>{formatCurrency(total)} total</p>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={(e) => { e.stopPropagation(); onAdd() }}
             className="text-xs font-medium px-3 py-1.5 rounded-lg"
-            style={{ background: '#10b98120', color: '#10b981' }}
+            style={{ background: '#34d39920', color: '#34d399' }}
           >
             + Add
           </button>
@@ -62,7 +62,7 @@ export default function IncomeSection({ incomeEntries, onAdd, onEdit, onDelete }
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <p className="text-sm font-bold" style={{ color: '#10b981' }}>+{formatCurrency(entry.amount)}</p>
+                    <p className="text-sm font-bold" style={{ color: '#34d399' }}>+{formatCurrency(entry.amount)}</p>
                     <button onClick={() => onEdit(entry)} className="p-1 rounded" style={{ color: 'var(--color-text-secondary)' }}>
                       <Pencil size={13} />
                     </button>

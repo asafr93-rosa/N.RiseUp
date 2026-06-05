@@ -154,33 +154,33 @@ export const CATEGORY_COLORS: Record<ExpenseCategory, string> = {
   food_restaurants: '#f97316',
   grocery: '#84cc16',
   fuel_transportation: '#3b82f6',
-  insurance: '#8b5cf6',
+  insurance: '#0d9488',
   shopping_fashion: '#ec4899',
-  health: '#10b981',
+  health: '#34d399',
   education: '#06b6d4',
   entertainment_leisure: '#f59e0b',
-  housing: '#6366f1',
+  housing: '#2dd4bf',
   household_bills: '#14b8a6',
-  taxes: '#f43f5e',
+  taxes: '#f87171',
   pets: '#f472b6',
   subscriptions: '#a78bfa',
   other: '#9ca3af',
 }
 
 export const INVESTMENT_TYPE_COLORS: Record<InvestmentType, string> = {
-  pension_fund: '#6366f1',
-  education_fund: '#10b981',
+  pension_fund: '#2dd4bf',
+  education_fund: '#34d399',
   provident_fund: '#f59e0b',
-  investment_portfolio: '#8b5cf6',
+  investment_portfolio: '#0d9488',
   deposit: '#06b6d4',
-  savings: '#10b981',
+  savings: '#34d399',
   mutual_fund: '#ec4899',
   other: '#9ca3af',
 }
 
 export const ASSET_TYPE_COLORS: Record<AssetType, string> = {
-  apartment: '#6366f1',
-  land: '#10b981',
+  apartment: '#2dd4bf',
+  land: '#34d399',
   vehicle: '#f59e0b',
   other: '#9ca3af',
 }
@@ -194,9 +194,9 @@ export const INCOME_SOURCE_LABELS: Record<IncomeSource, string> = {
 }
 
 export const INCOME_SOURCE_COLORS: Record<IncomeSource, string> = {
-  salary: '#6366f1',
-  freelance: '#10b981',
+  salary: '#2dd4bf',
+  freelance: '#34d399',
   rental: '#f59e0b',
-  dividends: '#8b5cf6',
+  dividends: '#0d9488',
   other: '#9ca3af',
 }

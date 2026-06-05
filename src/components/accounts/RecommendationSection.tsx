@@ -110,7 +110,7 @@ export default function RecommendationSection({ accounts, effectiveBalances, fil
                 <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>
                   {account.name}{account.lastFourDigits ? ` ···· ${account.lastFourDigits}` : ''}
                 </p>
-                <p className="text-sm font-bold" style={{ color: '#f43f5e' }}>{formatCurrency(balance)}</p>
+                <p className="text-sm font-bold" style={{ color: '#f87171' }}>{formatCurrency(balance)}</p>
               </div>
 
               {suggestions.length > 0 && (

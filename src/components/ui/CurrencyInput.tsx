@@ -26,7 +26,7 @@ export default function CurrencyInput({
       )}
       <div
         className="flex rounded-xl overflow-hidden"
-        style={{ border: `1px solid ${error ? '#f43f5e' : 'var(--color-border)'}` }}
+        style={{ border: `1px solid ${error ? '#f87171' : 'var(--color-border)'}` }}
       >
         <input
           type="number"
@@ -52,7 +52,7 @@ export default function CurrencyInput({
           ))}
         </select>
       </div>
-      {error && <p className="text-xs" style={{ color: '#f43f5e' }}>{error}</p>}
+      {error && <p className="text-xs" style={{ color: '#f87171' }}>{error}</p>}
     </div>
   )
 }
