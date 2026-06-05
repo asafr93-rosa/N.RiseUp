@@ -55,8 +55,8 @@ export default function MonthlyComparisonChart() {
             labelStyle={{ color: 'var(--color-text-primary)', fontWeight: 600, marginBottom: 4 }}
           />
           <Legend wrapperStyle={{ fontSize: 11 }} />
-          <Bar dataKey="Expenses" fill="#EF4444" radius={[3, 3, 0, 0]} />
-          <Bar dataKey="Income" fill="#22C55E" radius={[3, 3, 0, 0]} />
+          <Bar dataKey="Expenses" fill="#f43f5e" radius={[3, 3, 0, 0]} />
+          <Bar dataKey="Income" fill="#10b981" radius={[3, 3, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>

@@ -68,7 +68,7 @@ function SortableItem({ id, title, subtitle, index }: SortableItemProps) {
       </span>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium truncate" style={{ color: 'var(--color-text-primary)' }}>{title}</p>
-        <p className="text-xs" style={{ color: '#4361EE' }}>{subtitle}</p>
+        <p className="text-xs" style={{ color: '#6366f1' }}>{subtitle}</p>
       </div>
       <button
         className="p-1 cursor-grab active:cursor-grabbing touch-none shrink-0"
@@ -300,7 +300,7 @@ export default function Settings() {
           <div className="flex flex-col gap-2">
             <label
               className="cursor-pointer text-xs font-medium px-3 py-2 rounded-xl text-center"
-              style={{ background: '#4361EE20', color: '#4361EE' }}
+              style={{ background: '#6366f120', color: '#6366f1' }}
             >
               Upload Photo
               <input
@@ -315,7 +315,7 @@ export default function Settings() {
               <button
                 onClick={() => setAvatar('')}
                 className="text-xs font-medium px-3 py-1.5 rounded-xl"
-                style={{ background: '#EF444420', color: '#EF4444' }}
+                style={{ background: '#f43f5e20', color: '#f43f5e' }}
               >
                 Remove
               </button>
@@ -430,7 +430,7 @@ export default function Settings() {
               onClick={() => void handleRefreshRates()}
               disabled={rateLoading}
               className="text-xs px-3 py-1 rounded-lg font-medium"
-              style={{ background: 'var(--color-accent-light)', color: '#4361EE' }}
+              style={{ background: 'var(--color-accent-light)', color: '#6366f1' }}
             >
               {rateLoading ? 'Refreshing…' : 'Refresh'}
             </button>
@@ -470,7 +470,7 @@ export default function Settings() {
           </div>
           <div
             className="relative w-11 h-6 rounded-full transition-colors duration-200 shrink-0 ml-3"
-            style={{ background: lockSettings.enabled ? '#4361EE' : 'var(--color-border)' }}
+            style={{ background: lockSettings.enabled ? '#6366f1' : 'var(--color-border)' }}
             onClick={() => {
               if (!lockSettings.enabled && !lockSettings.pinHash) {
                 toast('Set a PIN first', { icon: '🔒' })
@@ -492,7 +492,7 @@ export default function Settings() {
           <button
             onClick={startPinSetup}
             className="text-sm font-medium text-left px-4 py-2.5 rounded-xl"
-            style={{ background: 'var(--color-accent-light)', color: '#4361EE' }}
+            style={{ background: 'var(--color-accent-light)', color: '#6366f1' }}
           >
             {lockSettings.pinHash ? 'Change PIN' : 'Set PIN'}
           </button>
@@ -509,8 +509,8 @@ export default function Settings() {
                   key={i}
                   className="w-3.5 h-3.5 rounded-full"
                   style={{
-                    background: i < pinEntry.length ? '#4361EE' : 'transparent',
-                    border: `2px solid ${i < pinEntry.length ? '#4361EE' : 'var(--color-border)'}`,
+                    background: i < pinEntry.length ? '#6366f1' : 'transparent',
+                    border: `2px solid ${i < pinEntry.length ? '#6366f1' : 'var(--color-border)'}`,
                   }}
                 />
               ))}
@@ -561,7 +561,7 @@ export default function Settings() {
             <button
               onClick={handleDisableBiometric}
               className="flex items-center gap-2 text-sm font-medium px-4 py-2.5 rounded-xl"
-              style={{ background: '#EF444420', color: '#EF4444' }}
+              style={{ background: '#f43f5e20', color: '#f43f5e' }}
             >
               <ScanFace size={16} />
               Disable Face ID / Touch ID
@@ -571,7 +571,7 @@ export default function Settings() {
               onClick={() => void handleRegisterBiometric()}
               disabled={biometricLoading}
               className="flex items-center gap-2 text-sm font-medium px-4 py-2.5 rounded-xl"
-              style={{ background: 'var(--color-accent-light)', color: '#4361EE' }}
+              style={{ background: 'var(--color-accent-light)', color: '#6366f1' }}
             >
               <ScanFace size={16} />
               {biometricLoading ? 'Setting up…' : 'Enable Face ID / Touch ID'}
@@ -582,7 +582,7 @@ export default function Settings() {
 
       <Button variant="primary" onClick={handleSave}>Save Settings</Button>
 
-      <p className="text-center text-xs py-2" style={{ color: 'var(--color-text-secondary)' }}>v4.4</p>
+      <p className="text-center text-xs py-2" style={{ color: 'var(--color-text-secondary)' }}>v4.5</p>
     </div>
   )
 }

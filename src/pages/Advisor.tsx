@@ -67,7 +67,7 @@ export default function Advisor() {
     return (
       <div className="flex items-center justify-center h-full p-6">
         <div className="card p-6 max-w-sm w-full text-center flex flex-col gap-3">
-          <Bot size={40} style={{ color: '#4361EE', margin: '0 auto' }} />
+          <Bot size={40} style={{ color: '#6366f1', margin: '0 auto' }} />
           <h2 className="font-semibold text-base" style={{ color: 'var(--color-text-primary)' }}>AI Advisor not configured</h2>
           <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
             Add your Anthropic API key to a <code className="font-mono">.env</code> file in the project root:
@@ -94,7 +94,7 @@ export default function Advisor() {
               className="w-14 h-14 rounded-2xl flex items-center justify-center"
               style={{ background: 'var(--color-accent-light)' }}
             >
-              <Bot size={28} style={{ color: '#4361EE' }} />
+              <Bot size={28} style={{ color: '#6366f1' }} />
             </div>
             <h2 className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>AI Financial Advisor</h2>
             <p className="text-sm max-w-xs" style={{ color: 'var(--color-text-secondary)' }}>
@@ -113,14 +113,14 @@ export default function Advisor() {
                 className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5"
                 style={{ background: 'var(--color-accent-light)' }}
               >
-                <Bot size={15} style={{ color: '#4361EE' }} />
+                <Bot size={15} style={{ color: '#6366f1' }} />
               </div>
             )}
             <div
               className="max-w-[80%] px-3 py-2 rounded-2xl text-sm whitespace-pre-wrap"
               style={
                 msg.role === 'user'
-                  ? { background: '#4361EE', color: '#fff' }
+                  ? { background: '#6366f1', color: '#fff' }
                   : { background: 'var(--color-card)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)' }
               }
             >
@@ -129,9 +129,9 @@ export default function Advisor() {
             {msg.role === 'user' && (
               <div
                 className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5"
-                style={{ background: '#4361EE20' }}
+                style={{ background: '#6366f120' }}
               >
-                <User size={15} style={{ color: '#4361EE' }} />
+                <User size={15} style={{ color: '#6366f1' }} />
               </div>
             )}
           </div>
@@ -140,7 +140,7 @@ export default function Advisor() {
         {loading && (
           <div className="flex gap-2 justify-start">
             <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0" style={{ background: 'var(--color-accent-light)' }}>
-              <Bot size={15} style={{ color: '#4361EE' }} />
+              <Bot size={15} style={{ color: '#6366f1' }} />
             </div>
             <div className="px-3 py-2 rounded-2xl text-sm" style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)' }}>
               <span className="inline-flex gap-1">
@@ -153,7 +153,7 @@ export default function Advisor() {
         )}
 
         {error && (
-          <p className="text-xs text-center py-1" style={{ color: '#EF4444' }}>{error}</p>
+          <p className="text-xs text-center py-1" style={{ color: '#f43f5e' }}>{error}</p>
         )}
 
         <div ref={bottomRef} />
@@ -178,7 +178,7 @@ export default function Advisor() {
           disabled={loading || !input.trim()}
           className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-opacity"
           style={{
-            background: loading || !input.trim() ? 'var(--color-border)' : '#4361EE',
+            background: loading || !input.trim() ? 'var(--color-border)' : '#6366f1',
             color: '#fff',
           }}
         >

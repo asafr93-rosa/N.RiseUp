@@ -146,7 +146,7 @@ export default function AddExpenseModal({ open, onClose, onSave, creditCards, ca
                 <option key={c.id} value={c.id}>{c.name}{c.lastFourDigits ? ` ···· ${c.lastFourDigits}` : ''}</option>
               ))}
             </select>
-            {errors.creditCardId && <p className="text-xs" style={{ color: '#EF4444' }}>{errors.creditCardId}</p>}
+            {errors.creditCardId && <p className="text-xs" style={{ color: '#f43f5e' }}>{errors.creditCardId}</p>}
           </div>
         )}
 

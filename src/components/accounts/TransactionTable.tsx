@@ -127,10 +127,10 @@ export default function TransactionTable({
                   {CATEGORIES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                 </select>
               ) : (
-                <Badge label="Income" color="#22C55E" small />
+                <Badge label="Income" color="#10b981" small />
               )}
             </div>
-            <span className="text-right font-medium" style={{ color: t.type === 'income' ? '#22C55E' : '#EF4444' }}>
+            <span className="text-right font-medium" style={{ color: t.type === 'income' ? '#10b981' : '#f43f5e' }}>
               {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
             </span>
             <div className="flex justify-end gap-0.5">

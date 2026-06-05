@@ -31,7 +31,7 @@ export default function AssetSummary({ assets }: Props) {
       <AnimatedCounter value={total} alreadyConverted className="text-3xl font-bold" />
 
       {totalCost > 0 && (
-        <p className="text-sm mt-1" style={{ color: isProfit ? '#22C55E' : '#EF4444' }}>
+        <p className="text-sm mt-1" style={{ color: isProfit ? '#10b981' : '#f43f5e' }}>
           {isProfit ? '+' : ''}{formatCurrencyIn(profit, displayCurrency)} overall {isProfit ? 'gain' : 'loss'}
         </p>
       )}

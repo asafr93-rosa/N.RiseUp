@@ -46,7 +46,7 @@ export default function AssetCard({ asset, onEdit, onDelete }: Props) {
           <button
             onClick={onDelete}
             className="p-2 rounded-lg transition-colors"
-            style={{ color: '#EF4444', background: 'var(--color-card)' }}
+            style={{ color: '#f43f5e', background: 'var(--color-card)' }}
           >
             <Trash2 size={15} />
           </button>
@@ -71,7 +71,7 @@ export default function AssetCard({ asset, onEdit, onDelete }: Props) {
             <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>vs. Purchase</p>
             <p
               className="text-sm font-semibold"
-              style={{ color: isProfit ? '#22C55E' : '#EF4444' }}
+              style={{ color: isProfit ? '#10b981' : '#f43f5e' }}
             >
               {isProfit ? '+' : ''}{format(profit, assetCurrency)}
               {profitPct !== null && (

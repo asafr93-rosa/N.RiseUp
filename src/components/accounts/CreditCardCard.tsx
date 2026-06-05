@@ -26,7 +26,7 @@ export default function CreditCardCard({ card, linkedAccountName, monthlyExpense
           <button onClick={onEdit} className="p-1.5 rounded-lg" style={{ color: 'var(--color-text-secondary)', background: 'var(--color-surface)' }}>
             <Pencil size={13} />
           </button>
-          <button onClick={onDelete} className="p-1.5 rounded-lg" style={{ color: '#EF4444', background: 'var(--color-surface)' }}>
+          <button onClick={onDelete} className="p-1.5 rounded-lg" style={{ color: '#f43f5e', background: 'var(--color-surface)' }}>
             <Trash2 size={13} />
           </button>
         </div>
@@ -78,8 +78,8 @@ export default function CreditCardCard({ card, linkedAccountName, monthlyExpense
           </div>
           {linkedAccountName ? (
             <div className="flex items-center gap-1">
-              <Link size={10} style={{ color: '#4361EE' }} />
-              <p className="text-xs font-medium truncate" style={{ color: '#4361EE' }}>
+              <Link size={10} style={{ color: '#6366f1' }} />
+              <p className="text-xs font-medium truncate" style={{ color: '#6366f1' }}>
                 {linkedAccountName}
               </p>
             </div>

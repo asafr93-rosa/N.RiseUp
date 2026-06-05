@@ -161,25 +161,25 @@ export const CATEGORY_COLORS: Record<ExpenseCategory, string> = {
   entertainment_leisure: '#f59e0b',
   housing: '#6366f1',
   household_bills: '#14b8a6',
-  taxes: '#ef4444',
+  taxes: '#f43f5e',
   pets: '#f472b6',
   subscriptions: '#a78bfa',
   other: '#9ca3af',
 }
 
 export const INVESTMENT_TYPE_COLORS: Record<InvestmentType, string> = {
-  pension_fund: '#4361ee',
+  pension_fund: '#6366f1',
   education_fund: '#10b981',
   provident_fund: '#f59e0b',
   investment_portfolio: '#8b5cf6',
   deposit: '#06b6d4',
-  savings: '#22c55e',
+  savings: '#10b981',
   mutual_fund: '#ec4899',
   other: '#9ca3af',
 }
 
 export const ASSET_TYPE_COLORS: Record<AssetType, string> = {
-  apartment: '#4361ee',
+  apartment: '#6366f1',
   land: '#10b981',
   vehicle: '#f59e0b',
   other: '#9ca3af',
@@ -194,7 +194,7 @@ export const INCOME_SOURCE_LABELS: Record<IncomeSource, string> = {
 }
 
 export const INCOME_SOURCE_COLORS: Record<IncomeSource, string> = {
-  salary: '#4361EE',
+  salary: '#6366f1',
   freelance: '#10b981',
   rental: '#f59e0b',
   dividends: '#8b5cf6',

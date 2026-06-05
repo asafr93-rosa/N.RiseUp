@@ -34,7 +34,7 @@ export default function CategoryCard({ summary }: Props) {
   const { changePct, fill } = summary
 
   const trendIcon = changePct === null ? null : changePct > 0 ? TrendingUp : changePct < 0 ? TrendingDown : Minus
-  const trendColor = changePct === null ? 'var(--color-text-secondary)' : changePct > 0 ? '#EF4444' : '#22C55E'
+  const trendColor = changePct === null ? 'var(--color-text-secondary)' : changePct > 0 ? '#f43f5e' : '#10b981'
   const TrendIcon = trendIcon
 
   return (

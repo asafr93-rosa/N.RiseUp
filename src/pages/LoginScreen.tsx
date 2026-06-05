@@ -48,7 +48,7 @@ export default function LoginScreen() {
         <div className="flex flex-col items-center mb-8">
           <div
             className="flex items-center justify-center rounded-2xl mb-3"
-            style={{ width: 60, height: 60, background: '#4361EE' }}
+            style={{ width: 60, height: 60, background: '#6366f1' }}
           >
             <TrendingUp size={28} color="#fff" />
           </div>
@@ -97,7 +97,7 @@ export default function LoginScreen() {
             />
 
             {error && (
-              <p className="text-xs" style={{ color: '#EF4444' }}>{error}</p>
+              <p className="text-xs" style={{ color: '#f43f5e' }}>{error}</p>
             )}
 
             <Button

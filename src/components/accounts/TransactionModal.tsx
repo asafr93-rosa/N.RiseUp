@@ -66,7 +66,7 @@ export default function TransactionModal({ open, onClose, onSave, accounts, defa
               onClick={() => set('type', t)}
               className="flex-1 py-2 text-sm font-medium capitalize transition-colors"
               style={{
-                background: form.type === t ? (t === 'expense' ? '#EF4444' : '#22C55E') : 'var(--color-card)',
+                background: form.type === t ? (t === 'expense' ? '#f43f5e' : '#10b981') : 'var(--color-card)',
                 color: form.type === t ? '#fff' : 'var(--color-text-secondary)',
               }}
             >

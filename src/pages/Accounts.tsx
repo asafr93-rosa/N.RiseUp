@@ -421,15 +421,15 @@ export default function Accounts() {
           <div className="grid grid-cols-3 gap-2">
             <div className="card p-3 flex flex-col gap-1">
               <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>Expenses</p>
-              <p className="text-sm font-bold" style={{ color: '#EF4444' }}>{formatCurrency(monthlyExpenses)}</p>
+              <p className="text-sm font-bold" style={{ color: '#f43f5e' }}>{formatCurrency(monthlyExpenses)}</p>
             </div>
             <div className="card p-3 flex flex-col gap-1">
               <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>Income</p>
-              <p className="text-sm font-bold" style={{ color: '#22C55E' }}>{formatCurrency(monthlyIncome)}</p>
+              <p className="text-sm font-bold" style={{ color: '#10b981' }}>{formatCurrency(monthlyIncome)}</p>
             </div>
             <div className="card p-3 flex flex-col gap-1">
               <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>Net</p>
-              <p className="text-sm font-bold" style={{ color: netBalance >= 0 ? '#22C55E' : '#EF4444' }}>
+              <p className="text-sm font-bold" style={{ color: netBalance >= 0 ? '#10b981' : '#f43f5e' }}>
                 {netBalance < 0 ? '-' : ''}{formatCurrency(Math.abs(netBalance))}
               </p>
             </div>
@@ -453,7 +453,7 @@ export default function Accounts() {
                       disabled={selectedIds.size === 0}
                       onClick={() => setDeletingBulk([...selectedIds])}
                       className="text-xs px-2 py-1 rounded-lg font-medium"
-                      style={{ background: selectedIds.size > 0 ? '#EF444420' : 'var(--color-surface)', color: selectedIds.size > 0 ? '#EF4444' : 'var(--color-text-secondary)', border: `1px solid ${selectedIds.size > 0 ? '#EF444440' : 'var(--color-border)'}` }}
+                      style={{ background: selectedIds.size > 0 ? '#f43f5e20' : 'var(--color-surface)', color: selectedIds.size > 0 ? '#f43f5e' : 'var(--color-text-secondary)', border: `1px solid ${selectedIds.size > 0 ? '#f43f5e40' : 'var(--color-border)'}` }}
                     >
                       Delete ({selectedIds.size})
                     </button>
@@ -461,7 +461,7 @@ export default function Accounts() {
                       disabled={ccTransactions.length === 0}
                       onClick={() => setDeletingBulk(ccTransactions.map((t) => t.id))}
                       className="text-xs px-2 py-1 rounded-lg font-medium"
-                      style={{ background: '#EF444420', color: '#EF4444', border: '1px solid #EF444440' }}
+                      style={{ background: '#f43f5e20', color: '#f43f5e', border: '1px solid #f43f5e40' }}
                     >
                       Delete All
                     </button>
@@ -499,8 +499,8 @@ export default function Accounts() {
             </div>
             {hasFilter && (() => {
               const accentColor = ccFilterCategory !== 'all'
-                ? (CATEGORY_COLORS[ccFilterCategory] ?? '#4361EE')
-                : '#4361EE'
+                ? (CATEGORY_COLORS[ccFilterCategory] ?? '#6366f1')
+                : '#6366f1'
               const labelParts = [
                 ccFilterCategory !== 'all' ? CATEGORY_LABELS[ccFilterCategory] : null,
                 ccFilterCardId !== 'all' ? (() => {
@@ -524,7 +524,7 @@ export default function Accounts() {
                     <p className="text-xs font-semibold truncate" style={{ color: 'var(--color-text-primary)' }}>{labelParts}</p>
                     <p className="text-[10px]" style={{ color: 'var(--color-text-secondary)' }}>{count} transaction{count !== 1 ? 's' : ''}</p>
                   </div>
-                  <p className="text-sm font-bold shrink-0" style={{ color: '#EF4444' }}>{formatCurrency(filteredExpensesSubtotal)}</p>
+                  <p className="text-sm font-bold shrink-0" style={{ color: '#f43f5e' }}>{formatCurrency(filteredExpensesSubtotal)}</p>
                 </div>
               )
             })()}

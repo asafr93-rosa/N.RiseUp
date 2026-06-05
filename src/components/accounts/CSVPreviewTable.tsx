@@ -76,10 +76,10 @@ export default function CSVPreviewTable({ rows, onCategoryChange, onDescriptionC
                     {CATEGORIES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                   </select>
                 ) : (
-                  <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ background: '#22C55E20', color: '#22C55E' }}>Income</span>
+                  <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ background: '#10b98120', color: '#10b981' }}>Income</span>
                 )}
               </td>
-              <td className="px-3 py-2 text-right font-medium whitespace-nowrap" style={{ color: row.type === 'income' ? '#22C55E' : '#EF4444' }}>
+              <td className="px-3 py-2 text-right font-medium whitespace-nowrap" style={{ color: row.type === 'income' ? '#10b981' : '#f43f5e' }}>
                 {row.type === 'income' ? '+' : '-'}{formatCurrency(row.amount)}
               </td>
             </tr>

@@ -8,24 +8,51 @@ interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
   size?: Size
 }
 
-const VARIANT_STYLES: Record<Variant, string> = {
-  primary: 'bg-[#4361EE] text-white hover:bg-[#3451DE] active:bg-[#2a41ce]',
-  secondary: 'bg-[var(--color-card)] text-[var(--color-text-primary)] border border-[var(--color-border)] hover:bg-[var(--color-border)]',
-  danger: 'bg-[#EF4444] text-white hover:bg-[#DC2626] active:bg-[#b91c1c]',
-  ghost: 'bg-transparent text-[var(--color-text-secondary)] hover:bg-[var(--color-card)] hover:text-[var(--color-text-primary)]',
+const VARIANT_STYLES: Record<Variant, { className: string; style?: React.CSSProperties }> = {
+  primary: {
+    className: 'text-white',
+    style: {
+      background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+      boxShadow: '0 4px 15px rgba(99,102,241,0.3)',
+    },
+  },
+  secondary: {
+    className: '',
+    style: {
+      background: 'var(--color-card)',
+      color: 'var(--color-text-primary)',
+      border: '1px solid var(--color-border)',
+    },
+  },
+  danger: {
+    className: 'text-white',
+    style: {
+      background: '#f43f5e',
+      boxShadow: '0 4px 12px rgba(244,63,94,0.25)',
+    },
+  },
+  ghost: {
+    className: '',
+    style: {
+      background: 'transparent',
+      color: 'var(--color-text-secondary)',
+    },
+  },
 }
 
 const SIZE_STYLES: Record<Size, string> = {
-  sm: 'px-3 py-1.5 text-xs rounded-lg',
-  md: 'px-4 py-2 text-sm rounded-xl',
-  lg: 'px-5 py-2.5 text-base rounded-xl',
+  sm: 'px-3 py-1.5 text-xs rounded-xl',
+  md: 'px-4 py-2 text-sm rounded-[14px]',
+  lg: 'px-5 py-2.5 text-base rounded-2xl',
 }
 
-export default function Button({ variant = 'primary', size = 'md', className = '', ...props }: Props) {
+export default function Button({ variant = 'primary', size = 'md', className = '', style, ...props }: Props) {
+  const variantDef = VARIANT_STYLES[variant]
   return (
     <button
       {...props}
-      className={`inline-flex items-center justify-center gap-2 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${VARIANT_STYLES[variant]} ${SIZE_STYLES[size]} ${className}`}
+      className={`inline-flex items-center justify-center gap-2 font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${variantDef.className} ${SIZE_STYLES[size]} ${className}`}
+      style={{ ...variantDef.style, ...style }}
     />
   )
 }

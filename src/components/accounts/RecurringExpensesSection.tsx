@@ -29,13 +29,13 @@ export default function RecurringExpensesSection({ recurringExpenses, accounts, 
       >
         <div>
           <p className="text-sm font-semibold text-left" style={{ color: 'var(--color-text-primary)' }}>Fixed Monthly Expenses</p>
-          <p className="text-xs text-left" style={{ color: '#EF4444' }}>{formatCurrency(activeTotal)} / month</p>
+          <p className="text-xs text-left" style={{ color: '#f43f5e' }}>{formatCurrency(activeTotal)} / month</p>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={(e) => { e.stopPropagation(); onAdd() }}
             className="text-xs font-medium px-3 py-1.5 rounded-lg"
-            style={{ background: '#EF444420', color: '#EF4444' }}
+            style={{ background: '#f43f5e20', color: '#f43f5e' }}
           >
             + Add
           </button>
@@ -79,7 +79,7 @@ export default function RecurringExpensesSection({ recurringExpenses, accounts, 
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <p className="text-sm font-bold" style={{ color: '#EF4444' }}>{formatCurrency(expense.amount)}</p>
+                    <p className="text-sm font-bold" style={{ color: '#f43f5e' }}>{formatCurrency(expense.amount)}</p>
                     <button onClick={() => onEdit(expense)} className="p-1 rounded" style={{ color: 'var(--color-text-secondary)' }}>
                       <Pencil size={14} />
                     </button>

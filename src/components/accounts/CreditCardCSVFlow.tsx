@@ -180,9 +180,9 @@ export default function CreditCardCSVFlow({ creditCards, onImport }: Props) {
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <CheckCircle size={16} style={{ color: '#22C55E' }} />
+            <CheckCircle size={16} style={{ color: '#10b981' }} />
             <span className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>
-              {included.length} of {rows.length} expenses · <span style={{ color: '#EF4444' }}>{formatCurrency(totalAmount)}</span>
+              {included.length} of {rows.length} expenses · <span style={{ color: '#f43f5e' }}>{formatCurrency(totalAmount)}</span>
             </span>
           </div>
           <button onClick={reset} style={{ color: 'var(--color-text-secondary)' }}>

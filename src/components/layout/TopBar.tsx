@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from 'react-router-dom'
-import { LogOut, Settings } from 'lucide-react'
+import { Settings } from 'lucide-react'
 import ThemeToggle from './ThemeToggle'
 import { useAuthStore } from '../../store/useAuthStore'
 import { useFinanceStore } from '../../store/useFinanceStore'
@@ -21,35 +21,51 @@ export default function TopBar() {
 
   return (
     <header
-      className="flex items-center justify-between px-4 py-3 shrink-0 border-b"
-      style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
+      className="flex items-center justify-between px-4 py-2.5 shrink-0"
+      style={{
+        background: 'var(--color-surface)',
+        borderBottom: '1px solid var(--color-border)',
+      }}
     >
-      <h1 className="text-lg font-bold" style={{ color: 'var(--color-text-primary)' }}>
+      <h1
+        className="text-base font-bold tracking-tight"
+        style={{ color: 'var(--color-text-primary)', letterSpacing: '-0.02em' }}
+      >
         {title}
       </h1>
       <div className="flex items-center gap-2">
+        <ThemeToggle />
         {activeUser && (
           <button
             onClick={() => navigate('/settings')}
-            className="flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-lg"
-            style={{ color: 'var(--color-text-secondary)', background: 'var(--color-card)' }}
+            className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-xl transition-all"
+            style={{
+              color: 'var(--color-text-secondary)',
+              background: 'var(--color-card)',
+              border: '1px solid var(--color-border)',
+            }}
           >
-            {userProfile.avatar && userProfile.avatar.startsWith('data:')
-              ? <img src={userProfile.avatar} className="w-5 h-5 rounded-full object-cover" alt="Profile" />
-              : null}
-            <span>{userProfile.displayName}</span>
-            <Settings size={12} />
+            {userProfile.avatar && userProfile.avatar.startsWith('data:') ? (
+              <img src={userProfile.avatar} className="w-5 h-5 rounded-full object-cover" alt="Profile" />
+            ) : null}
+            <span className="max-w-[80px] truncate">{userProfile.displayName}</span>
+            <Settings size={11} />
           </button>
         )}
-        <ThemeToggle />
-        <button
-          onClick={logout}
-          className="p-2 rounded-lg"
-          style={{ color: 'var(--color-text-secondary)', background: 'var(--color-card)' }}
-          title="Sign out"
-        >
-          <LogOut size={16} />
-        </button>
+        {activeUser && (
+          <button
+            onClick={logout}
+            className="text-xs px-2.5 py-1.5 rounded-xl transition-all font-medium"
+            style={{
+              color: 'var(--color-text-secondary)',
+              background: 'var(--color-card)',
+              border: '1px solid var(--color-border)',
+            }}
+            title="Sign out"
+          >
+            Out
+          </button>
+        )}
       </div>
     </header>
   )

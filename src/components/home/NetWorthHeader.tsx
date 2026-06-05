@@ -33,7 +33,7 @@ export default function NetWorthHeader() {
   return (
     <div
       className="p-5 text-center rounded-2xl mb-4"
-      style={{ background: 'linear-gradient(135deg, #4361EE 0%, #7B5EA7 100%)', color: '#fff' }}
+      style={{ background: 'linear-gradient(135deg, #6366f1 0%, #7B5EA7 100%)', color: '#fff' }}
     >
       <p className="text-xs font-medium opacity-80 uppercase tracking-wide mb-1">Total Net Worth</p>
       <AnimatedCounter value={netWorth} alreadyConverted className="text-4xl font-bold block" />
