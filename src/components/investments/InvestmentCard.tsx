@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Pencil, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LabelList } from 'recharts'
 import Badge from '../ui/Badge'
 import { formatPercent, formatCurrencyIn, convertAmount, INVESTMENT_TYPE_LABELS, INVESTMENT_TYPE_COLORS } from '../../lib/formatters'
 import { useCurrency } from '../../hooks/useCurrency'
@@ -137,10 +137,10 @@ export default function InvestmentCard({ investment: inv, onEdit, onDelete }: Pr
       </div>
 
       {showChart && (
-        <div className="mt-3" style={{ height: 80 }}>
+        <div className="mt-3" style={{ height: 110 }}>
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
-              <YAxis domain={[(min: number) => min * 0.98, (max: number) => max * 1.02]} hide />
+            <BarChart data={chartData} margin={{ top: 22, right: 4, left: 4, bottom: 0 }} barCategoryGap="35%">
+              <YAxis domain={[(min: number) => min * 0.97, (max: number) => max * 1.03]} hide />
               <XAxis
                 dataKey="month"
                 tick={{ fontSize: 10, fill: 'var(--color-text-secondary)' }}
@@ -153,12 +153,24 @@ export default function InvestmentCard({ investment: inv, onEdit, onDelete }: Pr
                   background: 'var(--color-card)',
                   border: '1px solid var(--color-border)',
                   borderRadius: 8,
-                  fontSize: 12,
+                  fontSize: 11,
                   color: 'var(--color-text-primary)',
                 }}
-                cursor={{ fill: 'var(--color-border)', opacity: 0.4 }}
+                cursor={{ fill: 'var(--color-border)', opacity: 0.3 }}
               />
-              <Bar dataKey="value" fill="#2dd4bf" radius={[3, 3, 0, 0]} />
+              <Bar dataKey="value" fill="#2dd4bf" radius={[4, 4, 0, 0]}>
+                <LabelList
+                  dataKey="value"
+                  position="top"
+                  formatter={(v: unknown) => {
+                    const converted = convertAmount(Number(v), invCurrency, displayCurrency, rates)
+                    return converted >= 1000
+                      ? `${(converted / 1000).toFixed(0)}K`
+                      : Math.round(converted).toString()
+                  }}
+                  style={{ fontSize: 9, fontWeight: 600, fill: 'var(--color-text-secondary)', fontFamily: '"DM Mono", monospace' }}
+                />
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         </div>
