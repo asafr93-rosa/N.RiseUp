@@ -9,7 +9,7 @@
         stroke="#1a1a1a" stroke-width="2.8" stroke-linecap="round"/>
 
   <!-- Trend line: bottom-left → W-zigzag → exits through gap top-right -->
-  <path d="M 10 73 L 24 57 L 35 64 L 52 48 L 75 22"
+  <path d="M 10 73 L 20 56 L 30 61 L 50 44 L 75 22"
         stroke="#1a1a1a" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
 
   <!-- Arrowhead at (75,22) -->
