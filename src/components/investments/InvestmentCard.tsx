@@ -140,7 +140,7 @@ export default function InvestmentCard({ investment: inv, onEdit, onDelete }: Pr
         <div className="mt-3" style={{ height: 80 }}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
-              <YAxis domain={[0, 'auto']} hide />
+              <YAxis domain={[(min: number) => min * 0.98, (max: number) => max * 1.02]} hide />
               <XAxis
                 dataKey="month"
                 tick={{ fontSize: 10, fill: 'var(--color-text-secondary)' }}

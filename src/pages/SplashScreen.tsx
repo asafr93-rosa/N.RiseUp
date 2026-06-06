@@ -25,7 +25,7 @@ export default function SplashScreen({ onDone }: Props) {
         transition: 'opacity 0.3s ease-out',
       }}
     >
-      <img src="/logo.png" alt="N.RiseUp" style={{ width: 80, height: 80, objectFit: 'contain' }} />
+      <img src="/logo.svg" alt="N.RiseUp" style={{ width: 80, height: 80, objectFit: 'contain' }} />
       <div className="text-center">
         <h1 className="text-3xl font-bold" style={{ color: 'var(--color-text-primary)', letterSpacing: '-0.03em' }}>
           N.RiseUp

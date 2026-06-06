@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+  <!--
+    N.RiseUp logo — Rising trend with coins
+    Concept: partial circle arc (background) + rising zigzag trend line
+    with upward arrow + stacked coins at bottom center.
+    Transparent background, stroke-only, consistent 5px weight.
+  -->
+
+  <!-- Partial circle arc ~270°, gap at upper-right, center (88,98), r=62 -->
+  <path
+    d="M 88 36
+       A 62 62 0 1 0 138 54"
+    stroke="#1A1A1A"
+    stroke-width="5"
+    stroke-linecap="round"
+    fill="none"
+  />
+
+  <!-- Rising trend line: bottom-left → upper-right through the circle -->
+  <polyline
+    points="36,148 60,122 80,134 106,96 138,54"
+    stroke="#1A1A1A"
+    stroke-width="5"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    fill="none"
+  />
+
+  <!-- Arrow head at (138,54) pointing upper-right ~45° -->
+  <line x1="138" y1="54" x2="122" y2="57" stroke="#1A1A1A" stroke-width="5" stroke-linecap="round"/>
+  <line x1="138" y1="54" x2="135" y2="70" stroke="#1A1A1A" stroke-width="5" stroke-linecap="round"/>
+
+  <!-- Coin stack — 3 coins stacked, bottom center of composition -->
+  <!-- Coin dimensions: rx=26, ry=9 -->
+  <!-- Bottom coin: full ellipse -->
+  <ellipse cx="100" cy="172" rx="26" ry="9" stroke="#1A1A1A" stroke-width="4.5" fill="none"/>
+  <!-- Side walls of coin cylinder -->
+  <line x1="74"  y1="155" x2="74"  y2="172" stroke="#1A1A1A" stroke-width="4.5" stroke-linecap="round"/>
+  <line x1="126" y1="155" x2="126" y2="172" stroke="#1A1A1A" stroke-width="4.5" stroke-linecap="round"/>
+  <!-- Middle coin top arc -->
+  <path d="M 74 163 A 26 9 0 0 1 126 163" stroke="#1A1A1A" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+  <!-- Top coin top arc -->
+  <path d="M 74 155 A 26 9 0 0 1 126 155" stroke="#1A1A1A" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+</svg>
