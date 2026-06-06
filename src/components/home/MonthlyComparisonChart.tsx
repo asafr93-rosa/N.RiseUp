@@ -42,7 +42,7 @@ export default function MonthlyComparisonChart() {
             axisLine={false}
             tickLine={false}
           />
-          <YAxis hide />
+          <YAxis hide domain={[0, 'auto']} />
           <Tooltip
             formatter={(v: unknown, name: unknown) => [`₪${Math.round(Number(v)).toLocaleString()}`, String(name)]}
             labelFormatter={(label: unknown) => String(label)}

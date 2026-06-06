@@ -4,13 +4,6 @@ interface Props {
   onDone: () => void
 }
 
-const HalfCircleDot = ({ size }: { size: number }) => (
-  <svg width={size} height={size} viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="30" cy="14" r="5" fill="#0A0A0A"/>
-    <path d="M6,40 A24,24 0 0,1 54,40 Z" fill="#0A0A0A"/>
-  </svg>
-)
-
 export default function SplashScreen({ onDone }: Props) {
   const [visible, setVisible] = useState(true)
 
@@ -32,7 +25,7 @@ export default function SplashScreen({ onDone }: Props) {
         transition: 'opacity 0.3s ease-out',
       }}
     >
-      <HalfCircleDot size={72} />
+      <img src="/logo.png" alt="N.RiseUp" style={{ width: 80, height: 80, objectFit: 'contain' }} />
       <div className="text-center">
         <h1 className="text-3xl font-bold" style={{ color: 'var(--color-text-primary)', letterSpacing: '-0.03em' }}>
           N.RiseUp

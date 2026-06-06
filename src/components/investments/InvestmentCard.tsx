@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Pencil, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
-import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import Badge from '../ui/Badge'
 import { formatPercent, formatCurrencyIn, convertAmount, INVESTMENT_TYPE_LABELS, INVESTMENT_TYPE_COLORS } from '../../lib/formatters'
 import { useCurrency } from '../../hooks/useCurrency'
@@ -140,6 +140,7 @@ export default function InvestmentCard({ investment: inv, onEdit, onDelete }: Pr
         <div className="mt-3" style={{ height: 80 }}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
+              <YAxis domain={[0, 'auto']} hide />
               <XAxis
                 dataKey="month"
                 tick={{ fontSize: 10, fill: 'var(--color-text-secondary)' }}

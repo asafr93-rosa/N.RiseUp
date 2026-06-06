@@ -1,11 +1,4 @@
 import { useState } from 'react'
-
-const HalfCircleDot = ({ size }: { size: number }) => (
-  <svg width={size} height={size} viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="30" cy="14" r="5" fill="#0A0A0A"/>
-    <path d="M6,40 A24,24 0 0,1 54,40 Z" fill="#0A0A0A"/>
-  </svg>
-)
 import Input from '../components/ui/Input'
 import Button from '../components/ui/Button'
 import { useAuthStore } from '../store/useAuthStore'
@@ -53,7 +46,7 @@ export default function LoginScreen() {
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
           <div className="mb-3">
-            <HalfCircleDot size={60} />
+            <img src="/logo.png" alt="N.RiseUp" style={{ width: 64, height: 64, objectFit: 'contain' }} />
           </div>
           <h1 className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>N.RiseUp</h1>
           <p className="text-sm mt-1" style={{ color: 'var(--color-text-secondary)' }}>Your personal finance tracker</p>
