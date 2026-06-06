@@ -1,36 +1,35 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 440" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
   <!--
-    N.RiseUp logo — exact recreation of reference image
-    Circle arc + rising trend line with W-shape + arrow + coin stack
-    Transparent background, pure black (#000000) strokes
+    N.RiseUp — generated logo
+    Circle arc (210°) + rising zigzag trend with filled arrowhead + 2-coin stack
+    Pure black, transparent background
   -->
 
-  <!-- Large circle arc: center(215,215) r=170
-       From 6-o'clock (215,385) clockwise 210° to 1-o'clock (300,68)
-       Gap on lower-right side where coins sit and arrow exits -->
-  <path d="M 215 385 A 170 170 0 1 1 300 68"
-        stroke="#000000" stroke-width="14" stroke-linecap="round" fill="none"/>
+  <!-- Circle arc: center(82,88) r=66
+       From 6-o'clock (82,154) clockwise 210° to ~1-o'clock (115,31)
+       Gap on right side where trend line exits and coins sit -->
+  <path d="M 82 154 A 66 66 0 1 1 115 31"
+        stroke="#000000" stroke-width="7.5" stroke-linecap="round"/>
 
-  <!-- Rising trend line: lower-left → W-shape → straight arrow shaft -->
-  <!-- Ends at the base of the arrowhead (415,70) -->
-  <path d="M 18 425 L 100 185 L 165 265 L 272 163 L 415 70"
-        stroke="#000000" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"
-        fill="none"/>
+  <!-- Rising trend line: lower-left entry → W-shape inside circle → exits upper-right -->
+  <!-- Ends at arrowhead base (145,36) -->
+  <path d="M 9 176 L 37 106 L 62 129 L 95 78 L 145 36"
+        stroke="#000000" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round"/>
 
-  <!-- Filled arrowhead: tip at (453,46), pointing upper-right
-       Direction from last trend segment (272,163)→(415,70): angle ≈ 33° above horizontal -->
-  <polygon points="453,46 403,52 427,90" fill="#000000"/>
+  <!-- Filled arrowhead: tip at (157,26), base flanking (145,36)
+       Direction from (95,78)→(145,36): angle ~40° above horizontal -->
+  <polygon points="158,25 138,28 151,44" fill="#000000"/>
 
-  <!-- Coin stack: 2 stacked coins, lower-right area (inside circle gap) -->
-  <!-- Bottom coin — full ellipse -->
-  <ellipse cx="320" cy="375" rx="52" ry="19"
-           stroke="#000000" stroke-width="13" fill="none"/>
+  <!-- Coin stack: 2 stacked coins, positioned in the right-side gap -->
+  <!-- Bottom coin (full ellipse) -->
+  <ellipse cx="131" cy="158" rx="22" ry="8"
+           stroke="#000000" stroke-width="6.5" fill="none"/>
   <!-- Cylinder side walls -->
-  <line x1="268" y1="353" x2="268" y2="375"
-        stroke="#000000" stroke-width="13" stroke-linecap="round"/>
-  <line x1="372" y1="353" x2="372" y2="375"
-        stroke="#000000" stroke-width="13" stroke-linecap="round"/>
-  <!-- Top coin — upper arc only -->
-  <path d="M 268 353 A 52 19 0 0 1 372 353"
-        stroke="#000000" stroke-width="13" stroke-linecap="round" fill="none"/>
+  <line x1="109" y1="147" x2="109" y2="158"
+        stroke="#000000" stroke-width="6.5" stroke-linecap="round"/>
+  <line x1="153" y1="147" x2="153" y2="158"
+        stroke="#000000" stroke-width="6.5" stroke-linecap="round"/>
+  <!-- Top coin arc -->
+  <path d="M 109 147 A 22 8 0 0 1 153 147"
+        stroke="#000000" stroke-width="6.5" stroke-linecap="round"/>
 </svg>
