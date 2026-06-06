@@ -1,36 +1,39 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
-  <!-- Circular arc: center(40,46) r=30
-       From top-right (63,28) counterclockwise (long way ~285°) to bottom-right (61,70)
-       Gap at top-right (arrow exits) and bottom-right (coin stack sits) -->
-  <path d="M 63 28 A 30 30 0 1 0 61 70"
-        stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round"/>
+  <!-- White rounded background -->
+  <rect x="4" y="4" width="92" height="92" rx="18" fill="white"/>
 
-  <!-- Rising trend line: enters from bottom-left, waves up, exits top-right as arrow -->
-  <path d="M 10 72 L 24 56 L 38 63 L 55 40 L 74 20"
-        stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Circle arc: center(40,50) r=28
+       Single small gap at top-right where arrow exits.
+       From (62,32) counterclockwise ~340° to (67,41) -->
+  <path d="M 62 32 A 28 28 0 1 0 67 41"
+        stroke="#1a1a1a" stroke-width="2.8" stroke-linecap="round"/>
 
-  <!-- Arrowhead at top-right -->
-  <path d="M 62 18 L 74 20 L 72 32"
-        stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Trend line: bottom-left → W-zigzag → exits through gap top-right -->
+  <path d="M 10 73 L 24 57 L 35 64 L 52 48 L 75 22"
+        stroke="#1a1a1a" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
 
-  <!-- Coin stack: 3 coins stacked at bottom-right, sitting just below the arc gap -->
+  <!-- Arrowhead at (75,22) -->
+  <path d="M 64 20 L 75 22 L 72 33"
+        stroke="#1a1a1a" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Coin stack: 3 coins INSIDE the circle, bottom-right area -->
   <!-- Bottom coin (full ellipse) -->
-  <ellipse cx="64" cy="82" rx="11" ry="4"
-           stroke="#FFFFFF" stroke-width="3" fill="none"/>
+  <ellipse cx="55" cy="72" rx="10" ry="3.5"
+           stroke="#1a1a1a" stroke-width="2.3" fill="none"/>
   <!-- Side walls bottom→middle -->
-  <line x1="53" y1="77" x2="53" y2="82"
-        stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"/>
-  <line x1="75" y1="77" x2="75" y2="82"
-        stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"/>
+  <line x1="45" y1="68" x2="45" y2="72"
+        stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round"/>
+  <line x1="65" y1="68" x2="65" y2="72"
+        stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round"/>
   <!-- Middle coin top arc -->
-  <path d="M 53 77 A 11 4 0 0 1 75 77"
-        stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"/>
+  <path d="M 45 68 A 10 3.5 0 0 1 65 68"
+        stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round"/>
   <!-- Side walls middle→top -->
-  <line x1="53" y1="72" x2="53" y2="77"
-        stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"/>
-  <line x1="75" y1="72" x2="75" y2="77"
-        stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"/>
+  <line x1="45" y1="64" x2="45" y2="68"
+        stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round"/>
+  <line x1="65" y1="64" x2="65" y2="68"
+        stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round"/>
   <!-- Top coin arc -->
-  <path d="M 53 72 A 11 4 0 0 1 75 72"
-        stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"/>
+  <path d="M 45 64 A 10 3.5 0 0 1 65 64"
+        stroke="#1a1a1a" stroke-width="2.3" stroke-linecap="round"/>
 </svg>
