@@ -46,7 +46,7 @@ export default function LoginScreen() {
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
           <div className="mb-3">
-            <img src="/logo.svg" alt="N.RiseUp" style={{ width: 64, height: 64, objectFit: 'contain' }} />
+            <img src="/logo.png" alt="N.RiseUp" style={{ width: 64, height: 64, objectFit: 'contain' }} />
           </div>
           <h1 className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>N.RiseUp</h1>
           <p className="text-sm mt-1" style={{ color: 'var(--color-text-secondary)' }}>Your personal finance tracker</p>
