@@ -27,9 +27,10 @@ const CATEGORY_ICONS: Record<ExpenseCategory, React.ElementType> = {
 
 interface Props {
   summary: CategorySummary
+  onClick?: () => void
 }
 
-export default function CategoryCard({ summary }: Props) {
+export default function CategoryCard({ summary, onClick }: Props) {
   const Icon = CATEGORY_ICONS[summary.category]
   const { changePct, fill } = summary
 
@@ -38,7 +39,10 @@ export default function CategoryCard({ summary }: Props) {
   const TrendIcon = trendIcon
 
   return (
-    <div className="card p-3 flex flex-col gap-2">
+    <div
+      className="card p-3 flex flex-col gap-2 cursor-pointer active:opacity-70 transition-opacity"
+      onClick={onClick}
+    >
       <div className="flex items-center gap-2">
         <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${fill}20` }}>
           <Icon size={16} style={{ color: fill }} />

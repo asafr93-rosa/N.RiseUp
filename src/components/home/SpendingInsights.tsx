@@ -1,7 +1,8 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { addMonths, subMonths } from 'date-fns'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import CategoryCard from './CategoryCard'
+import CategoryDetailModal from './CategoryDetailModal'
 import { getMonthLabel, formatCurrency, CATEGORY_LABELS, CATEGORY_COLORS } from '../../lib/formatters'
 import { getMonthExpenses } from '../../lib/chartHelpers'
 import { useFinanceStore } from '../../store/useFinanceStore'
@@ -15,6 +16,7 @@ interface Props {
 export default function SpendingInsights({ month, onMonthChange }: Props) {
   const transactions = useFinanceStore((s) => s.transactions)
   const recurringExpenses = useFinanceStore((s) => s.recurringExpenses)
+  const [selectedCategory, setSelectedCategory] = useState<ExpenseCategory | null>(null)
 
   const summaries = useMemo(() => {
     const txnSummaries = getMonthExpenses(transactions, month)
@@ -86,11 +88,18 @@ export default function SpendingInsights({ month, onMonthChange }: Props) {
           )}
           {summaries.length > 0 && (
             <div className="grid grid-cols-2 gap-2">
-              {summaries.map((s) => <CategoryCard key={s.category} summary={s} />)}
+              {summaries.map((s) => (
+                <CategoryCard key={s.category} summary={s} onClick={() => setSelectedCategory(s.category)} />
+              ))}
             </div>
           )}
         </>
       )}
+      <CategoryDetailModal
+        category={selectedCategory}
+        month={month}
+        onClose={() => setSelectedCategory(null)}
+      />
     </div>
   )
 }
