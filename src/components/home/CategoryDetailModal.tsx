@@ -32,27 +32,39 @@ interface Props {
   onClose: () => void
 }
 
+type ListItem =
+  | { kind: 'transaction'; id: string; description: string; amount: number; date: string }
+  | { kind: 'recurring'; id: string; description: string; amount: number }
+
 export default function CategoryDetailModal({ category, month, onClose }: Props) {
   const transactions = useFinanceStore((s) => s.transactions)
+  const recurringExpenses = useFinanceStore((s) => s.recurringExpenses)
 
-  const items = useMemo(() => {
-    if (!category) return []
-    return transactions
+  const { items, total } = useMemo(() => {
+    if (!category) return { items: [] as ListItem[], total: 0 }
+
+    const txns: ListItem[] = transactions
       .filter((t) => {
-        if (t.type !== 'expense') return false
-        if (t.category !== category) return false
+        if (t.type !== 'expense' || t.category !== category) return false
         const d = parseISO(t.date)
         return d.getFullYear() === month.getFullYear() && d.getMonth() === month.getMonth()
       })
       .sort((a, b) => b.date.localeCompare(a.date))
-  }, [transactions, category, month])
+      .map((t) => ({ kind: 'transaction' as const, id: t.id, description: t.description, amount: t.amount, date: t.date }))
+
+    const recurring: ListItem[] = recurringExpenses
+      .filter((r) => r.isActive && r.category === category)
+      .map((r) => ({ kind: 'recurring' as const, id: r.id, description: r.description, amount: r.amount }))
+
+    const all = [...txns, ...recurring]
+    return { items: all, total: all.reduce((s, i) => s + i.amount, 0) }
+  }, [transactions, recurringExpenses, category, month])
 
   if (!category) return null
 
   const Icon = CATEGORY_ICONS[category]
   const fill = CATEGORY_COLORS[category]
   const label = CATEGORY_LABELS[category]
-  const total = items.reduce((s, t) => s + t.amount, 0)
 
   return (
     <Modal open={!!category} onClose={onClose} title={label}>
@@ -63,7 +75,7 @@ export default function CategoryDetailModal({ category, month, onClose }: Props)
         </div>
         <div>
           <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
-            {items.length} transaction{items.length !== 1 ? 's' : ''}
+            {items.length} item{items.length !== 1 ? 's' : ''}
           </p>
           <p className="text-xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
             {formatCurrency(total)}
@@ -71,29 +83,31 @@ export default function CategoryDetailModal({ category, month, onClose }: Props)
         </div>
       </div>
 
-      {/* Transaction list */}
+      {/* List */}
       {items.length === 0 ? (
         <p className="text-sm text-center py-6" style={{ color: 'var(--color-text-secondary)' }}>
-          No transactions this month
+          No expenses this month
         </p>
       ) : (
         <div className="flex flex-col gap-2">
-          {items.map((t) => (
+          {items.map((item) => (
             <div
-              key={t.id}
+              key={item.id}
               className="flex items-center justify-between py-2.5 px-3 rounded-xl"
               style={{ background: 'var(--color-card)' }}
             >
               <div className="flex flex-col gap-0.5 min-w-0">
                 <span className="text-sm font-medium truncate" style={{ color: 'var(--color-text-primary)' }}>
-                  {t.description}
+                  {item.description}
                 </span>
                 <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
-                  {format(parseISO(t.date), 'MMM d')}
+                  {item.kind === 'transaction'
+                    ? format(parseISO(item.date), 'MMM d')
+                    : 'Fixed monthly'}
                 </span>
               </div>
               <span className="text-sm font-semibold shrink-0 ml-3" style={{ color: 'var(--color-expense)' }}>
-                {formatCurrency(t.amount)}
+                {formatCurrency(item.amount)}
               </span>
             </div>
           ))}
