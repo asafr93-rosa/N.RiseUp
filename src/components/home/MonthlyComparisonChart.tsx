@@ -6,6 +6,7 @@ import { useFinanceStore } from '../../store/useFinanceStore'
 import { getExpensesByMonth } from '../../lib/chartHelpers'
 
 const DEFAULT_MONTHS = 3
+const BAR_MIN_WIDTH_PX = 56
 
 export default function MonthlyComparisonChart() {
   const transactions = useFinanceStore((s) => s.transactions)
@@ -50,37 +51,43 @@ export default function MonthlyComparisonChart() {
 
   if (data.every((d) => d.Expenses === 0 && d.Income === 0)) return null
 
+  const needsScroll = monthsToShow > 6
+  const chartWidthPx = needsScroll ? monthsToShow * BAR_MIN_WIDTH_PX : undefined
+
   return (
     <div className="card p-4 mb-4">
       <p className="text-sm font-semibold mb-3" style={{ color: 'var(--color-text-primary)' }}>
         {expanded ? `Last ${monthsToShow} Months` : 'Last 3 Months'}
       </p>
-      <ResponsiveContainer width="100%" height={160}>
-        <BarChart data={data} barCategoryGap="30%">
-          <XAxis
-            dataKey="month"
-            tick={{ fontSize: 11, fill: 'var(--color-text-secondary)' }}
-            axisLine={false}
-            tickLine={false}
-            interval={monthsToShow > 8 ? 'preserveStartEnd' : 0}
-          />
-          <YAxis hide domain={[0, 'auto']} />
-          <Tooltip
-            formatter={(v: unknown, name: unknown) => [`₪${Math.round(Number(v)).toLocaleString()}`, String(name)]}
-            labelFormatter={(label: unknown) => String(label)}
-            contentStyle={{
-              background: 'var(--color-card)',
-              border: '1px solid var(--color-border)',
-              borderRadius: 8,
-              fontSize: 12,
-            }}
-            labelStyle={{ color: 'var(--color-text-primary)', fontWeight: 600, marginBottom: 4 }}
-          />
-          <Legend wrapperStyle={{ fontSize: 11 }} />
-          <Bar dataKey="Expenses" fill="#f87171" radius={[3, 3, 0, 0]} />
-          <Bar dataKey="Income" fill="#34d399" radius={[3, 3, 0, 0]} />
-        </BarChart>
-      </ResponsiveContainer>
+      <div style={{ overflowX: needsScroll ? 'auto' : 'visible' }}>
+        <div style={{ width: chartWidthPx ? `${chartWidthPx}px` : '100%', height: 160 }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data} barCategoryGap="30%">
+              <XAxis
+                dataKey="month"
+                tick={{ fontSize: 11, fill: 'var(--color-text-secondary)' }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <YAxis hide domain={[0, 'auto']} />
+              <Tooltip
+                formatter={(v: unknown, name: unknown) => [`₪${Math.round(Number(v)).toLocaleString()}`, String(name)]}
+                labelFormatter={(label: unknown) => String(label)}
+                contentStyle={{
+                  background: 'var(--color-card)',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: 8,
+                  fontSize: 12,
+                }}
+                labelStyle={{ color: 'var(--color-text-primary)', fontWeight: 600, marginBottom: 4 }}
+              />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
+              <Bar dataKey="Expenses" fill="#f87171" radius={[3, 3, 0, 0]} />
+              <Bar dataKey="Income" fill="#34d399" radius={[3, 3, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
       {hasMore && (
         <button
           onClick={() => setExpanded((v) => !v)}

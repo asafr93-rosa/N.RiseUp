@@ -14,6 +14,8 @@ interface Props {
   onDelete: () => void
 }
 
+const BAR_MIN_WIDTH_PX = 50
+
 function shortMonth(yyyyMM: string): string {
   const [year, month] = yyyyMM.split('-')
   const date = new Date(Number(year), Number(month) - 1, 1)
@@ -139,45 +141,51 @@ export default function InvestmentCard({ investment: inv, onEdit, onDelete }: Pr
         )}
       </div>
 
-      {showChart && (
-        <div className="mt-3" style={{ height: 110 }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData} margin={{ top: 22, right: 4, left: 4, bottom: 0 }} barCategoryGap="35%">
-              <YAxis domain={[(min: number) => min * 0.97, (max: number) => max * 1.03]} hide />
-              <XAxis
-                dataKey="month"
-                tick={{ fontSize: 10, fill: 'var(--color-text-secondary)' }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <Tooltip
-                formatter={(v) => [formatCurrencyIn(convertAmount(Number(v), invCurrency, displayCurrency, rates), displayCurrency), 'Value']}
-                contentStyle={{
-                  background: 'var(--color-card)',
-                  border: '1px solid var(--color-border)',
-                  borderRadius: 8,
-                  fontSize: 11,
-                  color: 'var(--color-text-primary)',
-                }}
-                cursor={{ fill: 'var(--color-border)', opacity: 0.3 }}
-              />
-              <Bar dataKey="value" fill="#2dd4bf" radius={[4, 4, 0, 0]}>
-                <LabelList
-                  dataKey="value"
-                  position="top"
-                  formatter={(v: unknown) => {
-                    const converted = convertAmount(Number(v), invCurrency, displayCurrency, rates)
-                    return converted >= 1000
-                      ? `${(converted / 1000).toFixed(0)}K`
-                      : Math.round(converted).toString()
-                  }}
-                  style={{ fontSize: 9, fontWeight: 600, fill: 'var(--color-text-secondary)', fontFamily: '"DM Mono", monospace' }}
-                />
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      )}
+      {showChart && (() => {
+        const needsScroll = chartData.length > 6
+        const chartWidthPx = needsScroll ? chartData.length * BAR_MIN_WIDTH_PX : undefined
+        return (
+          <div className="mt-3" style={{ overflowX: needsScroll ? 'auto' : 'visible' }}>
+            <div style={{ width: chartWidthPx ? `${chartWidthPx}px` : '100%', height: 110 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} margin={{ top: 22, right: 4, left: 4, bottom: 0 }} barCategoryGap="35%">
+                  <YAxis domain={[(min: number) => min * 0.97, (max: number) => max * 1.03]} hide />
+                  <XAxis
+                    dataKey="month"
+                    tick={{ fontSize: 10, fill: 'var(--color-text-secondary)' }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <Tooltip
+                    formatter={(v) => [formatCurrencyIn(convertAmount(Number(v), invCurrency, displayCurrency, rates), displayCurrency), 'Value']}
+                    contentStyle={{
+                      background: 'var(--color-card)',
+                      border: '1px solid var(--color-border)',
+                      borderRadius: 8,
+                      fontSize: 11,
+                      color: 'var(--color-text-primary)',
+                    }}
+                    cursor={{ fill: 'var(--color-border)', opacity: 0.3 }}
+                  />
+                  <Bar dataKey="value" fill="#2dd4bf" radius={[4, 4, 0, 0]}>
+                    <LabelList
+                      dataKey="value"
+                      position="top"
+                      formatter={(v: unknown) => {
+                        const converted = convertAmount(Number(v), invCurrency, displayCurrency, rates)
+                        return converted >= 1000
+                          ? `${(converted / 1000).toFixed(0)}K`
+                          : Math.round(converted).toString()
+                      }}
+                      style={{ fontSize: 9, fontWeight: 600, fill: 'var(--color-text-secondary)', fontFamily: '"DM Mono", monospace' }}
+                    />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )
+      })()}
 
       {showChart && hasMoreChartHistory && (
         <button
