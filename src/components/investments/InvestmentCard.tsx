@@ -33,12 +33,15 @@ export default function InvestmentCard({ investment: inv, onEdit, onDelete }: Pr
   const accFee = convertAmount(inv.currentValue, invCurrency, displayCurrency, rates) * inv.managementFeeAccumulationPct / 100
   const contribFee = convertAmount(inv.monthlyContribution, contribCurrency, displayCurrency, rates) * 12 * inv.managementFeeContributionPct / 100
 
-  const showChart = inv.valueHistory && inv.valueHistory.length >= 2
-  const chartData = showChart
-    ? inv.valueHistory.map((h) => ({ month: shortMonth(h.month), value: h.value }))
-    : []
-
   const sortedHistory = [...(inv.valueHistory ?? [])].sort((a, b) => a.month.localeCompare(b.month))
+
+  const showChart = sortedHistory.length >= 2
+  const hasMoreChartHistory = sortedHistory.length > 3
+  const [showAllChartHistory, setShowAllChartHistory] = useState(false)
+  const visibleHistory = showAllChartHistory ? sortedHistory : sortedHistory.slice(-3)
+  const chartData = showChart
+    ? visibleHistory.map((h) => ({ month: shortMonth(h.month), value: h.value }))
+    : []
   const prevEntry = sortedHistory.length >= 2 ? sortedHistory[sortedHistory.length - 2] : null
   const monthlyDiff = prevEntry !== null ? inv.currentValue - prevEntry.value : null
   const monthlyPct = prevEntry !== null && prevEntry.value !== 0
@@ -174,6 +177,16 @@ export default function InvestmentCard({ investment: inv, onEdit, onDelete }: Pr
             </BarChart>
           </ResponsiveContainer>
         </div>
+      )}
+
+      {showChart && hasMoreChartHistory && (
+        <button
+          onClick={() => setShowAllChartHistory((v) => !v)}
+          className="flex items-center justify-center gap-1 w-full text-xs mt-1 py-1 rounded-lg"
+          style={{ color: 'var(--color-text-secondary)' }}
+        >
+          {showAllChartHistory ? <>Show Less <ChevronUp size={12} /></> : <>Show More <ChevronDown size={12} /></>}
+        </button>
       )}
 
       <div className="mt-3 grid grid-cols-2 gap-2 text-xs">

@@ -1,15 +1,36 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts'
+import { differenceInCalendarMonths, startOfMonth, parseISO } from 'date-fns'
+import { ChevronDown, ChevronUp } from 'lucide-react'
 import { useFinanceStore } from '../../store/useFinanceStore'
 import { getExpensesByMonth } from '../../lib/chartHelpers'
+
+const DEFAULT_MONTHS = 3
 
 export default function MonthlyComparisonChart() {
   const transactions = useFinanceStore((s) => s.transactions)
   const recurringExpenses = useFinanceStore((s) => s.recurringExpenses)
   const incomeEntries = useFinanceStore((s) => s.incomeEntries)
+  const [expanded, setExpanded] = useState(false)
+
+  // How many months of real history exist (earliest transaction/income to now)
+  const totalMonths = useMemo(() => {
+    const dates = [...transactions.map((t) => t.date), ...incomeEntries.map((e) => e.date)]
+    if (dates.length === 0) return DEFAULT_MONTHS
+    const earliest = dates.reduce((min, d) => (d < min ? d : min), dates[0])
+    try {
+      const diff = differenceInCalendarMonths(startOfMonth(new Date()), startOfMonth(parseISO(earliest))) + 1
+      return Math.max(DEFAULT_MONTHS, diff)
+    } catch {
+      return DEFAULT_MONTHS
+    }
+  }, [transactions, incomeEntries])
+
+  const hasMore = totalMonths > DEFAULT_MONTHS
+  const monthsToShow = expanded ? totalMonths : DEFAULT_MONTHS
 
   const data = useMemo(() => {
-    const months = getExpensesByMonth(transactions, 3)
+    const months = getExpensesByMonth(transactions, monthsToShow)
     const activeRecurringTotal = recurringExpenses
       .filter((r) => r.isActive)
       .reduce((s, r) => s + r.amount, 0)
@@ -25,14 +46,14 @@ export default function MonthlyComparisonChart() {
         Income: m.income + entryIncome,
       }
     })
-  }, [transactions, recurringExpenses, incomeEntries])
+  }, [transactions, recurringExpenses, incomeEntries, monthsToShow])
 
   if (data.every((d) => d.Expenses === 0 && d.Income === 0)) return null
 
   return (
     <div className="card p-4 mb-4">
       <p className="text-sm font-semibold mb-3" style={{ color: 'var(--color-text-primary)' }}>
-        Last 3 Months
+        {expanded ? `Last ${monthsToShow} Months` : 'Last 3 Months'}
       </p>
       <ResponsiveContainer width="100%" height={160}>
         <BarChart data={data} barCategoryGap="30%">
@@ -41,6 +62,7 @@ export default function MonthlyComparisonChart() {
             tick={{ fontSize: 11, fill: 'var(--color-text-secondary)' }}
             axisLine={false}
             tickLine={false}
+            interval={monthsToShow > 8 ? 'preserveStartEnd' : 0}
           />
           <YAxis hide domain={[0, 'auto']} />
           <Tooltip
@@ -59,6 +81,15 @@ export default function MonthlyComparisonChart() {
           <Bar dataKey="Income" fill="#34d399" radius={[3, 3, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
+      {hasMore && (
+        <button
+          onClick={() => setExpanded((v) => !v)}
+          className="flex items-center justify-center gap-1 w-full text-xs mt-2 py-1.5 rounded-lg"
+          style={{ color: 'var(--color-text-secondary)' }}
+        >
+          {expanded ? <>Show Less <ChevronUp size={12} /></> : <>Show More <ChevronDown size={12} /></>}
+        </button>
+      )}
     </div>
   )
 }
