@@ -160,7 +160,7 @@ export default function Accounts() {
     const from = startOfMonth(filterMonth)
     const to = endOfMonth(filterMonth)
     return transactions.filter((t) => {
-      if (!t.creditCardId) return false
+      if (!t.creditCardId && !t.transferAccountId) return false
       try {
         if (!isWithinInterval(parseISO(t.date), { start: from, end: to })) return false
       } catch { return false }
@@ -176,7 +176,7 @@ export default function Accounts() {
     const to = endOfMonth(filterMonth)
     return transactions
       .filter((t) => {
-        if (!t.creditCardId || t.type !== 'expense') return false
+        if ((!t.creditCardId && !t.transferAccountId) || t.type !== 'expense') return false
         try { return isWithinInterval(parseISO(t.date), { start: from, end: to }) }
         catch { return false }
       })
@@ -367,7 +367,7 @@ export default function Accounts() {
       />
 
       {/* ── CC transactions area ── */}
-      {creditCards.length > 0 && (
+      {(creditCards.length > 0 || accounts.length > 0) && (
         <>
           {/* Filters */}
           <div className="flex gap-2">
@@ -642,6 +642,7 @@ export default function Accounts() {
         onClose={() => setAddExpenseOpen(false)}
         onSave={handleAddExpense}
         creditCards={creditCards}
+        accounts={accounts}
         categoryRules={categoryRules}
       />
       <AddExpenseModal
@@ -649,6 +650,7 @@ export default function Accounts() {
         onClose={() => setEditingExpense(null)}
         onSave={handleEditExpense}
         creditCards={creditCards}
+        accounts={accounts}
         categoryRules={categoryRules}
         initial={editingExpense ?? undefined}
       />

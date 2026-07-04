@@ -102,6 +102,7 @@ export default function CreditCardCSVFlow({ creditCards, onImport }: Props) {
       description: r.description,
       bankAccountId: null,
       creditCardId: selectedCardId,
+      transferAccountId: null,
       importBatchId: null,
     }))
     const totalAmount = included.reduce((s, r) => s + r.amount, 0)

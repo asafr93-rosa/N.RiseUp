@@ -23,6 +23,7 @@ const EMPTY = (accountId: string): FormData => ({
   description: '',
   bankAccountId: accountId || null,
   creditCardId: null,
+  transferAccountId: null,
 })
 
 const CATEGORIES = Object.entries(CATEGORY_LABELS) as [ExpenseCategory, string][]
@@ -48,7 +49,7 @@ export default function TransactionModal({ open, onClose, onSave, accounts, defa
 
   function handleSubmit() {
     if (!validate()) return
-    onSave({ ...form, bankAccountId: form.bankAccountId ?? null, creditCardId: null, categorySource: 'manual', importBatchId: null })
+    onSave({ ...form, bankAccountId: form.bankAccountId ?? null, creditCardId: null, transferAccountId: null, categorySource: 'manual', importBatchId: null })
     onClose()
   }
 

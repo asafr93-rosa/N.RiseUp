@@ -125,6 +125,7 @@ export default function ImportCSVFlow({ accounts, categoryRules, onImport }: Pro
       description: r.description,
       bankAccountId: accountId,
       creditCardId: null,
+      transferAccountId: null,
       importBatchId: null,
     }))
     const totalAmount = rows.filter((r) => r.type === 'expense').reduce((s, r) => s + r.amount, 0)

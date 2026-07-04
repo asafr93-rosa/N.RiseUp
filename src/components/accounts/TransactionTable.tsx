@@ -114,7 +114,11 @@ export default function TransactionTable({
             <span style={{ color: 'var(--color-text-secondary)' }}>{formatDate(t.date)}</span>
             <div className="truncate pr-1">
               <span style={{ color: 'var(--color-text-primary)' }}>{t.description}</span>
-              <span className="block text-xs" style={{ color: 'var(--color-text-secondary)' }}>{accountMap[t.creditCardId ?? t.bankAccountId ?? ''] ?? ''}</span>
+              <span className="block text-xs" style={{ color: 'var(--color-text-secondary)' }}>
+                {t.transferAccountId
+                  ? `Bank Transfer · ${accountMap[t.transferAccountId] ?? ''}`
+                  : (accountMap[t.creditCardId ?? t.bankAccountId ?? ''] ?? '')}
+              </span>
             </div>
             <div>
               {t.type === 'expense' ? (

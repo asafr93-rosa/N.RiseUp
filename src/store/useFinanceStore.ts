@@ -98,6 +98,7 @@ export interface Transaction {
   description: string
   bankAccountId: string | null   // null for credit-card-linked transactions
   creditCardId: string | null    // null for bank-account-linked transactions
+  transferAccountId: string | null  // bank account chosen for a "Bank Transfer" payment — display only, never affects balance calculations
   importBatchId: string | null
   createdAt: string
 }
@@ -334,18 +335,18 @@ function buildSampleData(): Pick<
   })
 
   const sampleTxns: Omit<Transaction, 'id' | 'createdAt'>[] = [
-    { date: `${months[0]}-05`, amount: 850, type: 'expense', category: 'food_restaurants', categorySource: 'keyword', description: 'סופרסל', bankAccountId: accountId, creditCardId: null, importBatchId: null },
-    { date: `${months[0]}-08`, amount: 320, type: 'expense', category: 'fuel_transportation', categorySource: 'keyword', description: 'סונול', bankAccountId: accountId, creditCardId: null, importBatchId: null },
-    { date: `${months[0]}-10`, amount: 1200, type: 'expense', category: 'insurance', categorySource: 'keyword', description: 'הראל ביטוח', bankAccountId: accountId, creditCardId: null, importBatchId: null },
-    { date: `${months[0]}-12`, amount: 650, type: 'expense', category: 'shopping_fashion', categorySource: 'keyword', description: 'זארה', bankAccountId: accountId, creditCardId: null, importBatchId: null },
-    { date: `${months[0]}-15`, amount: 18000, type: 'income', category: 'other', categorySource: 'manual', description: 'משכורת', bankAccountId: accountId, creditCardId: null, importBatchId: null },
-    { date: `${months[1]}-04`, amount: 920, type: 'expense', category: 'food_restaurants', categorySource: 'keyword', description: 'רמי לוי', bankAccountId: accountId, creditCardId: null, importBatchId: null },
-    { date: `${months[1]}-09`, amount: 280, type: 'expense', category: 'fuel_transportation', categorySource: 'keyword', description: 'פז', bankAccountId: accountId, creditCardId: null, importBatchId: null },
-    { date: `${months[1]}-11`, amount: 1200, type: 'expense', category: 'insurance', categorySource: 'keyword', description: 'מגדל ביטוח', bankAccountId: accountId, creditCardId: null, importBatchId: null },
-    { date: `${months[1]}-15`, amount: 18000, type: 'income', category: 'other', categorySource: 'manual', description: 'משכורת', bankAccountId: accountId, creditCardId: null, importBatchId: null },
-    { date: `${months[2]}-03`, amount: 750, type: 'expense', category: 'food_restaurants', categorySource: 'keyword', description: 'יוחננוף', bankAccountId: accountId, creditCardId: null, importBatchId: null },
-    { date: `${months[2]}-07`, amount: 410, type: 'expense', category: 'fuel_transportation', categorySource: 'keyword', description: 'דלק', bankAccountId: accountId, creditCardId: null, importBatchId: null },
-    { date: `${months[2]}-15`, amount: 18000, type: 'income', category: 'other', categorySource: 'manual', description: 'משכורת', bankAccountId: accountId, creditCardId: null, importBatchId: null },
+    { date: `${months[0]}-05`, amount: 850, type: 'expense', category: 'food_restaurants', categorySource: 'keyword', description: 'סופרסל', bankAccountId: accountId, creditCardId: null, transferAccountId: null, importBatchId: null },
+    { date: `${months[0]}-08`, amount: 320, type: 'expense', category: 'fuel_transportation', categorySource: 'keyword', description: 'סונול', bankAccountId: accountId, creditCardId: null, transferAccountId: null, importBatchId: null },
+    { date: `${months[0]}-10`, amount: 1200, type: 'expense', category: 'insurance', categorySource: 'keyword', description: 'הראל ביטוח', bankAccountId: accountId, creditCardId: null, transferAccountId: null, importBatchId: null },
+    { date: `${months[0]}-12`, amount: 650, type: 'expense', category: 'shopping_fashion', categorySource: 'keyword', description: 'זארה', bankAccountId: accountId, creditCardId: null, transferAccountId: null, importBatchId: null },
+    { date: `${months[0]}-15`, amount: 18000, type: 'income', category: 'other', categorySource: 'manual', description: 'משכורת', bankAccountId: accountId, creditCardId: null, transferAccountId: null, importBatchId: null },
+    { date: `${months[1]}-04`, amount: 920, type: 'expense', category: 'food_restaurants', categorySource: 'keyword', description: 'רמי לוי', bankAccountId: accountId, creditCardId: null, transferAccountId: null, importBatchId: null },
+    { date: `${months[1]}-09`, amount: 280, type: 'expense', category: 'fuel_transportation', categorySource: 'keyword', description: 'פז', bankAccountId: accountId, creditCardId: null, transferAccountId: null, importBatchId: null },
+    { date: `${months[1]}-11`, amount: 1200, type: 'expense', category: 'insurance', categorySource: 'keyword', description: 'מגדל ביטוח', bankAccountId: accountId, creditCardId: null, transferAccountId: null, importBatchId: null },
+    { date: `${months[1]}-15`, amount: 18000, type: 'income', category: 'other', categorySource: 'manual', description: 'משכורת', bankAccountId: accountId, creditCardId: null, transferAccountId: null, importBatchId: null },
+    { date: `${months[2]}-03`, amount: 750, type: 'expense', category: 'food_restaurants', categorySource: 'keyword', description: 'יוחננוף', bankAccountId: accountId, creditCardId: null, transferAccountId: null, importBatchId: null },
+    { date: `${months[2]}-07`, amount: 410, type: 'expense', category: 'fuel_transportation', categorySource: 'keyword', description: 'דלק', bankAccountId: accountId, creditCardId: null, transferAccountId: null, importBatchId: null },
+    { date: `${months[2]}-15`, amount: 18000, type: 'income', category: 'other', categorySource: 'manual', description: 'משכורת', bankAccountId: accountId, creditCardId: null, transferAccountId: null, importBatchId: null },
   ]
 
   const transactions: Transaction[] = sampleTxns.map((t) => ({
@@ -456,7 +457,7 @@ export const useFinanceStore = create<FinanceState>()(
           const batchIds = s.importBatches.filter((b) => b.bankAccountId === id).map((b) => b.id)
           return {
             accounts: s.accounts.filter((a) => a.id !== id),
-            transactions: s.transactions.filter((t) => t.bankAccountId !== id),
+            transactions: s.transactions.filter((t) => t.bankAccountId !== id && t.transferAccountId !== id),
             importBatches: s.importBatches.filter((b) => b.bankAccountId !== id && !batchIds.includes(b.id)),
           }
         }),
@@ -696,6 +697,7 @@ export const useFinanceStore = create<FinanceState>()(
           ...t,
           creditCardId: (t as { creditCardId?: string | null }).creditCardId ?? null,
           bankAccountId: (t as { bankAccountId?: string | null }).bankAccountId ?? null,
+          transferAccountId: (t as { transferAccountId?: string | null }).transferAccountId ?? null,
         }))
         const importBatches = (b.importBatches ?? []).map((batch) => ({
           ...batch,
@@ -793,6 +795,7 @@ export const useFinanceStore = create<FinanceState>()(
             ...t,
             creditCardId: (t as { creditCardId?: string | null }).creditCardId ?? null,
             bankAccountId: (t as { bankAccountId?: string | null }).bankAccountId ?? null,
+            transferAccountId: (t as { transferAccountId?: string | null }).transferAccountId ?? null,
           }))
         }
 
