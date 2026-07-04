@@ -12,6 +12,7 @@ import ConfirmDialog from '../components/ui/ConfirmDialog'
 import Button from '../components/ui/Button'
 import { formatCurrency, getMonthLabel, CATEGORY_LABELS, CATEGORY_COLORS, convertAmount } from '../lib/formatters'
 import CreditCardCard from '../components/accounts/CreditCardCard'
+import BankTransferCard from '../components/accounts/BankTransferCard'
 import CreditCardModal from '../components/accounts/CreditCardModal'
 import CreditCardCSVFlow from '../components/accounts/CreditCardCSVFlow'
 import AddExpenseModal from '../components/accounts/AddExpenseModal'
@@ -154,6 +155,23 @@ export default function Accounts() {
     }
     return map
   }, [creditCards, transactions, recurringExpenses, filterMonth])
+
+  // ── Monthly bank-transfer expense total per bank account ──────────────────────
+  const transferMonthlyTotals = useMemo(() => {
+    const from = startOfMonth(filterMonth)
+    const to = endOfMonth(filterMonth)
+    const map: Record<string, number> = {}
+    for (const a of accounts) {
+      map[a.id] = transactions
+        .filter((t) => {
+          if (t.type !== 'expense' || t.transferAccountId !== a.id) return false
+          try { return isWithinInterval(parseISO(t.date), { start: from, end: to }) }
+          catch { return false }
+        })
+        .reduce((s, t) => s + t.amount, 0)
+    }
+    return map
+  }, [accounts, transactions, filterMonth])
 
   // ── CC transactions for selected month ────────────────────────────────────────
   const ccTransactions = useMemo(() => {
@@ -322,16 +340,16 @@ export default function Accounts() {
         )}
       </section>
 
-      {/* ── Section 2: Credit Cards ── */}
+      {/* ── Section 2: Payment Option ── */}
       <section>
         <div className="flex items-center justify-between mb-3">
-          <p className="section-label flex-1">Credit Cards</p>
+          <p className="section-label flex-1">Payment Option</p>
           <Button size="sm" onClick={() => setAddCardOpen(true)} style={{ marginLeft: 8 }}>
             <Plus size={12} /> Add
           </Button>
         </div>
 
-        {creditCards.length === 0 ? (
+        {creditCards.length === 0 && accounts.length === 0 ? (
           <div className="flex flex-col items-center py-6 gap-2 rounded-2xl" style={{ background: 'var(--color-card)' }}>
             <CreditCardIcon size={24} style={{ color: 'var(--color-text-secondary)' }} />
             <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>No credit cards yet</p>
@@ -353,6 +371,13 @@ export default function Accounts() {
                 />
               )
             })}
+            {accounts.map((a) => (
+              <BankTransferCard
+                key={a.id}
+                accountName={a.name}
+                monthlyExpenses={transferMonthlyTotals[a.id] ?? 0}
+              />
+            ))}
           </div>
         )}
       </section>
