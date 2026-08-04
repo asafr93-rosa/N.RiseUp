@@ -31,16 +31,22 @@ export default function SpendingInsights({ month, onMonthChange }: Props) {
       const existing = merged.find((s) => s.category === r.category)
       if (existing) {
         existing.total += r.amount
+        existing.prevMonthTotal += r.amount
       } else {
         merged.push({
           category: r.category as ExpenseCategory,
           label: CATEGORY_LABELS[r.category],
           total: r.amount,
-          prevMonthTotal: 0,
+          prevMonthTotal: r.amount,
           changePct: null,
           fill: CATEGORY_COLORS[r.category],
         })
       }
+    }
+
+    // Recompute changePct now that recurring amounts are folded into both months
+    for (const s of merged) {
+      s.changePct = s.prevMonthTotal > 0 ? ((s.total - s.prevMonthTotal) / s.prevMonthTotal) * 100 : null
     }
 
     return merged.sort((a, b) => b.total - a.total)

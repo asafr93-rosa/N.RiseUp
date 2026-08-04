@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useFinanceStore } from '../store/useFinanceStore'
 
 const SESSION_KEY = 'nriseup-unlocked'
-const LOCK_AFTER_MS = 60_000 // 1 minute
+const LOCK_AFTER_MS = 5 * 60_000 // 5 minutes
 
 export function useLock() {
   const lockSettings = useFinanceStore((s) => s.lockSettings)
