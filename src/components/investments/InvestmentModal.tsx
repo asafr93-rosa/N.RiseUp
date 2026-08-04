@@ -31,6 +31,7 @@ const EMPTY: FormData = {
   valueHistory: [],
   currency: 'ILS',
   contributionCurrency: 'ILS',
+  excludeFromNetWorth: false,
 }
 
 export default function InvestmentModal({ open, onClose, onSave, initial }: Props) {

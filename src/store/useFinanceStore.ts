@@ -179,6 +179,7 @@ export interface Investment {
   currency: SupportedCurrency
   contributionCurrency: SupportedCurrency
   createdAt: string
+  excludeFromNetWorth: boolean
 }
 
 export interface ChartWidget {
@@ -382,8 +383,8 @@ function buildSampleData(): Pick<
       { id: uid(), name: 'Toyota Corolla 2021', type: 'vehicle', estimatedValue: 85000, purchaseDate: '2021-03-01', originalPurchaseCost: 105000, notes: '', currency: 'ILS' as SupportedCurrency, createdAt: new Date().toISOString() },
     ],
     investments: [
-      { id: uid(), name: 'Menora Pension Fund', type: 'pension_fund', currentValue: inv1Base, monthlyContribution: 2500, managementFeeContributionPct: 1.5, managementFeeAccumulationPct: 0.5, managingInstitution: 'מנורה מבטחים', description: 'Employee pension', openingDate: '2016-01-01', valueHistory: inv1History, currency: 'ILS' as SupportedCurrency, contributionCurrency: 'ILS' as SupportedCurrency, createdAt: new Date().toISOString() },
-      { id: uid(), name: 'Harel Keren Hishtalmut', type: 'education_fund', currentValue: inv2Base, monthlyContribution: 1800, managementFeeContributionPct: 0.5, managementFeeAccumulationPct: 0.3, managingInstitution: 'הראל', description: '', openingDate: '2019-04-01', valueHistory: inv2History, currency: 'ILS' as SupportedCurrency, contributionCurrency: 'ILS' as SupportedCurrency, createdAt: new Date().toISOString() },
+      { id: uid(), name: 'Menora Pension Fund', type: 'pension_fund', currentValue: inv1Base, monthlyContribution: 2500, managementFeeContributionPct: 1.5, managementFeeAccumulationPct: 0.5, managingInstitution: 'מנורה מבטחים', description: 'Employee pension', openingDate: '2016-01-01', valueHistory: inv1History, currency: 'ILS' as SupportedCurrency, contributionCurrency: 'ILS' as SupportedCurrency, createdAt: new Date().toISOString(), excludeFromNetWorth: false },
+      { id: uid(), name: 'Harel Keren Hishtalmut', type: 'education_fund', currentValue: inv2Base, monthlyContribution: 1800, managementFeeContributionPct: 0.5, managementFeeAccumulationPct: 0.3, managingInstitution: 'הראל', description: '', openingDate: '2019-04-01', valueHistory: inv2History, currency: 'ILS' as SupportedCurrency, contributionCurrency: 'ILS' as SupportedCurrency, createdAt: new Date().toISOString(), excludeFromNetWorth: false },
     ],
     chartWidgets: [
       { id: uid(), chartType: 'pie', dataSource: 'expenses_by_category', timeRange: '1m', filterCategory: 'all', filterAccountId: null, title: 'Expenses This Month', order: 0 },
@@ -787,6 +788,7 @@ export const useFinanceStore = create<FinanceState>()(
             valueHistory: i.valueHistory ?? [{ month, value: i.currentValue }],
             currency: (i as { currency?: SupportedCurrency }).currency ?? 'ILS',
             contributionCurrency: (i as { contributionCurrency?: SupportedCurrency }).contributionCurrency ?? 'ILS',
+            excludeFromNetWorth: (i as { excludeFromNetWorth?: boolean }).excludeFromNetWorth ?? false,
           }))
         }
 

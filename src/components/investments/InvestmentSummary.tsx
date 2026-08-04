@@ -11,11 +11,13 @@ interface Props {
 export default function InvestmentSummary({ investments }: Props) {
   const { displayCurrency, exchangeRates } = useFinanceStore((s) => s.appSettings)
 
-  const { total, totalAnnualFee, totalMonthlyChange } = useMemo(() => {
-    const t = investments.reduce((s, i) =>
+  const { total, totalAnnualFee, totalMonthlyChange, excludedCount } = useMemo(() => {
+    const included = investments.filter((i) => !i.excludeFromNetWorth)
+
+    const t = included.reduce((s, i) =>
       s + convertAmount(i.currentValue, (i.currency ?? 'ILS') as SupportedCurrency, displayCurrency, exchangeRates), 0)
 
-    const fee = investments.reduce((s, i) => {
+    const fee = included.reduce((s, i) => {
       const invCurrency = (i.currency ?? 'ILS') as SupportedCurrency
       const contribCurrency = (i.contributionCurrency ?? 'ILS') as SupportedCurrency
       return s +
@@ -23,10 +25,10 @@ export default function InvestmentSummary({ investments }: Props) {
         convertAmount(i.monthlyContribution, contribCurrency, displayCurrency, exchangeRates) * 12 * i.managementFeeContributionPct / 100
     }, 0)
 
-    // Sum monthly changes across all investments (current value vs previous month snapshot)
+    // Sum monthly changes across included investments (current value vs previous month snapshot)
     let change = 0
     let hasAnyHistory = false
-    for (const inv of investments) {
+    for (const inv of included) {
       const sorted = [...(inv.valueHistory ?? [])].sort((a, b) => a.month.localeCompare(b.month))
       if (sorted.length >= 2) {
         const prev = sorted[sorted.length - 2]
@@ -36,7 +38,12 @@ export default function InvestmentSummary({ investments }: Props) {
       }
     }
 
-    return { total: t, totalAnnualFee: fee, totalMonthlyChange: hasAnyHistory ? change : null }
+    return {
+      total: t,
+      totalAnnualFee: fee,
+      totalMonthlyChange: hasAnyHistory ? change : null,
+      excludedCount: investments.length - included.length,
+    }
   }, [investments, displayCurrency, exchangeRates])
 
   const changeColor = totalMonthlyChange === null ? 'var(--color-text-secondary)'
@@ -59,6 +66,12 @@ export default function InvestmentSummary({ investments }: Props) {
       {totalAnnualFee > 0 && (
         <p className="text-sm mt-1" style={{ color: '#f87171' }}>
           ~{formatCurrencyIn(totalAnnualFee, displayCurrency)} estimated annual fees
+        </p>
+      )}
+
+      {excludedCount > 0 && (
+        <p className="text-xs mt-1" style={{ color: 'var(--color-text-secondary)' }}>
+          {excludedCount} investment{excludedCount !== 1 ? 's' : ''} excluded from this total
         </p>
       )}
     </div>

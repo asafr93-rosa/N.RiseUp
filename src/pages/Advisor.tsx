@@ -12,7 +12,7 @@ function buildFinancialContext(store: ReturnType<typeof useFinanceStore.getState
   const bankTotal = accounts.reduce((s, a) =>
     s + (a.balanceHistory?.[month] ?? 0) + (a.depositHistory?.[month] ?? 0), 0)
   const assetTotal = assets.reduce((s, a) => s + a.estimatedValue, 0)
-  const investTotal = investments.reduce((s, i) => s + i.currentValue, 0)
+  const investTotal = investments.filter((i) => !i.excludeFromNetWorth).reduce((s, i) => s + i.currentValue, 0)
   const netWorth = bankTotal + assetTotal + investTotal
 
   const recent = [...transactions]

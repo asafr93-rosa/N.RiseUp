@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Pencil, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
+import { Pencil, Trash2, ChevronDown, ChevronUp, EyeOff, Eye } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LabelList } from 'recharts'
 import Badge from '../ui/Badge'
 import { formatPercent, formatCurrencyIn, convertAmount, INVESTMENT_TYPE_LABELS, INVESTMENT_TYPE_COLORS } from '../../lib/formatters'
@@ -26,7 +26,9 @@ export default function InvestmentCard({ investment: inv, onEdit, onDelete }: Pr
   const { format, rates, displayCurrency } = useCurrency()
   const addInvestmentHistoryEntry = useFinanceStore((s) => s.addInvestmentHistoryEntry)
   const removeInvestmentHistoryEntry = useFinanceStore((s) => s.removeInvestmentHistoryEntry)
+  const updateInvestment = useFinanceStore((s) => s.updateInvestment)
   const enabledCurrencies = useFinanceStore((s) => s.appSettings.enabledCurrencies)
+  const excluded = inv.excludeFromNetWorth
 
   const invCurrency = (inv.currency ?? 'ILS') as SupportedCurrency
   const contribCurrency = (inv.contributionCurrency ?? 'ILS') as SupportedCurrency
@@ -92,11 +94,12 @@ export default function InvestmentCard({ investment: inv, onEdit, onDelete }: Pr
   }
 
   return (
-    <div className="card p-4 animate-fade-in">
+    <div className="card p-4 animate-fade-in" style={excluded ? { opacity: 0.6 } : undefined}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
             <Badge label={INVESTMENT_TYPE_LABELS[inv.type]} color={color} small />
+            {excluded && <Badge label="Excluded from totals" color="#9ca3af" small />}
           </div>
           <h3 className="font-semibold text-sm truncate" style={{ color: 'var(--color-text-primary)' }}>
             {inv.name}
@@ -109,6 +112,14 @@ export default function InvestmentCard({ investment: inv, onEdit, onDelete }: Pr
         </div>
 
         <div className="flex gap-1 shrink-0">
+          <button
+            onClick={() => updateInvestment(inv.id, { excludeFromNetWorth: !excluded })}
+            title={excluded ? 'Include in Net Worth total' : 'Exclude from Net Worth total'}
+            className="p-2 rounded-lg"
+            style={{ color: excluded ? '#2dd4bf' : 'var(--color-text-secondary)', background: 'var(--color-card)' }}
+          >
+            {excluded ? <EyeOff size={15} /> : <Eye size={15} />}
+          </button>
           <button onClick={onEdit} className="p-2 rounded-lg" style={{ color: 'var(--color-text-secondary)', background: 'var(--color-card)' }}>
             <Pencil size={15} />
           </button>

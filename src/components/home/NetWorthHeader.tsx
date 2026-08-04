@@ -23,7 +23,9 @@ export default function NetWorthHeader() {
   [assets, displayCurrency, exchangeRates])
 
   const investTotal = useMemo(() =>
-    investments.reduce((s, i) => s + convertAmount(i.currentValue, i.currency ?? 'ILS', displayCurrency, exchangeRates), 0),
+    investments
+      .filter((i) => !i.excludeFromNetWorth)
+      .reduce((s, i) => s + convertAmount(i.currentValue, i.currency ?? 'ILS', displayCurrency, exchangeRates), 0),
   [investments, displayCurrency, exchangeRates])
 
   const netWorth = bankTotal + assetTotal + investTotal
