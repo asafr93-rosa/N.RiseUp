@@ -239,12 +239,14 @@ export default function Accounts() {
   }
 
   function handleCSVImport(txns: Parameters<typeof addTransactionsBatch>[0], meta: Parameters<typeof addTransactionsBatch>[1]) {
-    addTransactionsBatch(txns, meta)
+    // Assign imported expenses to the month currently being viewed, keeping the day of month
+    const lastDay = endOfMonth(filterMonth).getDate()
+    const inViewedMonth = txns.map((t) => {
+      const day = Math.min(Number(t.date.slice(8, 10)) || 1, lastDay)
+      return { ...t, date: `${filterMonthKey}-${String(day).padStart(2, '0')}` }
+    })
+    addTransactionsBatch(inViewedMonth, meta)
     setShowCCImport(false)
-    if (txns.length > 0) {
-      const latestDate = txns.reduce((a, b) => a.date > b.date ? a : b).date
-      setFilterMonth(parseISO(latestDate))
-    }
     toast.success(`Imported ${txns.length} expenses`)
   }
 
