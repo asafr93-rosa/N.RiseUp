@@ -1,13 +1,14 @@
 {
   "name": "n-riseup",
   "private": true,
-  "version": "5.23.0",
+  "version": "5.24.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "sync:cal": "node scripts/sync-cal.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.88.0",

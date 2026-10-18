@@ -32,3 +32,6 @@ dist-ssr
 
 # AI import queue — contains user transaction data
 public/pending-import.json
+
+# Classified card statements — personal financial data
+Categories/
