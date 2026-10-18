@@ -1,14 +1,13 @@
 {
   "name": "n-riseup",
   "private": true,
-  "version": "5.28.0",
+  "version": "5.29.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview",
-    "sync:cal": "node scripts/sync-cal.mjs"
+    "preview": "vite preview"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.88.0",
@@ -16,11 +15,9 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@formkit/auto-animate": "^0.9.0",
-    "@sparticuz/chromium": "153.0.0",
     "@supabase/supabase-js": "^2.103.0",
     "@tailwindcss/vite": "^4.2.2",
     "date-fns": "^4.1.0",
-    "israeli-bank-scrapers-core": "6.12.2",
     "lucide-react": "^1.7.0",
     "papaparse": "^5.5.3",
     "react": "^19.2.4",
