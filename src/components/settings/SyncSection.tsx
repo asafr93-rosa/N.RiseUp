@@ -7,7 +7,7 @@ import { useSyncStatus, syncNow, uploadThisDevice, restoreBackup, discardBackup 
 type Pending = 'upload' | 'restore' | 'discard' | null
 
 export default function SyncSection() {
-  const { state, lastSyncedAt, hasBackup } = useSyncStatus()
+  const { state, lastSyncedAt, hasBackup, lastError } = useSyncStatus()
   const [pending, setPending] = useState<Pending>(null)
 
   const statusText =
@@ -17,9 +17,9 @@ export default function SyncSection() {
           : 'Not synced yet'
 
   async function handleUpload() {
-    const ok = await uploadThisDevice()
-    if (ok) toast.success('This device\'s data is now on all devices')
-    else toast.error('Upload failed — check your connection')
+    const error = await uploadThisDevice()
+    if (error) toast.error(`Upload failed: ${error}`)
+    else toast.success('This device\'s data is now on all devices')
   }
 
   async function handleRestore() {
@@ -49,6 +49,9 @@ export default function SyncSection() {
           <RefreshCw size={16} className={state === 'syncing' ? 'animate-spin' : ''} />
         </button>
       </div>
+      {state === 'error' && lastError && (
+        <p className="text-xs break-words" style={{ color: 'var(--color-expense)' }}>{lastError}</p>
+      )}
       <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
         All devices signed in to this account share the same data and update automatically.
       </p>

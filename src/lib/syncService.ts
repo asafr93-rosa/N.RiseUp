@@ -26,13 +26,24 @@ interface SyncStatus {
   state: 'idle' | 'syncing' | 'error'
   lastSyncedAt: string | null
   hasBackup: boolean
+  /** Message from the last failed request, shown in Settings */
+  lastError: string | null
 }
 
 export const useSyncStatus = create<SyncStatus>()(() => ({
   state: 'idle',
   lastSyncedAt: null,
   hasBackup: false,
+  lastError: null,
 }))
+
+function errorMessage(error: unknown): string {
+  if (error && typeof error === 'object') {
+    const e = error as { message?: string; code?: string; details?: string; hint?: string }
+    return [e.code, e.message, e.details, e.hint].filter(Boolean).join(' — ') || 'Unknown error'
+  }
+  return String(error)
+}
 
 // ── Local persistence helpers ─────────────────────────────────────────────────
 
@@ -146,7 +157,7 @@ async function doPull(username: string): Promise<void> {
 
   if (sameTime(remoteUpdatedAt, meta.remoteUpdatedAt)) {
     ready = true
-    useSyncStatus.setState({ state: 'idle' })
+    useSyncStatus.setState({ state: 'idle', lastError: null })
     return
   }
 
@@ -174,7 +185,7 @@ async function doPull(username: string): Promise<void> {
   applyRemote(row.data)
   writeMeta({ remoteUpdatedAt: row.updated_at, unsynced: false })
   ready = true
-  useSyncStatus.setState({ state: 'idle' })
+  useSyncStatus.setState({ state: 'idle', lastError: null })
 }
 
 // Postgres returns timestamps as '+00:00', we write 'Z' — compare instants, not strings
@@ -184,7 +195,7 @@ function sameTime(a: string | null, b: string | null): boolean {
 
 function failPull(error: unknown): void {
   console.error('[sync] pull failed', error)
-  useSyncStatus.setState({ state: 'error' })
+  useSyncStatus.setState({ state: 'error', lastError: errorMessage(error) })
 }
 
 /** Key-order-independent comparison (Postgres jsonb reorders object keys). */
@@ -224,20 +235,30 @@ function pushUserData(username: string): Promise<void> {
     if (inflightPush) await inflightPush
     useSyncStatus.setState({ state: 'syncing' })
     const updatedAt = new Date().toISOString()
-    const { error } = await supabase
+    const row = { data: buildBlob(), updated_at: updatedAt }
+
+    // Update-then-insert instead of upsert: upsert resolves conflicts on the primary key,
+    // which isn't `username`, so every write after the first collided with the existing row
+    const { data: updated, error: updateError } = await supabase
       .from('user_data')
-      .upsert({ username, data: buildBlob(), updated_at: updatedAt })
+      .update(row)
+      .eq('username', username)
+      .select('username')
+    let error = updateError
+    if (!error && (updated ?? []).length === 0) {
+      ({ error } = await supabase.from('user_data').insert({ username, ...row }))
+    }
 
     if (error) {
       console.error('[sync] push failed, retrying', error)
-      useSyncStatus.setState({ state: 'error' })
+      useSyncStatus.setState({ state: 'error', lastError: errorMessage(error) })
       writeMeta({ unsynced: true })
       schedulePush(username, RETRY_DELAY_MS)
       return
     }
     // Only clear the flag if nothing changed while the request was in flight
     writeMeta({ remoteUpdatedAt: updatedAt, unsynced: pushTimer !== null })
-    useSyncStatus.setState({ state: 'idle' })
+    useSyncStatus.setState({ state: 'idle', lastError: null })
   })()
   const done = run.finally(() => { if (inflightPush === done) inflightPush = null })
   inflightPush = done
@@ -247,11 +268,11 @@ function pushUserData(username: string): Promise<void> {
 // ── Manual actions (Settings) ─────────────────────────────────────────────────
 
 /** Overwrite the cloud with this device's data; other devices pick it up within seconds. */
-export async function uploadThisDevice(): Promise<boolean> {
-  if (!activeUsername) return false
+export async function uploadThisDevice(): Promise<string | null> {
+  if (!activeUsername) return 'Not signed in'
   ready = true
   await pushUserData(activeUsername)
-  return !readMeta().unsynced
+  return readMeta().unsynced ? (useSyncStatus.getState().lastError ?? 'Unknown error') : null
 }
 
 /** Restore the data this device had before its first sync, and upload it everywhere. */
