@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useAutoAnimate } from '@formkit/auto-animate/react'
 import toast from 'react-hot-toast'
 import { Plus, CreditCard as CreditCardIcon, Upload, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, CheckSquare, Landmark, RefreshCw } from 'lucide-react'
@@ -24,6 +24,9 @@ import RecommendationSection from '../components/accounts/RecommendationSection'
 import AIImportBanner from '../components/accounts/AIImportBanner'
 import type { PendingImport } from '../components/accounts/AIImportBanner'
 import { readCalSyncFromHash } from '../lib/calSyncLink'
+import { fetchCalSync, CalSyncError } from '../lib/calSyncApi'
+import Modal from '../components/ui/Modal'
+import Input from '../components/ui/Input'
 import { isRecurringInMonth } from '../lib/recurring'
 import { usePersistedToggle } from '../hooks/usePersistedToggle'
 
@@ -84,7 +87,9 @@ export default function Accounts() {
   const [deletingExpenseId, setDeletingExpenseId] = useState<string | null>(null)
   const [showCCImport, setShowCCImport] = useState(false)
   const [uploadedSync, setUploadedSync] = useState<PendingImport | null>(null)
-  const syncFileRef = useRef<HTMLInputElement>(null)
+  const [calSyncing, setCalSyncing] = useState(false)
+  const [syncPasscodeOpen, setSyncPasscodeOpen] = useState(false)
+  const [syncPasscode, setSyncPasscode] = useState('')
   const [ccFilterCategory, setCCFilterCategory] = useState<ExpenseCategory | 'all'>('all')
   const [ccFilterCardId, setCCFilterCardId] = useState<string | 'all'>('all')
 
@@ -279,18 +284,38 @@ export default function Accounts() {
     setUploadedSync(data)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function handleSyncFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    e.target.value = ''
-    if (!file) return
+  // ── Cal Sync button: server signs in to Cal and returns this month's charges ──
+  const SYNC_SECRET_KEY = 'nriseup-cal-sync-secret'
+  async function runCalSync(secret: string) {
     if (creditCards.length === 0) { toast.error('Add a credit card first'); return }
+    setCalSyncing(true)
+    const t = toast.loading('Signing in to Cal… (up to a minute)')
     try {
-      const data = JSON.parse(await file.text()) as PendingImport
-      if (!Array.isArray(data.transactions) || data.transactions.length === 0) throw new Error('empty')
-      setUploadedSync({ ...data, sourceFile: data.sourceFile ?? file.name, createdAt: data.createdAt ?? String(file.lastModified) })
-    } catch {
-      toast.error('Not a valid Cal sync file')
+      const data = await fetchCalSync(filterMonthKey, secret)
+      try { localStorage.setItem(SYNC_SECRET_KEY, secret) } catch { /* ignore */ }
+      if (data.transactions.length === 0) {
+        toast.success(`No new Cal charges for ${getMonthLabel(filterMonth)}`, { id: t })
+      } else {
+        toast.success(`${data.transactions.length} Cal charges ready`, { id: t })
+        setUploadedSync(data)
+      }
+    } catch (err) {
+      const status = err instanceof CalSyncError ? err.status : 0
+      if (status === 401) {
+        try { localStorage.removeItem(SYNC_SECRET_KEY) } catch { /* ignore */ }
+        setSyncPasscodeOpen(true)
+      }
+      toast.error((err as Error).message || 'Cal sync failed', { id: t })
+    } finally {
+      setCalSyncing(false)
     }
+  }
+
+  function handleCalSyncClick() {
+    let saved: string | null = null
+    try { saved = localStorage.getItem(SYNC_SECRET_KEY) } catch { /* ignore */ }
+    if (saved) void runCalSync(saved)
+    else setSyncPasscodeOpen(true)
   }
 
   // ── Income handlers ───────────────────────────────────────────────────────────
@@ -533,10 +558,9 @@ export default function Accounts() {
               <Button size="sm" className="flex-1" onClick={() => setShowCCImport((v) => !v)}>
                 <Upload size={13} /> Import
               </Button>
-              <Button variant="secondary" size="sm" className="flex-1" onClick={() => syncFileRef.current?.click()}>
-                <RefreshCw size={13} /> Cal Sync
+              <Button variant="secondary" size="sm" className="flex-1" onClick={handleCalSyncClick} disabled={calSyncing}>
+                <RefreshCw size={13} className={calSyncing ? 'animate-spin' : ''} /> {calSyncing ? 'Syncing…' : 'Cal Sync'}
               </Button>
-              <input ref={syncFileRef} type="file" accept=".json,application/json" className="hidden" onChange={handleSyncFile} />
               <Button variant="secondary" size="sm" className="flex-1" onClick={() => setAddExpenseOpen(true)}>
                 <Plus size={13} /> Expense
               </Button>
@@ -739,6 +763,36 @@ export default function Accounts() {
           onDelete={(id) => setDeletingRecurringId(id)}
         />
       </section>
+
+      {/* ── Modal: Cal sync passcode (asked once per device) ── */}
+      <Modal open={syncPasscodeOpen} onClose={() => setSyncPasscodeOpen(false)} title="Cal Sync Passcode">
+        <form
+          className="flex flex-col gap-4"
+          onSubmit={(e) => {
+            e.preventDefault()
+            if (!syncPasscode.trim()) return
+            setSyncPasscodeOpen(false)
+            void runCalSync(syncPasscode.trim())
+            setSyncPasscode('')
+          }}
+        >
+          <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+            Enter the sync passcode you set as CAL_SYNC_SECRET in Vercel. It is remembered on this device.
+          </p>
+          <Input
+            label="Passcode"
+            type="password"
+            autoComplete="off"
+            value={syncPasscode}
+            onChange={(e) => setSyncPasscode(e.target.value)}
+            autoFocus
+          />
+          <div className="flex gap-2">
+            <Button type="button" variant="secondary" className="flex-1" onClick={() => setSyncPasscodeOpen(false)}>Cancel</Button>
+            <Button type="submit" className="flex-1" disabled={!syncPasscode.trim()}>Sync</Button>
+          </div>
+        </form>
+      </Modal>
 
       {/* ── Modals: Bank ── */}
       <BankAccountModal

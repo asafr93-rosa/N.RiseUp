@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    { "source": "/((?!api/|assets/).*)", "destination": "/index.html" }
+  ],
+  "functions": {
+    "api/sync-cal.ts": {
+      "memory": 2048,
+      "maxDuration": 120,
+      "includeFiles": "node_modules/@sparticuz/chromium/bin/**"
+    }
+  }
+}
