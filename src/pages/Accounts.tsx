@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useAutoAnimate } from '@formkit/auto-animate/react'
 import toast from 'react-hot-toast'
-import { Plus, CreditCard as CreditCardIcon, Upload, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, CheckSquare } from 'lucide-react'
+import { Plus, CreditCard as CreditCardIcon, Upload, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, CheckSquare, Landmark } from 'lucide-react'
 import { startOfMonth, endOfMonth, parseISO, isWithinInterval, addMonths, subMonths } from 'date-fns'
 import { useFinanceStore } from '../store/useFinanceStore'
 import type { CreditCard, RecurringExpense, ExpenseCategory, Transaction, IncomeEntry } from '../store/useFinanceStore'
@@ -176,6 +176,16 @@ export default function Accounts() {
     return map
   }, [accounts, transactions, filterMonth])
 
+  // ── Bank transfer totals for the summary boxes (one-off transfers + fixed expenses paid from the account) ──
+  const bankTransferBoxes = accounts
+    .map((a) => {
+      const recurring = recurringExpenses
+        .filter((r) => isRecurringInMonth(r, filterMonthKey) && r.bankAccountId === a.id && !r.creditCardId)
+        .reduce((s, r) => s + r.amount, 0)
+      return { account: a, total: (transferMonthlyTotals[a.id] ?? 0) + recurring }
+    })
+    .filter((b) => b.total > 0)
+
   // ── CC transactions for selected month ────────────────────────────────────────
   const ccTransactions = useMemo(() => {
     const from = startOfMonth(filterMonth)
@@ -323,8 +333,8 @@ export default function Accounts() {
             </div>
           </div>
 
-          {/* Per-card expense totals (tap to filter transactions) */}
-          {creditCards.length > 0 && (
+          {/* Per-card expense totals (tap to filter) + bank transfer totals */}
+          {(creditCards.length > 0 || bankTransferBoxes.length > 0) && (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
               {creditCards.map((c) => {
                 const t = cardMonthlyTotals[c.id]
@@ -346,6 +356,15 @@ export default function Accounts() {
                   </button>
                 )
               })}
+              {bankTransferBoxes.map(({ account, total }) => (
+                <div key={account.id} className="card p-3 flex flex-col gap-1">
+                  <p className="text-xs flex items-center gap-1.5 min-w-0" style={{ color: 'var(--color-text-secondary)' }}>
+                    <Landmark size={12} className="shrink-0" style={{ color: '#0ea5e9' }} />
+                    <span className="truncate">{account.name} · Transfers</span>
+                  </p>
+                  <p className="text-sm font-bold" style={{ color: '#f87171' }}>{formatCurrency(total)}</p>
+                </div>
+              ))}
             </div>
           )}
         </section>
