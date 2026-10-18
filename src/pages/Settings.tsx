@@ -345,7 +345,7 @@ export default function Settings() {
         <div>
           <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>Recommendation Priorities</p>
           <p className="text-xs mt-1" style={{ color: 'var(--color-text-secondary)' }}>
-            Drag to reorder. When an account has a negative balance, suggestions appear in this order.
+            Drag to reorder. When an account drops below its minimum balance, suggestions appear in this order.
           </p>
         </div>
 
@@ -374,6 +374,28 @@ export default function Settings() {
           </DndContext>
         )}
       </div>
+
+      {/* ── Minimum account balance ── */}
+      <section className="card p-4 flex flex-col gap-3">
+        <div>
+          <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>Minimum Account Balance</p>
+          <p className="text-xs mt-1" style={{ color: 'var(--color-text-secondary)' }}>
+            Recommendations keep every bank account at or above this amount, and never take a donor account below it.
+          </p>
+        </div>
+        <Input
+          label="Minimum (ILS)"
+          type="number"
+          inputMode="decimal"
+          min={0}
+          placeholder="0"
+          value={appSettings.minAccountBalance ? String(appSettings.minAccountBalance) : ''}
+          onChange={(e) => {
+            const v = Number(e.target.value)
+            updateAppSettings({ minAccountBalance: Number.isFinite(v) && v > 0 ? v : 0 })
+          }}
+        />
+      </section>
 
       {/* ── Currency Settings ── */}
       <section className="card p-4 flex flex-col gap-4">
@@ -582,7 +604,7 @@ export default function Settings() {
 
       <Button variant="primary" onClick={handleSave}>Save Settings</Button>
 
-      <p className="text-center text-xs py-2" style={{ color: 'var(--color-text-secondary)' }}>v5.17</p>
+      <p className="text-center text-xs py-2" style={{ color: 'var(--color-text-secondary)' }}>v5.18</p>
     </div>
   )
 }

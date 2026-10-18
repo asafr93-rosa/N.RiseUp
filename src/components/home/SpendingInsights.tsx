@@ -7,6 +7,7 @@ import { getMonthLabel, formatCurrency, CATEGORY_LABELS, CATEGORY_COLORS } from 
 import { getMonthExpenses } from '../../lib/chartHelpers'
 import { useFinanceStore } from '../../store/useFinanceStore'
 import type { ExpenseCategory } from '../../store/useFinanceStore'
+import { isRecurringInMonth, toMonthKey } from '../../lib/recurring'
 
 interface Props {
   month: Date
@@ -22,22 +23,26 @@ export default function SpendingInsights({ month, onMonthChange }: Props) {
     const txnSummaries = getMonthExpenses(transactions, month)
 
     // Merge active recurring expenses into category cards by their category field
-    const activeRecurring = recurringExpenses.filter((r) => r.isActive)
+    const monthKey = toMonthKey(month)
+    const prevMonthKey = toMonthKey(subMonths(month, 1))
+    const activeRecurring = recurringExpenses.filter((r) => isRecurringInMonth(r, monthKey) || isRecurringInMonth(r, prevMonthKey))
     if (activeRecurring.length === 0) return txnSummaries
 
     const merged = txnSummaries.map((s) => ({ ...s }))
 
     for (const r of activeRecurring) {
+      const cur = isRecurringInMonth(r, monthKey) ? r.amount : 0
+      const prev = isRecurringInMonth(r, prevMonthKey) ? r.amount : 0
       const existing = merged.find((s) => s.category === r.category)
       if (existing) {
-        existing.total += r.amount
-        existing.prevMonthTotal += r.amount
+        existing.total += cur
+        existing.prevMonthTotal += prev
       } else {
         merged.push({
           category: r.category as ExpenseCategory,
           label: CATEGORY_LABELS[r.category],
-          total: r.amount,
-          prevMonthTotal: r.amount,
+          total: cur,
+          prevMonthTotal: prev,
           changePct: null,
           fill: CATEGORY_COLORS[r.category],
         })
@@ -49,13 +54,13 @@ export default function SpendingInsights({ month, onMonthChange }: Props) {
       s.changePct = s.prevMonthTotal > 0 ? ((s.total - s.prevMonthTotal) / s.prevMonthTotal) * 100 : null
     }
 
-    return merged.sort((a, b) => b.total - a.total)
+    return merged.filter((s) => s.total > 0 || s.prevMonthTotal > 0).sort((a, b) => b.total - a.total)
   }, [transactions, recurringExpenses, month])
 
   // Total comes from merged summaries — no double-counting
   const totalExpenses = summaries.reduce((s, c) => s + c.total, 0)
   // Keep for subtitle display only
-  const activeRecurringTotal = recurringExpenses.filter((r) => r.isActive).reduce((s, r) => s + r.amount, 0)
+  const activeRecurringTotal = recurringExpenses.filter((r) => isRecurringInMonth(r, toMonthKey(month))).reduce((s, r) => s + r.amount, 0)
 
   return (
     <div className="mb-4">

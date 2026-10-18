@@ -58,6 +58,7 @@ export interface AppSettings {
   displayCurrency: SupportedCurrency
   enabledCurrencies: SupportedCurrency[]
   exchangeRates: ExchangeRates
+  minAccountBalance: number       // ILS — recommendations keep every bank account at or above this
 }
 
 export interface LockSettings {
@@ -133,6 +134,7 @@ export interface RecurringExpense {
   bankAccountId: string | null
   creditCardId: string | null
   createdAt: string
+  endMonth?: string | null        // 'YYYY-MM' — not applied from this month onward (deleted going forward)
 }
 
 export type RecommendationResource =
@@ -247,6 +249,7 @@ interface FinanceState {
   addRecurringExpense: (data: Omit<RecurringExpense, 'id' | 'createdAt'>) => void
   updateRecurringExpense: (id: string, data: Partial<Omit<RecurringExpense, 'id' | 'createdAt'>>) => void
   deleteRecurringExpense: (id: string) => void
+  endRecurringExpenseFrom: (id: string, monthKey: string) => void
 
   // Asset actions
   addAsset: (data: Omit<Asset, 'id' | 'createdAt'>) => void
@@ -315,6 +318,7 @@ const DEFAULT_APP_SETTINGS: AppSettings = {
     GBP_ILS: 4.60,
     lastUpdated: '',
   },
+  minAccountBalance: 0,
 }
 
 // Fixed localStorage key
@@ -582,6 +586,17 @@ export const useFinanceStore = create<FinanceState>()(
           recurringExpenses: s.recurringExpenses.filter((r) => r.id !== id),
         })),
 
+      // Stop a recurring expense from `monthKey` onward; past months keep it.
+      // If it never applied to an earlier month, remove it entirely.
+      endRecurringExpenseFrom: (id, monthKey) =>
+        set((s) => ({
+          recurringExpenses: s.recurringExpenses.flatMap((r) => {
+            if (r.id !== id) return [r]
+            if (monthKey <= r.createdAt.slice(0, 7)) return []
+            return [{ ...r, endMonth: monthKey }]
+          }),
+        })),
+
       // ── Asset actions ──────────────────────────────────────────────────────
       addAsset: (data) =>
         set((s) => ({
@@ -772,6 +787,9 @@ export const useFinanceStore = create<FinanceState>()(
         if (!state.appSettings.enabledCurrencies) {
           state.appSettings = { ...state.appSettings, enabledCurrencies: ['ILS', 'USD', 'EUR'] }
         }
+        if (typeof state.appSettings.minAccountBalance !== 'number') {
+          state.appSettings = { ...state.appSettings, minAccountBalance: 0 }
+        }
 
         // Backfill currency on existing entities
         if (state.assets) {
@@ -841,6 +859,7 @@ export const useFinanceStore = create<FinanceState>()(
             ...r,
             bankAccountId: (r as { bankAccountId?: string | null }).bankAccountId ?? null,
             creditCardId: (r as { creditCardId?: string | null }).creditCardId ?? null,
+            endMonth: (r as { endMonth?: string | null }).endMonth ?? null,
           }))
         }
 

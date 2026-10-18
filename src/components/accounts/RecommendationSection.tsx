@@ -8,6 +8,7 @@ interface Props {
   filterMonthKey: string
   investments: Investment[]
   priorities: RecommendationResource[]
+  minBalance: number
 }
 
 function buildSuggestions(
@@ -17,10 +18,13 @@ function buildSuggestions(
   effectiveBalances: Record<string, number>,
   filterMonthKey: string,
   investments: Investment[],
-  priorities: RecommendationResource[]
+  priorities: RecommendationResource[],
+  minBalance: number
 ): string[] {
   const suggestions: string[] = []
-  let remaining = Math.abs(deficit)
+  let remaining = deficit
+  // What another account can give without dropping below the minimum
+  const spare = (id: string) => Math.max(0, (effectiveBalances[id] ?? 0) - minBalance)
 
   const consume = (text: string, amount: number) => {
     suggestions.push(text)
@@ -30,11 +34,11 @@ function buildSuggestions(
   if (priorities.length === 0) {
     // Fallback: drain donors largest-first, then own deposit, then investments
     const donors = allAccounts
-      .filter((a) => a.id !== negativeAccount.id && (effectiveBalances[a.id] ?? 0) > 0)
-      .sort((a, b) => (effectiveBalances[b.id] ?? 0) - (effectiveBalances[a.id] ?? 0))
+      .filter((a) => a.id !== negativeAccount.id && spare(a.id) > 0)
+      .sort((a, b) => spare(b.id) - spare(a.id))
     for (const donor of donors) {
       if (remaining <= 0) break
-      const use = Math.min(effectiveBalances[donor.id] ?? 0, remaining)
+      const use = Math.min(spare(donor.id), remaining)
       consume(`Transfer ${formatCurrency(use)} from ${donor.name}`, use)
     }
     if (remaining > 0) {
@@ -60,7 +64,7 @@ function buildSuggestions(
 
     if (resource.type === 'account') {
       if (resource.accountId === negativeAccount.id) continue
-      const avail = effectiveBalances[resource.accountId] ?? 0
+      const avail = spare(resource.accountId)
       if (avail <= 0) continue
       const acc = allAccounts.find((a) => a.id === resource.accountId)
       if (!acc) continue
@@ -84,8 +88,8 @@ function buildSuggestions(
   return suggestions
 }
 
-export default function RecommendationSection({ accounts, effectiveBalances, filterMonthKey, investments, priorities }: Props) {
-  const negativeAccounts = accounts.filter((a) => (effectiveBalances[a.id] ?? 0) < 0)
+export default function RecommendationSection({ accounts, effectiveBalances, filterMonthKey, investments, priorities, minBalance }: Props) {
+  const negativeAccounts = accounts.filter((a) => (effectiveBalances[a.id] ?? 0) < minBalance)
 
   if (negativeAccounts.length === 0) return null
 
@@ -102,7 +106,8 @@ export default function RecommendationSection({ accounts, effectiveBalances, fil
       <div className="flex flex-col divide-y" style={{ borderColor: '#F59E0B20' }}>
         {negativeAccounts.map((account) => {
           const balance = effectiveBalances[account.id] ?? 0
-          const suggestions = buildSuggestions(account, balance, accounts, effectiveBalances, filterMonthKey, investments, priorities)
+          const shortfall = minBalance - balance
+          const suggestions = buildSuggestions(account, shortfall, accounts, effectiveBalances, filterMonthKey, investments, priorities, minBalance)
 
           return (
             <div key={account.id} className="px-4 py-3 flex flex-col gap-2">
@@ -112,6 +117,11 @@ export default function RecommendationSection({ accounts, effectiveBalances, fil
                 </p>
                 <p className="text-sm font-bold" style={{ color: '#f87171' }}>{formatCurrency(balance)}</p>
               </div>
+              {minBalance > 0 && (
+                <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
+                  {formatCurrency(shortfall)} needed to reach the {formatCurrency(minBalance)} minimum
+                </p>
+              )}
 
               {suggestions.length > 0 && (
                 <ol className="flex flex-col gap-1.5 pl-1">

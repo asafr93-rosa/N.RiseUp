@@ -1,3 +1,4 @@
+import { isRecurringInMonth, toMonthKey } from '../../lib/recurring'
 import { useMemo } from 'react'
 import { format, parseISO } from 'date-fns'
 import Modal from '../ui/Modal'
@@ -53,7 +54,7 @@ export default function CategoryDetailModal({ category, month, onClose }: Props)
       .map((t) => ({ kind: 'transaction' as const, id: t.id, description: t.description, amount: t.amount, date: t.date }))
 
     const recurring: ListItem[] = recurringExpenses
-      .filter((r) => r.isActive && r.category === category)
+      .filter((r) => isRecurringInMonth(r, toMonthKey(month)) && r.category === category)
       .map((r) => ({ kind: 'recurring' as const, id: r.id, description: r.description, amount: r.amount }))
 
     const all = [...txns, ...recurring]

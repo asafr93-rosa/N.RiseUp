@@ -1,6 +1,6 @@
-import { useState } from 'react'
 import { ChevronDown, ChevronUp, Trash2, Pencil } from 'lucide-react'
 import Badge from '../ui/Badge'
+import { usePersistedToggle } from '../../hooks/usePersistedToggle'
 import { formatCurrency, formatDate, INCOME_SOURCE_LABELS, INCOME_SOURCE_COLORS } from '../../lib/formatters'
 import type { IncomeEntry } from '../../store/useFinanceStore'
 
@@ -12,7 +12,7 @@ interface Props {
 }
 
 export default function IncomeSection({ incomeEntries, onAdd, onEdit, onDelete }: Props) {
-  const [expanded, setExpanded] = useState(true)
+  const [expanded, toggleExpanded] = usePersistedToggle('income-expanded', true)
 
   const total = incomeEntries.reduce((s, e) => s + e.amount, 0)
   const sorted = [...incomeEntries].sort((a, b) => b.date.localeCompare(a.date))
@@ -20,9 +20,13 @@ export default function IncomeSection({ incomeEntries, onAdd, onEdit, onDelete }
   return (
     <div className="card overflow-hidden">
       {/* Header */}
-      <button
-        className="w-full flex items-center justify-between p-4"
-        onClick={() => setExpanded((v) => !v)}
+      <div
+        role="button"
+        tabIndex={0}
+        aria-expanded={expanded}
+        className="w-full flex items-center justify-between p-4 cursor-pointer select-none"
+        onClick={toggleExpanded}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleExpanded() } }}
       >
         <div>
           <p className="text-sm font-semibold text-left" style={{ color: 'var(--color-text-primary)' }}>Income</p>
@@ -36,9 +40,14 @@ export default function IncomeSection({ incomeEntries, onAdd, onEdit, onDelete }
           >
             + Add
           </button>
-          {expanded ? <ChevronUp size={16} style={{ color: 'var(--color-text-secondary)' }} /> : <ChevronDown size={16} style={{ color: 'var(--color-text-secondary)' }} />}
+          <span
+            className="w-7 h-7 flex items-center justify-center rounded-lg"
+            style={{ background: 'var(--color-surface)', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)' }}
+          >
+            {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </span>
         </div>
-      </button>
+      </div>
 
       {expanded && (
         <div className="border-t" style={{ borderColor: 'var(--color-border)' }}>

@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useAutoAnimate } from '@formkit/auto-animate/react'
 import toast from 'react-hot-toast'
-import { Plus, CreditCard as CreditCardIcon, Upload, ChevronLeft, ChevronRight, CheckSquare } from 'lucide-react'
+import { Plus, CreditCard as CreditCardIcon, Upload, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, CheckSquare } from 'lucide-react'
 import { startOfMonth, endOfMonth, parseISO, isWithinInterval, addMonths, subMonths } from 'date-fns'
 import { useFinanceStore } from '../store/useFinanceStore'
 import type { CreditCard, RecurringExpense, ExpenseCategory, Transaction, IncomeEntry } from '../store/useFinanceStore'
@@ -22,6 +22,8 @@ import RecurringExpenseModal from '../components/accounts/RecurringExpenseModal'
 import RecurringExpensesSection from '../components/accounts/RecurringExpensesSection'
 import RecommendationSection from '../components/accounts/RecommendationSection'
 import AIImportBanner from '../components/accounts/AIImportBanner'
+import { isRecurringInMonth } from '../lib/recurring'
+import { usePersistedToggle } from '../hooks/usePersistedToggle'
 
 export default function Accounts() {
   // ── Store selectors ──────────────────────────────────────────────────────────
@@ -53,7 +55,7 @@ export default function Accounts() {
 
   const addRecurringExpense = useFinanceStore((s) => s.addRecurringExpense)
   const updateRecurringExpense = useFinanceStore((s) => s.updateRecurringExpense)
-  const deleteRecurringExpense = useFinanceStore((s) => s.deleteRecurringExpense)
+  const endRecurringExpenseFrom = useFinanceStore((s) => s.endRecurringExpenseFrom)
   const bulkUpdateTransactionCategory = useFinanceStore((s) => s.bulkUpdateTransactionCategory)
   const setAccountMonthBalance = useFinanceStore((s) => s.setAccountMonthBalance)
   const userProfile = useFinanceStore((s) => s.userProfile)
@@ -93,6 +95,7 @@ export default function Accounts() {
   const [selectMode, setSelectMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [deletingBulk, setDeletingBulk] = useState<string[] | null>(null)
+  const [txExpanded, toggleTxExpanded] = usePersistedToggle('transactions-expanded', true)
 
   // ── Filter month key ─────────────────────────────────────────────────────────
   const filterMonthKey = useMemo(() =>
@@ -122,10 +125,10 @@ export default function Accounts() {
         .filter((e) => e.bankAccountId === a.id && inMonth(e.date))
         .reduce((s, e) => s + e.amount, 0)
       const recurringLinked = recurringExpenses
-        .filter((r) => r.isActive && r.bankAccountId === a.id)
+        .filter((r) => isRecurringInMonth(r, filterMonthKey) && r.bankAccountId === a.id)
         .reduce((s, r) => s + r.amount, 0)
       const recurringViaCc = recurringExpenses
-        .filter((r) => r.isActive && r.creditCardId != null &&
+        .filter((r) => isRecurringInMonth(r, filterMonthKey) && r.creditCardId != null &&
           creditCards.find((cc) => cc.id === r.creditCardId)?.bankAccountId === a.id)
         .reduce((s, r) => s + r.amount, 0)
       map[a.id] = balance - expenses - recurringLinked - recurringViaCc + income
@@ -149,12 +152,12 @@ export default function Accounts() {
         })
         .reduce((s, t) => s + t.amount, 0)
       const recurring = recurringExpenses
-        .filter((r) => r.isActive && r.creditCardId === c.id)
+        .filter((r) => isRecurringInMonth(r, filterMonthKey) && r.creditCardId === c.id)
         .reduce((s, r) => s + r.amount, 0)
       map[c.id] = { expenses, recurring }
     }
     return map
-  }, [creditCards, transactions, recurringExpenses, filterMonth])
+  }, [creditCards, transactions, recurringExpenses, filterMonth, filterMonthKey])
 
   // ── Monthly bank-transfer expense total per bank account ──────────────────────
   const transferMonthlyTotals = useMemo(() => {
@@ -200,7 +203,8 @@ export default function Accounts() {
       })
       .reduce((s, t) => s + t.amount, 0)
   }, [transactions, filterMonth])
-  const activeRecurringTotal = recurringExpenses.filter((r) => r.isActive).reduce((s, r) => s + r.amount, 0)
+  const monthRecurringExpenses = recurringExpenses.filter((r) => !r.endMonth || filterMonthKey < r.endMonth)
+  const activeRecurringTotal = monthRecurringExpenses.filter((r) => isRecurringInMonth(r, filterMonthKey)).reduce((s, r) => s + r.amount, 0)
   const monthlyExpenses = allMonthCCExpenses + activeRecurringTotal
 
   // ── Filtered subtotal (for the subtotal box when a filter is active) ──────────
@@ -439,6 +443,7 @@ export default function Accounts() {
         filterMonthKey={filterMonthKey}
         investments={investments}
         priorities={userProfile.recommendationPriorities}
+        minBalance={appSettings.minAccountBalance ?? 0}
       />
 
       {/* ── CC transactions area ── */}
@@ -499,9 +504,23 @@ export default function Accounts() {
 
           {/* Expenses list */}
           <div>
-            <div className="flex items-center justify-between mb-3">
-              <p className="section-label">Transactions</p>
-              <div className="flex gap-1.5">
+            <div className="flex items-center justify-between mb-3 gap-2">
+              <button
+                type="button"
+                onClick={toggleTxExpanded}
+                aria-expanded={txExpanded}
+                className="flex items-center gap-2 min-w-0"
+              >
+                <span
+                  className="w-7 h-7 flex items-center justify-center rounded-lg shrink-0"
+                  style={{ background: 'var(--color-card)', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)' }}
+                >
+                  {txExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                </span>
+                <span className="section-label">Transactions</span>
+                <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>({ccTransactions.length})</span>
+              </button>
+              {txExpanded && <div className="flex gap-1.5 flex-wrap justify-end">
                 {selectMode ? (
                   <>
                     <button
@@ -557,8 +576,9 @@ export default function Accounts() {
                     <CheckSquare size={12} /> Select
                   </button>
                 )}
-              </div>
+              </div>}
             </div>
+            {txExpanded && <>
             {hasFilter && (() => {
               const accentColor = ccFilterCategory !== 'all'
                 ? (CATEGORY_COLORS[ccFilterCategory] ?? '#2dd4bf')
@@ -629,6 +649,7 @@ export default function Accounts() {
                 No expenses found for this period.
               </p>
             )}
+            </>}
           </div>
         </>
       )}
@@ -642,7 +663,7 @@ export default function Accounts() {
           onDelete={(id) => setDeletingIncomeId(id)}
         />
         <RecurringExpensesSection
-          recurringExpenses={recurringExpenses}
+          recurringExpenses={monthRecurringExpenses}
           accounts={accounts}
           creditCards={creditCards}
           onAdd={() => setAddRecurringOpen(true)}
@@ -772,8 +793,8 @@ export default function Accounts() {
       <ConfirmDialog
         open={!!deletingRecurringId}
         onClose={() => setDeletingRecurringId(null)}
-        onConfirm={() => { if (deletingRecurringId) { deleteRecurringExpense(deletingRecurringId); toast.success('Deleted'); setDeletingRecurringId(null) } }}
-        message="Delete this recurring expense? This cannot be undone."
+        onConfirm={() => { if (deletingRecurringId) { endRecurringExpenseFrom(deletingRecurringId, filterMonthKey); toast.success(`Removed from ${getMonthLabel(filterMonth)} onward`); setDeletingRecurringId(null) } }}
+        message={`Remove this fixed expense from ${getMonthLabel(filterMonth)} onward? Earlier months keep it.`}
       />
     </div>
   )

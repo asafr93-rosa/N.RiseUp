@@ -4,6 +4,7 @@ import { differenceInCalendarMonths, startOfMonth, parseISO } from 'date-fns'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { useFinanceStore } from '../../store/useFinanceStore'
 import { getExpensesByMonth } from '../../lib/chartHelpers'
+import { isRecurringInMonth, toMonthKey } from '../../lib/recurring'
 
 const DEFAULT_MONTHS = 3
 const BAR_MIN_WIDTH_PX = 56
@@ -32,10 +33,10 @@ export default function MonthlyComparisonChart() {
 
   const data = useMemo(() => {
     const months = getExpensesByMonth(transactions, monthsToShow)
+    const currentMonthKey = toMonthKey(new Date())
     const activeRecurringTotal = recurringExpenses
-      .filter((r) => r.isActive)
+      .filter((r) => isRecurringInMonth(r, currentMonthKey))
       .reduce((s, r) => s + r.amount, 0)
-    const currentMonthKey = new Date().toISOString().slice(0, 7)
     return months.map((m) => {
       // incomeEntries are stored separately from transactions — add them in
       const entryIncome = incomeEntries

@@ -1,3 +1,4 @@
+import { isRecurringInMonth, toMonthKey } from '../../lib/recurring'
 import { useMemo } from 'react'
 import { startOfMonth, endOfMonth } from 'date-fns'
 import { X } from 'lucide-react'
@@ -45,7 +46,7 @@ export default function ChartWidget({ widget, onDelete, selectedMonth }: Props) 
       case 'expenses_by_category': {
         const base = getExpensesByCategory(filteredTxns, from, to, widget.filterCategory)
         // Merge active recurring expenses into category data
-        const activeRecurring = recurringExpenses.filter((r) => r.isActive)
+        const activeRecurring = recurringExpenses.filter((r) => isRecurringInMonth(r, toMonthKey(selectedMonth ?? new Date())))
         if (activeRecurring.length === 0) return base
         const merged = base.map((d) => ({ ...d }))
         for (const r of activeRecurring) {
