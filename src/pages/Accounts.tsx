@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { useAutoAnimate } from '@formkit/auto-animate/react'
 import toast from 'react-hot-toast'
 import { Plus, CreditCard as CreditCardIcon, Upload, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, CheckSquare, Landmark, RefreshCw } from 'lucide-react'
@@ -23,6 +23,7 @@ import RecurringExpensesSection from '../components/accounts/RecurringExpensesSe
 import RecommendationSection from '../components/accounts/RecommendationSection'
 import AIImportBanner from '../components/accounts/AIImportBanner'
 import type { PendingImport } from '../components/accounts/AIImportBanner'
+import { readCalSyncFromHash } from '../lib/calSyncLink'
 import { isRecurringInMonth } from '../lib/recurring'
 import { usePersistedToggle } from '../hooks/usePersistedToggle'
 
@@ -268,6 +269,16 @@ export default function Accounts() {
   }
 
   // ── Cal sync file (output of `npm run sync:cal`) ─────────────────────────────
+  // Opened from `npm run sync:cal` → transactions arrive in the URL fragment
+  useEffect(() => {
+    const data = readCalSyncFromHash(window.location.hash)
+    if (!window.location.hash.startsWith('#cal-sync=')) return
+    history.replaceState(null, '', window.location.pathname + window.location.search)
+    if (!data) { toast.error('Cal sync link is invalid'); return }
+    if (creditCards.length === 0) { toast.error('Add a credit card first'); return }
+    setUploadedSync(data)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   async function handleSyncFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     e.target.value = ''

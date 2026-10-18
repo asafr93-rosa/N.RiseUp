@@ -12,9 +12,10 @@
 //
 // Flow: Cal → classify (Claude, 8 Hebrew categories) → Categories/<card>.csv → prepare-ai-import.mjs
 //       → public/pending-import.json (+ a copy in ~/Downloads)
-//       → live app: Accounts → Quick Actions → Cal Sync → pick the file → Import.
+//       → opens the live app with the import dialog already showing the transactions.
+//         (Add --no-open to skip; set NRISEUP_APP_URL to use another address.)
 
-import { existsSync, readdirSync, unlinkSync, writeFileSync, mkdirSync, copyFileSync } from 'fs'
+import { existsSync, readdirSync, readFileSync, unlinkSync, writeFileSync, mkdirSync, copyFileSync } from 'fs'
 import { homedir } from 'os'
 import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
@@ -38,6 +39,7 @@ const argValue = (name) => {
 const wantedCard = argValue('--card')
 const monthArg = argValue('--month')
 const showBrowser = args.includes('--show')
+const noOpen = args.includes('--no-open')
 
 const envPath = resolve(PROJECT_ROOT, '.env')
 if (existsSync(envPath)) process.loadEnvFile(envPath)
@@ -181,4 +183,22 @@ if (existsSync(downloadsDir)) {
   copyFileSync(resolve(PROJECT_ROOT, 'public/pending-import.json'), resolve(downloadsDir, syncFileName))
   console.log(`✓ Saved ~/Downloads/${syncFileName}`)
 }
-console.log(`\nNext: open the app → Accounts → Quick Actions → Cal Sync → pick ${syncFileName} → Import.`)
+// ── Open the live app with the transactions in the URL fragment ──────────────
+// The fragment (#…) stays in the browser and is never sent to the server.
+const queued = JSON.parse(readFileSync(resolve(PROJECT_ROOT, 'public/pending-import.json'), 'utf-8'))
+const compact = {
+  c: queued.cardLastFour,
+  d: queued.statementDate,
+  s: queued.sourceFile,
+  t: queued.createdAt,
+  x: queued.transactions.map((t) => [t.description, t.amount, t.category]),
+}
+const appUrl = (process.env.NRISEUP_APP_URL || 'https://n-riseup.vercel.app').replace(/\/$/, '')
+const link = `${appUrl}/accounts#cal-sync=${Buffer.from(JSON.stringify(compact), 'utf-8').toString('base64url')}`
+
+if (noOpen) {
+  console.log(`\nNext: open the app → Accounts → Quick Actions → Cal Sync → pick ${syncFileName} → Import.`)
+} else {
+  execFileSync('open', [link])
+  console.log('\n✓ Opened the app — confirm the card and click Import.')
+}
