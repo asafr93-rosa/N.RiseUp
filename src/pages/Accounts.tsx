@@ -503,24 +503,40 @@ export default function Accounts() {
           )}
 
           {/* Expenses list */}
-          <div>
-            <div className="flex items-center justify-between mb-3 gap-2">
-              <button
-                type="button"
-                onClick={toggleTxExpanded}
-                aria-expanded={txExpanded}
-                className="flex items-center gap-2 min-w-0"
-              >
+          <div className="card overflow-hidden">
+            {/* Header */}
+            <div
+              role="button"
+              tabIndex={0}
+              aria-expanded={txExpanded}
+              className="w-full flex items-center justify-between p-4 cursor-pointer select-none"
+              onClick={toggleTxExpanded}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleTxExpanded() } }}
+            >
+              <div>
+                <p className="text-sm font-semibold text-left" style={{ color: 'var(--color-text-primary)' }}>Expenses</p>
+                <p className="text-xs text-left" style={{ color: '#f87171' }}>{formatCurrency(filteredExpensesSubtotal)} total</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={(e) => { e.stopPropagation(); setAddExpenseOpen(true) }}
+                  className="text-xs font-medium px-3 py-1.5 rounded-lg"
+                  style={{ background: '#f8717120', color: '#f87171' }}
+                >
+                  + Add
+                </button>
                 <span
-                  className="w-7 h-7 flex items-center justify-center rounded-lg shrink-0"
-                  style={{ background: 'var(--color-card)', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)' }}
+                  className="w-7 h-7 flex items-center justify-center rounded-lg"
+                  style={{ background: 'var(--color-surface)', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)' }}
                 >
                   {txExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                 </span>
-                <span className="section-label">Transactions</span>
-                <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>({ccTransactions.length})</span>
-              </button>
-              {txExpanded && <div className="flex gap-1.5 flex-wrap justify-end">
+              </div>
+            </div>
+
+            {txExpanded && (
+            <div className="border-t p-3" style={{ borderColor: 'var(--color-border)' }}>
+            <div className="flex gap-1.5 flex-wrap justify-end mb-3">
                 {selectMode ? (
                   <>
                     <button
@@ -576,9 +592,7 @@ export default function Accounts() {
                     <CheckSquare size={12} /> Select
                   </button>
                 )}
-              </div>}
             </div>
-            {txExpanded && <>
             {hasFilter && (() => {
               const accentColor = ccFilterCategory !== 'all'
                 ? (CATEGORY_COLORS[ccFilterCategory] ?? '#2dd4bf')
@@ -649,7 +663,8 @@ export default function Accounts() {
                 No expenses found for this period.
               </p>
             )}
-            </>}
+            </div>
+            )}
           </div>
         </>
       )}
