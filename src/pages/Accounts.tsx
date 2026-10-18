@@ -299,6 +299,54 @@ export default function Accounts() {
         <AIImportBanner creditCards={creditCards} onImport={handleCSVImport} />
       )}
 
+      {/* ── Monthly summary ── */}
+      {(accounts.length > 0 || creditCards.length > 0) && (
+        <section className="flex flex-col gap-2">
+          <div className="grid grid-cols-3 gap-2">
+            <div className="card p-3 flex flex-col gap-1">
+              <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>Expenses</p>
+              <p className="text-sm font-bold" style={{ color: '#f87171' }}>{formatCurrency(monthlyExpenses)}</p>
+            </div>
+            <div className="card p-3 flex flex-col gap-1">
+              <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>Income</p>
+              <p className="text-sm font-bold" style={{ color: '#34d399' }}>{formatCurrency(monthlyIncome)}</p>
+            </div>
+            <div className="card p-3 flex flex-col gap-1">
+              <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>Net</p>
+              <p className="text-sm font-bold" style={{ color: netBalance >= 0 ? '#34d399' : '#f87171' }}>
+                {netBalance < 0 ? '-' : ''}{formatCurrency(Math.abs(netBalance))}
+              </p>
+            </div>
+          </div>
+
+          {/* Per-card expense totals (tap to filter transactions) */}
+          {creditCards.length > 0 && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+              {creditCards.map((c) => {
+                const t = cardMonthlyTotals[c.id]
+                const total = (t?.expenses ?? 0) + (t?.recurring ?? 0)
+                const active = ccFilterCardId === c.id
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => setCCFilterCardId(active ? 'all' : c.id)}
+                    className="card p-3 flex flex-col gap-1 text-left transition-colors"
+                    style={active ? { borderColor: 'var(--color-accent)' } : undefined}
+                  >
+                    <p className="text-xs flex items-center gap-1.5 min-w-0" style={{ color: 'var(--color-text-secondary)' }}>
+                      <CreditCardIcon size={12} className="shrink-0" />
+                      <span className="truncate">{c.name}{c.lastFourDigits ? ` ···· ${c.lastFourDigits}` : ''}</span>
+                    </p>
+                    <p className="text-sm font-bold" style={{ color: '#f87171' }}>{formatCurrency(total)}</p>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </section>
+      )}
+
       {/* ── Section 1: Bank Accounts ── */}
       <section>
         <div className="flex items-center justify-between mb-3">
@@ -448,24 +496,6 @@ export default function Accounts() {
               onImport={handleCSVImport}
             />
           )}
-
-          {/* Financial summary */}
-          <div className="grid grid-cols-3 gap-2">
-            <div className="card p-3 flex flex-col gap-1">
-              <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>Expenses</p>
-              <p className="text-sm font-bold" style={{ color: '#f87171' }}>{formatCurrency(monthlyExpenses)}</p>
-            </div>
-            <div className="card p-3 flex flex-col gap-1">
-              <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>Income</p>
-              <p className="text-sm font-bold" style={{ color: '#34d399' }}>{formatCurrency(monthlyIncome)}</p>
-            </div>
-            <div className="card p-3 flex flex-col gap-1">
-              <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>Net</p>
-              <p className="text-sm font-bold" style={{ color: netBalance >= 0 ? '#34d399' : '#f87171' }}>
-                {netBalance < 0 ? '-' : ''}{formatCurrency(Math.abs(netBalance))}
-              </p>
-            </div>
-          </div>
 
           {/* Expenses list */}
           <div>

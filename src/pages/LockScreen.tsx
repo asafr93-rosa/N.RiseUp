@@ -73,8 +73,26 @@ export default function LockScreen({ onUnlock }: Props) {
   }
 
   function pressDigit(d: string) {
-    if (pin.length < PIN_LENGTH) setPin((p) => p + d)
+    setPin((p) => (p.length < PIN_LENGTH ? p + d : p))
   }
+
+  // Physical keyboard support (desktop / web): digits, numpad, Backspace
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.metaKey || e.ctrlKey || e.altKey) return
+      if (/^[0-9]$/.test(e.key)) {
+        e.preventDefault()
+        pressDigit(e.key)
+      } else if (e.key === 'Backspace' || e.key === 'Delete') {
+        e.preventDefault()
+        pressDelete()
+      } else if (e.key === 'Escape') {
+        setPin('')
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
 
   function pressDelete() {
     setPin((p) => p.slice(0, -1))
@@ -84,9 +102,10 @@ export default function LockScreen({ onUnlock }: Props) {
 
   return (
     <div
-      className="fixed inset-0 flex flex-col items-center justify-center gap-8 px-8"
+      className="fixed inset-0 flex items-center justify-center px-8 md:px-4"
       style={{ background: 'var(--color-surface)' }}
     >
+      <div className="w-full flex flex-col items-center gap-8 md:max-w-sm md:bg-[var(--color-card)] md:border md:border-[var(--color-border)] md:rounded-3xl md:shadow-xl md:px-10 md:py-10 md:gap-7">
       {/* User identity */}
       <div className="flex flex-col items-center gap-3">
         <div
@@ -134,14 +153,14 @@ export default function LockScreen({ onUnlock }: Props) {
       </div>
 
       {/* Keypad */}
-      <div className="grid grid-cols-3 gap-4 w-full max-w-xs">
+      <div className="grid grid-cols-3 gap-4 w-full max-w-xs md:gap-3 md:max-w-[260px]">
         {keys.map((key) => {
           if (key === 'biometric') {
             return hasBiometric ? (
               <button
                 key="biometric"
                 onClick={() => void tryBiometric()}
-                className="flex items-center justify-center h-16 rounded-2xl text-lg font-semibold active:scale-95 transition-transform"
+                className="flex items-center justify-center h-16 md:h-14 rounded-2xl text-lg font-semibold active:scale-95 transition-transform"
                 style={{ background: 'var(--color-card)', color: '#2dd4bf', border: '1px solid var(--color-border)' }}
               >
                 <ScanFace size={28} />
@@ -156,7 +175,7 @@ export default function LockScreen({ onUnlock }: Props) {
               <button
                 key="delete"
                 onClick={pressDelete}
-                className="flex items-center justify-center h-16 rounded-2xl text-lg font-semibold active:scale-95 transition-transform"
+                className="flex items-center justify-center h-16 md:h-14 rounded-2xl text-lg font-semibold active:scale-95 transition-transform"
                 style={{ background: 'var(--color-card)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)' }}
               >
                 <Delete size={22} />
@@ -168,13 +187,18 @@ export default function LockScreen({ onUnlock }: Props) {
             <button
               key={key}
               onClick={() => pressDigit(key)}
-              className="flex items-center justify-center h-16 rounded-2xl text-xl font-semibold active:scale-95 transition-transform"
+              className="flex items-center justify-center h-16 md:h-14 rounded-2xl text-xl font-semibold active:scale-95 transition-transform"
               style={{ background: 'var(--color-card)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)' }}
             >
               {key}
             </button>
           )
         })}
+      </div>
+
+      <p className="hidden md:block text-xs text-center" style={{ color: 'var(--color-text-secondary)' }}>
+        Tip: you can type your PIN with your keyboard
+      </p>
       </div>
 
       <style>{`
