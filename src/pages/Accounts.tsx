@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import { useAutoAnimate } from '@formkit/auto-animate/react'
 import toast from 'react-hot-toast'
-import { Plus, CreditCard as CreditCardIcon, Upload, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, CheckSquare, Landmark } from 'lucide-react'
+import { Plus, CreditCard as CreditCardIcon, Upload, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, CheckSquare, Landmark, RefreshCw } from 'lucide-react'
 import { startOfMonth, endOfMonth, parseISO, isWithinInterval, addMonths, subMonths } from 'date-fns'
 import { useFinanceStore } from '../store/useFinanceStore'
 import type { CreditCard, RecurringExpense, ExpenseCategory, Transaction, IncomeEntry } from '../store/useFinanceStore'
@@ -22,6 +22,7 @@ import RecurringExpenseModal from '../components/accounts/RecurringExpenseModal'
 import RecurringExpensesSection from '../components/accounts/RecurringExpensesSection'
 import RecommendationSection from '../components/accounts/RecommendationSection'
 import AIImportBanner from '../components/accounts/AIImportBanner'
+import type { PendingImport } from '../components/accounts/AIImportBanner'
 import { isRecurringInMonth } from '../lib/recurring'
 import { usePersistedToggle } from '../hooks/usePersistedToggle'
 
@@ -81,6 +82,8 @@ export default function Accounts() {
   const [editingExpense, setEditingExpense] = useState<Transaction | null>(null)
   const [deletingExpenseId, setDeletingExpenseId] = useState<string | null>(null)
   const [showCCImport, setShowCCImport] = useState(false)
+  const [uploadedSync, setUploadedSync] = useState<PendingImport | null>(null)
+  const syncFileRef = useRef<HTMLInputElement>(null)
   const [ccFilterCategory, setCCFilterCategory] = useState<ExpenseCategory | 'all'>('all')
   const [ccFilterCardId, setCCFilterCardId] = useState<string | 'all'>('all')
 
@@ -264,6 +267,21 @@ export default function Accounts() {
     toast.success(`Imported ${txns.length} expenses`)
   }
 
+  // ── Cal sync file (output of `npm run sync:cal`) ─────────────────────────────
+  async function handleSyncFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    if (creditCards.length === 0) { toast.error('Add a credit card first'); return }
+    try {
+      const data = JSON.parse(await file.text()) as PendingImport
+      if (!Array.isArray(data.transactions) || data.transactions.length === 0) throw new Error('empty')
+      setUploadedSync({ ...data, sourceFile: data.sourceFile ?? file.name, createdAt: data.createdAt ?? String(file.lastModified) })
+    } catch {
+      toast.error('Not a valid Cal sync file')
+    }
+  }
+
   // ── Income handlers ───────────────────────────────────────────────────────────
   function handleAddIncome(d: Parameters<typeof addIncomeEntry>[0]) {
     addIncomeEntry(d)
@@ -310,7 +328,7 @@ export default function Accounts() {
 
       {/* ── AI Import Banner ── */}
       {creditCards.length > 0 && (
-        <AIImportBanner creditCards={creditCards} onImport={handleCSVImport} />
+        <AIImportBanner creditCards={creditCards} onImport={handleCSVImport} uploaded={uploadedSync} />
       )}
 
       {/* ── Monthly summary ── */}
@@ -500,10 +518,14 @@ export default function Accounts() {
           {/* Quick Actions dock */}
           <div className="quick-actions-dock flex flex-col gap-2">
             <p className="section-label">Quick Actions</p>
-            <div className="flex gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 [&>button]:whitespace-nowrap">
               <Button size="sm" className="flex-1" onClick={() => setShowCCImport((v) => !v)}>
                 <Upload size={13} /> Import
               </Button>
+              <Button variant="secondary" size="sm" className="flex-1" onClick={() => syncFileRef.current?.click()}>
+                <RefreshCw size={13} /> Cal Sync
+              </Button>
+              <input ref={syncFileRef} type="file" accept=".json,application/json" className="hidden" onChange={handleSyncFile} />
               <Button variant="secondary" size="sm" className="flex-1" onClick={() => setAddExpenseOpen(true)}>
                 <Plus size={13} /> Expense
               </Button>

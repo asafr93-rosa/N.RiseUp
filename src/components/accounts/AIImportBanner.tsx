@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
+import toast from 'react-hot-toast'
 import { Sparkles, X } from 'lucide-react'
 import Button from '../ui/Button'
 import Modal from '../ui/Modal'
 import type { CreditCard, Transaction } from '../../store/useFinanceStore'
 import { formatCurrency } from '../../lib/formatters'
 
-interface PendingImport {
+export interface PendingImport {
   transactions: Omit<Transaction, 'id' | 'createdAt'>[]
   sourceFile: string
   cardLastFour: string
@@ -25,11 +26,13 @@ type BatchMeta = {
 interface Props {
   creditCards: CreditCard[]
   onImport: (txns: Omit<Transaction, 'id' | 'createdAt'>[], meta: BatchMeta) => void
+  /** A sync file the user picked on the live site (npm run sync:cal output) */
+  uploaded?: PendingImport | null
 }
 
 const PROCESSED_KEY = 'nriseup-processed-imports'
 
-export default function AIImportBanner({ creditCards, onImport }: Props) {
+export default function AIImportBanner({ creditCards, onImport, uploaded }: Props) {
   const [pending, setPending] = useState<PendingImport | null>(null)
   const [dismissed, setDismissed] = useState(false)
   const [showModal, setShowModal] = useState(false)
@@ -48,6 +51,21 @@ export default function AIImportBanner({ creditCards, onImport }: Props) {
       })
       .catch(() => {})
   }, [creditCards])
+
+  // A file loaded via "Cal Sync" opens the import dialog right away
+  useEffect(() => {
+    if (!uploaded) return
+    const processed: string[] = JSON.parse(localStorage.getItem(PROCESSED_KEY) ?? '[]')
+    if (processed.includes(uploaded.sourceFile + uploaded.createdAt)) {
+      toast.error('This sync file was already imported')
+      return
+    }
+    setPending(uploaded)
+    setDismissed(false)
+    const match = creditCards.find((c) => c.lastFourDigits === uploaded.cardLastFour)
+    setSelectedCardId(match?.id ?? creditCards[0]?.id ?? '')
+    setShowModal(true)
+  }, [uploaded]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!pending || dismissed) return null
 

@@ -11,9 +11,11 @@
 //   npm run sync:cal -- --show        → show the browser window (use if Cal asks for an SMS code)
 //
 // Flow: Cal → classify (Claude, 8 Hebrew categories) → Categories/<card>.csv → prepare-ai-import.mjs
-//       → public/pending-import.json → open the app (npm run dev) → Accounts → import banner.
+//       → public/pending-import.json (+ a copy in ~/Downloads)
+//       → live app: Accounts → Quick Actions → Cal Sync → pick the file → Import.
 
-import { existsSync, readdirSync, unlinkSync, writeFileSync, mkdirSync } from 'fs'
+import { existsSync, readdirSync, unlinkSync, writeFileSync, mkdirSync, copyFileSync } from 'fs'
+import { homedir } from 'os'
 import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { execFileSync } from 'child_process'
@@ -171,4 +173,12 @@ console.log(`✓ Saved ${csvPath.replace(PROJECT_ROOT + '/', '')}`)
 
 // ── Queue for the app import banner ───────────────────────────────────────────
 execFileSync(process.execPath, [resolve(__dirname, 'prepare-ai-import.mjs'), csvPath], { stdio: 'inherit' })
-console.log('\nNext: run `npm run dev`, open the app → Accounts → click Import on the banner.')
+
+// Copy to Downloads so it's easy to pick from the live app
+const downloadsDir = resolve(homedir(), 'Downloads')
+const syncFileName = `cal-sync-${card}-${monthKey}.json`
+if (existsSync(downloadsDir)) {
+  copyFileSync(resolve(PROJECT_ROOT, 'public/pending-import.json'), resolve(downloadsDir, syncFileName))
+  console.log(`✓ Saved ~/Downloads/${syncFileName}`)
+}
+console.log(`\nNext: open the app → Accounts → Quick Actions → Cal Sync → pick ${syncFileName} → Import.`)
