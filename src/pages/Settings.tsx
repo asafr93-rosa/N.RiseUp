@@ -26,6 +26,7 @@ import { useCurrency } from '../hooks/useCurrency'
 import Input from '../components/ui/Input'
 import { isExcludedFromRecommendations } from '../lib/recommendations'
 import Button from '../components/ui/Button'
+import SyncSection from '../components/settings/SyncSection'
 
 // Stable key for a resource (for dnd-kit id)
 function resourceKey(r: RecommendationResource): string {
@@ -501,6 +502,8 @@ export default function Settings() {
         </div>
       </section>
 
+      <SyncSection />
+
       {/* ── Security ── */}
       <section className="card p-4 flex flex-col gap-4">
         <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>Security</p>
@@ -627,7 +630,7 @@ export default function Settings() {
 
       <Button variant="primary" onClick={handleSave}>Save Settings</Button>
 
-      <p className="text-center text-xs py-2" style={{ color: 'var(--color-text-secondary)' }}>v5.30</p>
+      <p className="text-center text-xs py-2" style={{ color: 'var(--color-text-secondary)' }}>v5.31</p>
     </div>
   )
 }

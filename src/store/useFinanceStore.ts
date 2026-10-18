@@ -735,6 +735,10 @@ export const useFinanceStore = create<FinanceState>()(
           theme: b.theme ?? 'light',
           sampleDataLoaded: b.sampleDataLoaded ?? false,
           sampleDataDismissed: b.sampleDataDismissed ?? false,
+          // Older blobs predate these fields — keep this device's values when absent
+          ...(b.appSettings && { appSettings: { ...DEFAULT_APP_SETTINGS, ...b.appSettings } }),
+          ...(b.userProfile && { userProfile: b.userProfile }),
+          ...(b.dashboardSectionOrder && { dashboardSectionOrder: b.dashboardSectionOrder }),
         })
       },
 
