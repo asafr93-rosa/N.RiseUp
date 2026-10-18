@@ -4,7 +4,7 @@ import { useFinanceStore } from '../store/useFinanceStore'
 
 const PUSH_DELAY_MS = 1500
 const RETRY_DELAY_MS = 5000
-const POLL_INTERVAL_MS = 15000
+const POLL_INTERVAL_MS = 3000
 const REQUEST_TIMEOUT_MS = 20000
 
 function timeout(): AbortSignal {
