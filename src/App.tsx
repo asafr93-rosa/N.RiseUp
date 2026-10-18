@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
-import { pullUserData, schedulePush, cancelPush } from './lib/syncService'
+import { startSync } from './lib/syncService'
 import { useFinanceStore } from './store/useFinanceStore'
 import { useAuthStore } from './store/useAuthStore'
 import BottomNav from './components/layout/BottomNav'
@@ -29,21 +29,16 @@ export default function App() {
     document.documentElement.dataset.theme = theme
   }, [theme])
 
-  // Pull data from Supabase when user logs in; push on every store change
+  // Pull from Supabase on login and on returning to the app; push on every store change
   useEffect(() => {
     if (!activeUser) {
-      cancelPush()
       syncUnsubRef.current?.()
       syncUnsubRef.current = null
       return
     }
 
-    void pullUserData(activeUser)
-
     syncUnsubRef.current?.()
-    syncUnsubRef.current = useFinanceStore.subscribe(() => {
-      schedulePush(activeUser)
-    })
+    syncUnsubRef.current = startSync(activeUser)
 
     return () => {
       syncUnsubRef.current?.()
