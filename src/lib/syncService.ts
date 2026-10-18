@@ -5,6 +5,11 @@ import { useFinanceStore } from '../store/useFinanceStore'
 const PUSH_DELAY_MS = 1500
 const RETRY_DELAY_MS = 5000
 const POLL_INTERVAL_MS = 15000
+const REQUEST_TIMEOUT_MS = 20000
+
+function timeout(): AbortSignal {
+  return AbortSignal.timeout(REQUEST_TIMEOUT_MS)
+}
 
 // Per-device bookkeeping, survives reloads
 const META_KEY = 'nriseup-sync-meta'
@@ -23,7 +28,8 @@ type Blob = Record<string, unknown>
 // ── Status store (for the Settings UI) ────────────────────────────────────────
 
 interface SyncStatus {
-  state: 'idle' | 'syncing' | 'error'
+  /** 'conflict' = this device has edits the cloud never got AND the cloud changed — user must choose */
+  state: 'idle' | 'syncing' | 'error' | 'conflict'
   lastSyncedAt: string | null
   hasBackup: boolean
   /** Message from the last failed request, shown in Settings */
@@ -134,6 +140,8 @@ export function pullUserData(username: string): Promise<void> {
 async function doPull(username: string): Promise<void> {
   // Let an in-flight push land first so we don't read back older data
   if (inflightPush) await inflightPush
+  // Waiting on the user to choose which copy to keep — don't touch either side
+  if (useSyncStatus.getState().state === 'conflict') return
 
   useSyncStatus.setState({ state: 'syncing' })
   const meta = readMeta()
@@ -143,38 +151,36 @@ async function doPull(username: string): Promise<void> {
     .from('user_data')
     .select('updated_at')
     .eq('username', username)
+    .abortSignal(timeout())
     .maybeSingle()
   if (head.error) return failPull(head.error)
   const hasRow = head.data !== null
   const remoteUpdatedAt = (head.data as { updated_at: string | null } | null)?.updated_at ?? null
+  const remoteUnchanged = sameTime(remoteUpdatedAt, meta.remoteUpdatedAt)
 
-  if (!hasRow || (meta.unsynced && meta.remoteUpdatedAt)) {
-    // No cloud copy yet, or edits made here never reached the cloud (app closed, offline) — upload
+  if (!hasRow || (meta.unsynced && remoteUnchanged)) {
+    // No cloud copy yet, or only this device changed since the last sync — upload
     ready = true
     await pushUserData(username)
     return
   }
 
-  if (sameTime(remoteUpdatedAt, meta.remoteUpdatedAt)) {
+  if (remoteUnchanged) {
     ready = true
     useSyncStatus.setState({ state: 'idle', lastError: null })
     return
   }
 
-  const { data, error } = await supabase
-    .from('user_data')
-    .select('data, updated_at')
-    .eq('username', username)
-    .maybeSingle()
-  if (error) return failPull(error)
-  const row = data as { data: Blob | null; updated_at: string } | null
-  if (!row?.data) return failPull('empty row')
-
-  // A local edit landed while downloading — keep it, it'll be pushed
-  if (pushTimer || readMeta().unsynced) {
-    ready = true
+  if (meta.unsynced || pushTimer) {
+    // Both sides changed (or this device never synced successfully) — let the user pick
+    cancelPush()
+    ready = false
+    useSyncStatus.setState({ state: 'conflict', lastError: null })
     return
   }
+
+  const row = await downloadRow(username)
+  if (!row) return
 
   if (meta.remoteUpdatedAt === null) {
     // First sync on this device: keep a copy of what was here before taking the cloud version
@@ -186,6 +192,25 @@ async function doPull(username: string): Promise<void> {
   writeMeta({ remoteUpdatedAt: row.updated_at, unsynced: false })
   ready = true
   useSyncStatus.setState({ state: 'idle', lastError: null })
+}
+
+async function downloadRow(username: string): Promise<{ data: Blob; updated_at: string } | null> {
+  const { data, error } = await supabase
+    .from('user_data')
+    .select('data, updated_at')
+    .eq('username', username)
+    .abortSignal(timeout())
+    .maybeSingle()
+  if (error) {
+    failPull(error)
+    return null
+  }
+  const row = data as { data: Blob | null; updated_at: string } | null
+  if (!row?.data) {
+    failPull('Cloud copy is empty')
+    return null
+  }
+  return { data: row.data, updated_at: row.updated_at }
 }
 
 // Postgres returns timestamps as '+00:00', we write 'Z' — compare instants, not strings
@@ -244,9 +269,10 @@ function pushUserData(username: string): Promise<void> {
       .update(row)
       .eq('username', username)
       .select('username')
+      .abortSignal(timeout())
     let error = updateError
     if (!error && (updated ?? []).length === 0) {
-      ({ error } = await supabase.from('user_data').insert({ username, ...row }))
+      ({ error } = await supabase.from('user_data').insert({ username, ...row }).abortSignal(timeout()))
     }
 
     if (error) {
@@ -271,6 +297,7 @@ function pushUserData(username: string): Promise<void> {
 export async function uploadThisDevice(): Promise<string | null> {
   if (!activeUsername) return 'Not signed in'
   ready = true
+  useSyncStatus.setState({ state: 'idle' })
   await pushUserData(activeUsername)
   return readMeta().unsynced ? (useSyncStatus.getState().lastError ?? 'Unknown error') : null
 }
@@ -281,9 +308,25 @@ export async function restoreBackup(): Promise<boolean> {
   if (!backup || !activeUsername) return false
   applyRemote(backup)
   ready = true
+  useSyncStatus.setState({ state: 'idle' })
   await pushUserData(activeUsername)
   if (readMeta().unsynced) return false
   writeBackup(null)
+  return true
+}
+
+/** Replace this device's data with the cloud copy (this device's data is kept as a backup). */
+export async function takeCloudData(): Promise<boolean> {
+  if (!activeUsername) return false
+  useSyncStatus.setState({ state: 'syncing' })
+  const row = await downloadRow(activeUsername)
+  if (!row) return false
+  cancelPush()
+  writeBackup(buildBlob())
+  applyRemote(row.data)
+  writeMeta({ remoteUpdatedAt: row.updated_at, unsynced: false })
+  ready = true
+  useSyncStatus.setState({ state: 'idle', lastError: null })
   return true
 }
 
@@ -307,7 +350,12 @@ export function startSync(username: string): () => void {
   useSyncStatus.setState({ state: 'idle', lastSyncedAt: readMeta().remoteUpdatedAt, hasBackup: readBackup() !== null })
 
   const unsubscribe = useFinanceStore.subscribe(() => {
-    if (hydrating || !ready) return
+    if (hydrating) return
+    if (!ready) {
+      // Edits made while waiting for a conflict choice still count as unsynced
+      if (useSyncStatus.getState().state === 'conflict') writeMeta({ unsynced: true })
+      return
+    }
     writeMeta({ unsynced: true })
     schedulePush(username)
   })

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { startSync } from './lib/syncService'
+import SyncConflictBanner from './components/layout/SyncConflictBanner'
 import { useFinanceStore } from './store/useFinanceStore'
 import { useAuthStore } from './store/useAuthStore'
 import BottomNav from './components/layout/BottomNav'
@@ -65,6 +66,7 @@ export default function App() {
         style={{ background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}
       >
         <TopBar />
+        <SyncConflictBanner />
         <main className="flex-1 overflow-y-auto">
           <Routes>
             <Route path="/" element={<Home />} />
