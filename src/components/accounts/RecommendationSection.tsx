@@ -1,6 +1,6 @@
 import { AlertTriangle } from 'lucide-react'
-import { formatCurrency } from '../../lib/formatters'
-import type { BankAccount, Investment, RecommendationResource } from '../../store/useFinanceStore'
+import { formatCurrency, convertAmount } from '../../lib/formatters'
+import type { BankAccount, Investment, RecommendationResource, ExchangeRates, SupportedCurrency } from '../../store/useFinanceStore'
 
 interface Props {
   accounts: BankAccount[]
@@ -9,51 +9,70 @@ interface Props {
   investments: Investment[]
   priorities: RecommendationResource[]
   minBalance: number
+  rates: ExchangeRates
 }
 
 function buildSuggestions(
-  negativeAccount: BankAccount,
+  needy: BankAccount,
   deficit: number,
   allAccounts: BankAccount[],
   effectiveBalances: Record<string, number>,
   filterMonthKey: string,
   investments: Investment[],
   priorities: RecommendationResource[],
-  minBalance: number
+  minBalance: number,
+  rates: ExchangeRates
 ): string[] {
   const suggestions: string[] = []
   let remaining = deficit
+  const usedDeposits = new Set<string>()
+
+  // Amounts below are all in ILS (effective balances are already converted)
+  const toILS = (amount: number, currency: SupportedCurrency | undefined) =>
+    convertAmount(amount, currency ?? 'ILS', 'ILS', rates)
   // What another account can give without dropping below the minimum
   const spare = (id: string) => Math.max(0, (effectiveBalances[id] ?? 0) - minBalance)
+  const depositOf = (acc: BankAccount) => toILS(acc.depositHistory?.[filterMonthKey] ?? 0, acc.currency)
+  const eligible = (acc: BankAccount | undefined): acc is BankAccount => !!acc && !acc.excludeFromRecommendations
 
   const consume = (text: string, amount: number) => {
     suggestions.push(text)
     remaining -= amount
   }
 
+  const useDeposit = (acc: BankAccount) => {
+    if (remaining <= 0 || usedDeposits.has(acc.id)) return
+    usedDeposits.add(acc.id)
+    const dep = depositOf(acc)
+    if (dep <= 0) return
+    const use = Math.min(dep, remaining)
+    consume(acc.id === needy.id
+      ? `Withdraw ${formatCurrency(use)} from your ${acc.name} deposit`
+      : `Withdraw ${formatCurrency(use)} from ${acc.name} deposit`, use)
+  }
+
+  // 1. The account's own deposit always comes first — no transfer needed
+  useDeposit(needy)
+
   if (priorities.length === 0) {
-    // Fallback: drain donors largest-first, then own deposit, then investments
+    // Fallback: drain donors largest-first, then their deposits, then investments
     const donors = allAccounts
-      .filter((a) => a.id !== negativeAccount.id && spare(a.id) > 0)
+      .filter((a) => a.id !== needy.id && eligible(a) && spare(a.id) > 0)
       .sort((a, b) => spare(b.id) - spare(a.id))
     for (const donor of donors) {
       if (remaining <= 0) break
       const use = Math.min(spare(donor.id), remaining)
       consume(`Transfer ${formatCurrency(use)} from ${donor.name}`, use)
     }
-    if (remaining > 0) {
-      const dep = negativeAccount.depositHistory?.[filterMonthKey] ?? 0
-      if (dep > 0) {
-        const use = Math.min(dep, remaining)
-        consume(`Withdraw ${formatCurrency(use)} from ${negativeAccount.name} deposit`, use)
-      }
+    for (const acc of allAccounts) {
+      if (acc.id !== needy.id && eligible(acc)) useDeposit(acc)
     }
     if (remaining > 0) {
-      const sorted = [...investments].sort((a, b) => b.currentValue - a.currentValue)
+      const sorted = [...investments].sort((a, b) => toILS(b.currentValue, b.currency) - toILS(a.currentValue, a.currency))
       for (const inv of sorted) {
         if (remaining <= 0) break
-        const use = Math.min(inv.currentValue, remaining)
-        consume(`Liquidate ${formatCurrency(use)} from ${inv.name}`, use)
+        const use = Math.min(toILS(inv.currentValue, inv.currency), remaining)
+        if (use > 0) consume(`Liquidate ${formatCurrency(use)} from ${inv.name}`, use)
       }
     }
     return suggestions
@@ -63,33 +82,30 @@ function buildSuggestions(
     if (remaining <= 0) break
 
     if (resource.type === 'account') {
-      if (resource.accountId === negativeAccount.id) continue
-      const avail = spare(resource.accountId)
-      if (avail <= 0) continue
+      if (resource.accountId === needy.id) continue
       const acc = allAccounts.find((a) => a.id === resource.accountId)
-      if (!acc) continue
+      if (!eligible(acc)) continue
+      const avail = spare(acc.id)
+      if (avail <= 0) continue
       const use = Math.min(avail, remaining)
       consume(`Transfer ${formatCurrency(use)} from ${acc.name}`, use)
     } else if (resource.type === 'deposit') {
       const acc = allAccounts.find((a) => a.id === resource.accountId)
-      if (!acc) continue
-      const dep = acc.depositHistory?.[filterMonthKey] ?? 0
-      if (dep <= 0) continue
-      const use = Math.min(dep, remaining)
-      consume(`Withdraw ${formatCurrency(use)} from ${acc.name} deposit`, use)
+      if (!eligible(acc)) continue
+      useDeposit(acc)
     } else if (resource.type === 'investment') {
       const inv = investments.find((i) => i.id === resource.investmentId)
       if (!inv) continue
-      const use = Math.min(inv.currentValue, remaining)
-      consume(`Liquidate ${formatCurrency(use)} from ${inv.name}`, use)
+      const use = Math.min(toILS(inv.currentValue, inv.currency), remaining)
+      if (use > 0) consume(`Liquidate ${formatCurrency(use)} from ${inv.name}`, use)
     }
   }
 
   return suggestions
 }
 
-export default function RecommendationSection({ accounts, effectiveBalances, filterMonthKey, investments, priorities, minBalance }: Props) {
-  const negativeAccounts = accounts.filter((a) => (effectiveBalances[a.id] ?? 0) < minBalance)
+export default function RecommendationSection({ accounts, effectiveBalances, filterMonthKey, investments, priorities, minBalance, rates }: Props) {
+  const negativeAccounts = accounts.filter((a) => !a.excludeFromRecommendations && (effectiveBalances[a.id] ?? 0) < minBalance)
 
   if (negativeAccounts.length === 0) return null
 
@@ -107,7 +123,7 @@ export default function RecommendationSection({ accounts, effectiveBalances, fil
         {negativeAccounts.map((account) => {
           const balance = effectiveBalances[account.id] ?? 0
           const shortfall = minBalance - balance
-          const suggestions = buildSuggestions(account, shortfall, accounts, effectiveBalances, filterMonthKey, investments, priorities, minBalance)
+          const suggestions = buildSuggestions(account, shortfall, accounts, effectiveBalances, filterMonthKey, investments, priorities, minBalance, rates)
 
           return (
             <div key={account.id} className="px-4 py-3 flex flex-col gap-2">

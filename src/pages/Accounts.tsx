@@ -444,6 +444,7 @@ export default function Accounts() {
         investments={investments}
         priorities={userProfile.recommendationPriorities}
         minBalance={appSettings.minAccountBalance ?? 0}
+        rates={appSettings.exchangeRates}
       />
 
       {/* ── CC transactions area ── */}

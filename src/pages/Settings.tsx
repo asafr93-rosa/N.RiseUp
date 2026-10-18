@@ -87,6 +87,7 @@ export default function Settings() {
   const userProfile = useFinanceStore((s) => s.userProfile)
   const updateUserProfile = useFinanceStore((s) => s.updateUserProfile)
   const accounts = useFinanceStore((s) => s.accounts)
+  const updateAccount = useFinanceStore((s) => s.updateAccount)
   const investments = useFinanceStore((s) => s.investments)
   const appSettings = useFinanceStore((s) => s.appSettings)
   const updateAppSettings = useFinanceStore((s) => s.updateAppSettings)
@@ -395,6 +396,27 @@ export default function Settings() {
             updateAppSettings({ minAccountBalance: Number.isFinite(v) && v > 0 ? v : 0 })
           }}
         />
+        {accounts.length > 0 && (
+          <div className="flex flex-col gap-2">
+            <label className="text-xs font-medium" style={{ color: 'var(--color-text-secondary)' }}>Include in recommendations</label>
+            {accounts.map((a) => (
+              <label key={a.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={!a.excludeFromRecommendations}
+                  onChange={() => updateAccount(a.id, { excludeFromRecommendations: !a.excludeFromRecommendations })}
+                  className="rounded"
+                />
+                <span style={{ color: a.excludeFromRecommendations ? 'var(--color-text-secondary)' : 'var(--color-text-primary)' }}>
+                  {a.name}{a.lastFourDigits ? ` ···· ${a.lastFourDigits}` : ''}
+                </span>
+              </label>
+            ))}
+            <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
+              Unchecked accounts get no suggestions and are never used as a source.
+            </p>
+          </div>
+        )}
       </section>
 
       {/* ── Currency Settings ── */}
@@ -604,7 +626,7 @@ export default function Settings() {
 
       <Button variant="primary" onClick={handleSave}>Save Settings</Button>
 
-      <p className="text-center text-xs py-2" style={{ color: 'var(--color-text-secondary)' }}>v5.19</p>
+      <p className="text-center text-xs py-2" style={{ color: 'var(--color-text-secondary)' }}>v5.20</p>
     </div>
   )
 }
