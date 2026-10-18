@@ -1,5 +1,6 @@
 import { AlertTriangle } from 'lucide-react'
 import { formatCurrency, convertAmount } from '../../lib/formatters'
+import { isExcludedFromRecommendations } from '../../lib/recommendations'
 import type { BankAccount, Investment, RecommendationResource, ExchangeRates, SupportedCurrency } from '../../store/useFinanceStore'
 
 interface Props {
@@ -33,7 +34,7 @@ function buildSuggestions(
   // What another account can give without dropping below the minimum
   const spare = (id: string) => Math.max(0, (effectiveBalances[id] ?? 0) - minBalance)
   const depositOf = (acc: BankAccount) => toILS(acc.depositHistory?.[filterMonthKey] ?? 0, acc.currency)
-  const eligible = (acc: BankAccount | undefined): acc is BankAccount => !!acc && !acc.excludeFromRecommendations
+  const eligible = (acc: BankAccount | undefined): acc is BankAccount => !!acc && !isExcludedFromRecommendations(acc)
 
   const consume = (text: string, amount: number) => {
     suggestions.push(text)
@@ -105,7 +106,7 @@ function buildSuggestions(
 }
 
 export default function RecommendationSection({ accounts, effectiveBalances, filterMonthKey, investments, priorities, minBalance, rates }: Props) {
-  const negativeAccounts = accounts.filter((a) => !a.excludeFromRecommendations && (effectiveBalances[a.id] ?? 0) < minBalance)
+  const negativeAccounts = accounts.filter((a) => !isExcludedFromRecommendations(a) && (effectiveBalances[a.id] ?? 0) < minBalance)
 
   if (negativeAccounts.length === 0) return null
 

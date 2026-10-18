@@ -24,6 +24,7 @@ import { useAuthStore } from '../store/useAuthStore'
 import { fetchLiveRates } from '../lib/exchangeRates'
 import { useCurrency } from '../hooks/useCurrency'
 import Input from '../components/ui/Input'
+import { isExcludedFromRecommendations } from '../lib/recommendations'
 import Button from '../components/ui/Button'
 
 // Stable key for a resource (for dnd-kit id)
@@ -403,17 +404,17 @@ export default function Settings() {
               <label key={a.id} className="flex items-center gap-2 text-sm cursor-pointer">
                 <input
                   type="checkbox"
-                  checked={!a.excludeFromRecommendations}
-                  onChange={() => updateAccount(a.id, { excludeFromRecommendations: !a.excludeFromRecommendations })}
+                  checked={!isExcludedFromRecommendations(a)}
+                  onChange={() => updateAccount(a.id, { includeInRecommendations: isExcludedFromRecommendations(a) })}
                   className="rounded"
                 />
-                <span style={{ color: a.excludeFromRecommendations ? 'var(--color-text-secondary)' : 'var(--color-text-primary)' }}>
+                <span style={{ color: isExcludedFromRecommendations(a) ? 'var(--color-text-secondary)' : 'var(--color-text-primary)' }}>
                   {a.name}{a.lastFourDigits ? ` ···· ${a.lastFourDigits}` : ''}
                 </span>
               </label>
             ))}
             <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
-              Unchecked accounts get no suggestions and are never used as a source.
+              Unchecked accounts get no suggestions and are never used as a source. Foreign-currency accounts start unchecked.
             </p>
           </div>
         )}
@@ -626,7 +627,7 @@ export default function Settings() {
 
       <Button variant="primary" onClick={handleSave}>Save Settings</Button>
 
-      <p className="text-center text-xs py-2" style={{ color: 'var(--color-text-secondary)' }}>v5.20</p>
+      <p className="text-center text-xs py-2" style={{ color: 'var(--color-text-secondary)' }}>v5.21</p>
     </div>
   )
 }

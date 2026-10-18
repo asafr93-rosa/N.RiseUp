@@ -78,7 +78,7 @@ export interface BankAccount {
   depositHistory: Record<string, number>   // 'YYYY-MM' → deposit entered by user
   currency: SupportedCurrency
   createdAt: string
-  excludeFromRecommendations?: boolean   // never flagged or used as a source in Account Recommendations
+  includeInRecommendations?: boolean     // unset → ILS accounts included, foreign-currency excluded
 }
 
 export interface CreditCard {
@@ -837,7 +837,7 @@ export const useFinanceStore = create<FinanceState>()(
               balanceHistory: old.balanceHistory ?? { [month]: old.balance ?? 0 },
               depositHistory: old.depositHistory ?? { [month]: old.deposit ?? 0 },
               currency: old.currency ?? 'ILS',
-              excludeFromRecommendations: (a as { excludeFromRecommendations?: boolean }).excludeFromRecommendations ?? false,
+              ...(a.includeInRecommendations !== undefined ? { includeInRecommendations: a.includeInRecommendations } : {}),
             }
           })
         }
