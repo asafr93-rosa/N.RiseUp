@@ -58,8 +58,9 @@ async function classify(descriptions: string[], categories: string[]): Promise<s
 
 export async function POST(request: Request): Promise<Response> {
   const { CAL_USERNAME, CAL_PASSWORD, CAL_SYNC_SECRET } = process.env
+  const missing = (['CAL_USERNAME', 'CAL_PASSWORD', 'CAL_SYNC_SECRET'] as const).filter((k) => !process.env[k])
   if (!CAL_USERNAME || !CAL_PASSWORD || !CAL_SYNC_SECRET) {
-    return json(500, { error: 'Cal sync is not configured on the server (missing Vercel environment variables).' })
+    return json(500, { error: `Cal sync is not configured on the server. Missing in Vercel (Production): ${missing.join(', ')}` })
   }
   if (!secretMatches(request.headers.get('x-sync-secret'), CAL_SYNC_SECRET)) {
     return json(401, { error: 'Wrong sync passcode.' })
