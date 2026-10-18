@@ -21,6 +21,8 @@ interface SyncMeta {
   remoteUpdatedAt: string | null
   /** Local edits exist that haven't reached the cloud */
   unsynced: boolean
+  /** When this device last changed data — decides which copy wins when both changed */
+  localEditedAt?: string | null
 }
 
 type Blob = Record<string, unknown>
@@ -28,8 +30,7 @@ type Blob = Record<string, unknown>
 // ── Status store (for the Settings UI) ────────────────────────────────────────
 
 interface SyncStatus {
-  /** 'conflict' = this device has edits the cloud never got AND the cloud changed — user must choose */
-  state: 'idle' | 'syncing' | 'error' | 'conflict'
+  state: 'idle' | 'syncing' | 'error'
   lastSyncedAt: string | null
   hasBackup: boolean
   /** Message from the last failed request, shown in Settings */
@@ -83,6 +84,12 @@ function writeBackup(blob: Blob | null): void {
   } catch { /* ignore */ }
   useSyncStatus.setState({ hasBackup: blob !== null })
 }
+
+const SYNCED_KEYS = [
+  'accounts', 'creditCards', 'transactions', 'importBatches', 'incomeEntries', 'recurringExpenses',
+  'assets', 'investments', 'chartWidgets', 'categoryRules', 'theme', 'sampleDataLoaded',
+  'sampleDataDismissed', 'appSettings', 'userProfile', 'dashboardSectionOrder',
+] as const
 
 /** Everything that should be identical on every device (lock/PIN settings stay per-device). */
 function buildBlob(): Blob {
@@ -140,9 +147,6 @@ export function pullUserData(username: string): Promise<void> {
 async function doPull(username: string): Promise<void> {
   // Let an in-flight push land first so we don't read back older data
   if (inflightPush) await inflightPush
-  // Waiting on the user to choose which copy to keep — don't touch either side
-  if (useSyncStatus.getState().state === 'conflict') return
-
   useSyncStatus.setState({ state: 'syncing' })
   const meta = readMeta()
 
@@ -171,16 +175,30 @@ async function doPull(username: string): Promise<void> {
     return
   }
 
-  if (meta.unsynced || pushTimer) {
-    // Both sides changed (or this device never synced successfully) — let the user pick
-    cancelPush()
-    ready = false
-    useSyncStatus.setState({ state: 'conflict', lastError: null })
-    return
-  }
-
   const row = await downloadRow(username)
   if (!row) return
+
+  if (readMeta().unsynced || pushTimer) {
+    // Both sides changed — the most recent edit wins; the other copy is kept as a backup
+    const editedAt = readMeta().localEditedAt
+    const localWins = editedAt
+      ? Date.parse(editedAt) > (Date.parse(row.updated_at) || 0)
+      // Flagged by an older version (no edit time) — compare the newest record on each side
+      : latestActivity(buildBlob()) > latestActivity(row.data)
+    if (localWins) {
+      writeBackup(row.data)
+      ready = true
+      await pushUserData(username)
+      return
+    }
+    cancelPush()
+    writeBackup(buildBlob())
+    applyRemote(row.data)
+    writeMeta({ remoteUpdatedAt: row.updated_at, unsynced: false })
+    ready = true
+    useSyncStatus.setState({ state: 'idle', lastError: null })
+    return
+  }
 
   if (meta.remoteUpdatedAt === null) {
     // First sync on this device: keep a copy of what was here before taking the cloud version
@@ -221,6 +239,19 @@ function sameTime(a: string | null, b: string | null): boolean {
 function failPull(error: unknown): void {
   console.error('[sync] pull failed', error)
   useSyncStatus.setState({ state: 'error', lastError: errorMessage(error) })
+}
+
+/** Newest createdAt across all records — a proxy for "last edited" when no edit time was recorded. */
+function latestActivity(blob: Blob): number {
+  let latest = 0
+  for (const value of Object.values(blob)) {
+    if (!Array.isArray(value)) continue
+    for (const item of value) {
+      const t = Date.parse((item as { createdAt?: string })?.createdAt ?? '')
+      if (t > latest) latest = t
+    }
+  }
+  return latest
 }
 
 /** Key-order-independent comparison (Postgres jsonb reorders object keys). */
@@ -315,21 +346,6 @@ export async function restoreBackup(): Promise<boolean> {
   return true
 }
 
-/** Replace this device's data with the cloud copy (this device's data is kept as a backup). */
-export async function takeCloudData(): Promise<boolean> {
-  if (!activeUsername) return false
-  useSyncStatus.setState({ state: 'syncing' })
-  const row = await downloadRow(activeUsername)
-  if (!row) return false
-  cancelPush()
-  writeBackup(buildBlob())
-  applyRemote(row.data)
-  writeMeta({ remoteUpdatedAt: row.updated_at, unsynced: false })
-  ready = true
-  useSyncStatus.setState({ state: 'idle', lastError: null })
-  return true
-}
-
 export function discardBackup(): void {
   writeBackup(null)
 }
@@ -349,14 +365,12 @@ export function startSync(username: string): () => void {
   ready = false
   useSyncStatus.setState({ state: 'idle', lastSyncedAt: readMeta().remoteUpdatedAt, hasBackup: readBackup() !== null })
 
-  const unsubscribe = useFinanceStore.subscribe(() => {
-    if (hydrating) return
-    if (!ready) {
-      // Edits made while waiting for a conflict choice still count as unsynced
-      if (useSyncStatus.getState().state === 'conflict') writeMeta({ unsynced: true })
-      return
-    }
-    writeMeta({ unsynced: true })
+  const unsubscribe = useFinanceStore.subscribe((state, prev) => {
+    if (hydrating || !ready) return
+    // Ignore device-only changes (lock/PIN) — only synced data counts as an edit
+    const changed = SYNCED_KEYS.some((k) => state[k] !== prev[k])
+    if (!changed) return
+    writeMeta({ unsynced: true, localEditedAt: new Date().toISOString() })
     schedulePush(username)
   })
 
